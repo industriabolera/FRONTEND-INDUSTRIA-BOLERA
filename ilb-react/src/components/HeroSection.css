@@ -1,0 +1,263 @@
+/* ============================================
+   HERO SECTION — Exact match to Elementor
+   Container = 1140px (boxed), items-middle
+   Widget spacing = 20px (margin-block-end)
+   ============================================ */
+
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  margin-top: 6.9em;
+}
+
+/* Elementor section container: min-height 100vh, items centered */
+.hero-section .hero-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* Background with Ken Burns */
+.hero-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.hero-bg-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  animation: kenBurns 20s ease-in-out infinite alternate;
+}
+
+@keyframes kenBurns {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+
+/* Boxed content container — 1140px like Elementor */
+.hero-content {
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* Column wrapper — Elementor column-gap-default adds 10px padding */
+.hero-widget-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 10px;
+}
+
+/* Each widget gets 20px bottom margin (Elementor default) */
+.hero-widget {
+  margin-block-end: 20px;
+}
+
+.hero-widget:last-child {
+  margin-block-end: 0;
+}
+
+/* === Dots image widget === */
+.hero-widget-dots {
+  text-align: center;
+}
+
+.hero-dots-img {
+  width: 30%;
+  height: auto;
+}
+
+/* === FABRICAMOS widget === */
+.hero-widget-fabricamos .hero-widget-container {
+  margin: -20px 0 0 0;
+  text-align: center;
+}
+
+.hero-fabricamos {
+  font-family: 'Yeseva One', cursive;
+  font-size: 70px;
+  font-weight: 400;
+  color: #E4D28D;
+  letter-spacing: 25px;
+  line-height: 1;
+  margin: 0;
+  text-indent: 25px;
+}
+
+/* === DIVERSIÓN widget === */
+.hero-widget-diversion .hero-widget-container {
+  margin: -15px 300px 0 300px;
+  padding: 20px 0 20px 30px;
+  border: 1px solid #E68007;
+  text-align: center;
+}
+
+.hero-diversion {
+  font-family: 'Yeseva One', cursive;
+  font-size: 36px;
+  font-weight: 400;
+  color: #E68007;
+  letter-spacing: 25px;
+  line-height: 1;
+  margin: 0;
+  text-indent: 25px;
+}
+
+/* === Animated headline widget === */
+.hero-widget-headline .hero-widget-container {
+  margin: 24px 0 0 0;
+}
+
+.hero-headline {
+  font-family: 'Yeseva One', cursive;
+  font-size: 20px;
+  font-weight: 300;
+  color: #E4D28D;
+  line-height: 1.6;
+  margin: 0;
+  text-align: center;
+}
+
+.hero-plain-text {
+  color: #E4D28D;
+  font-size: 2em;
+}
+
+.hero-dynamic-text {
+  position: relative;
+  display: inline-block;
+  font-size: 3em;
+}
+
+.hero-highlight {
+  color: #D83F36;
+  font-family: 'Yeseva One', cursive;
+  font-weight: 300;
+}
+
+.hero-underline-svg {
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 24px;
+  fill: none;
+  stroke: #D83F36;
+  stroke-width: 30;
+  stroke-linecap: round;
+  animation: drawLine 1.2s ease-in-out forwards;
+  animation-delay: 0.5s;
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+}
+
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
+}
+
+/* === Button widget === */
+.hero-widget-cta {
+  text-align: center;
+}
+
+.hero-btn {
+  display: inline-block;
+  background-color: #D83F36;
+  color: #E4D28D;
+  font-family: 'Yeseva One', cursive;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 5.5px;
+  border-radius: 33px;
+  padding: 12px 24px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  text-indent: 5.5px;
+  line-height: 1;
+}
+
+.hero-btn:hover {
+  background-color: #E68007;
+  color: #E4D28D;
+  transform: scale(1.1);
+}
+
+/* ===== Tablet (max-width: 1024px) ===== */
+@media (max-width: 1024px) {
+  .hero-section .hero-container {
+    min-height: 63vh;
+    padding: 24px;
+  }
+
+  .hero-content {
+    max-width: 1024px;
+  }
+
+  .hero-widget-fabricamos .hero-widget-container {
+    margin: -22px 0 -27px 0;
+  }
+
+  .hero-fabricamos {
+    font-size: 83px;
+    letter-spacing: 7.9px;
+    text-indent: 7.9px;
+  }
+
+  .hero-widget-diversion .hero-widget-container {
+    margin: 0 100px 0 100px;
+  }
+
+  .hero-widget-headline .hero-widget-container {
+    margin: -1px 0 0 0;
+  }
+
+  .hero-btn {
+    font-size: 17px;
+    letter-spacing: 0;
+    text-indent: 0;
+  }
+}
+
+/* ===== Mobile (max-width: 767px) ===== */
+@media (max-width: 767px) {
+  .hero-section .hero-container {
+    min-height: 65vh;
+  }
+
+  .hero-content {
+    max-width: 767px;
+  }
+
+  .hero-dots-img {
+    width: 31%;
+  }
+
+  .hero-fabricamos {
+    font-size: 37px;
+    letter-spacing: 2.9px;
+    text-indent: 2.9px;
+  }
+
+  .hero-widget-diversion .hero-widget-container {
+    margin: 9px 20px 20px 20px;
+    padding: 0;
+  }
+
+  .hero-diversion {
+    font-size: 26px;
+    letter-spacing: 8.8px;
+    text-indent: 8.8px;
+  }
+}

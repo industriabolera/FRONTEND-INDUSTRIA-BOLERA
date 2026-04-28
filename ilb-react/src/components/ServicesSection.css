@@ -1,0 +1,228 @@
+/* ============================================
+   SERVICES SPACER (Texture + gradient overlay)
+   ============================================ */
+.services-spacer {
+  position: relative;
+  background-image: url('/images/FondoTextura_Bolera.png');
+  background-position: center center;
+  background-size: 150% auto;
+}
+
+.services-spacer-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(180deg, transparent 0%, #000000 100%);
+  opacity: 1;
+}
+
+.services-spacer-inner {
+  height: 120px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================
+   SERVICES SECTION (3 columns full-width)
+   ============================================ */
+.services-section {
+  display: flex;
+  width: 100%;
+}
+
+.service-card {
+  flex: 1;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  position: relative;
+}
+
+.service-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #070707;
+  opacity: 0.3;
+}
+
+.service-strikes {
+  background-image: url('/images/3-3.png');
+}
+
+.service-menu {
+  background-image: url('/images/servicios-2.png');
+  background-size: cover;
+}
+
+.service-celebraciones {
+  background-image: url('/images/2-3.png');
+}
+
+.service-card-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 100px 40px;
+}
+
+.service-spacer-top {
+  height: 50px;
+}
+
+.service-spacer-bottom {
+  height: 50px;
+}
+
+.service-title1 {
+  font-family: 'Yeseva One', cursive;
+  font-size: 42px;
+  font-weight: 400;
+  color: #E4D28D;
+  margin-bottom: 0;
+}
+
+.service-title2 {
+  font-family: 'Calligraffitti', cursive;
+  font-size: 50px;
+  font-weight: 300;
+  color: #D83F36;
+  margin-top: -15px;
+  margin-bottom: 0;
+  letter-spacing: 2px;
+  line-height: 1.2;
+}
+
+.service-description {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: #E4D28D;
+  margin-bottom: 0;
+  padding: 0 20px;
+  line-height: 27px;
+  letter-spacing: 5px;
+}
+
+.service-cta {
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* Card 1: Strikes - Green button */
+.service-strikes .service-cta .elementor-button {
+  background-color: #80AD80;
+  color: #1A1A1A;
+  font-family: 'Yeseva One', cursive;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 5.5px;
+  border-radius: 33px;
+}
+
+.service-strikes .service-cta .elementor-button:hover {
+  background-color: #E68007;
+}
+
+/* Card 2: Menu - Red button */
+.service-menu .service-cta .elementor-button {
+  background-color: #D83F36;
+  color: #E4D28D;
+  font-family: 'Yeseva One', cursive;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 5.5px;
+  border-radius: 33px;
+}
+
+.service-menu .service-cta .elementor-button:hover {
+  background-color: #E68007;
+}
+
+/* Card 3: Celebraciones - Orange button */
+.service-celebraciones .service-cta .elementor-button {
+  background-color: #E68007;
+  color: #1A1A1A;
+  font-family: 'Yeseva One', cursive;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 5.5px;
+  border-radius: 33px;
+}
+
+.service-celebraciones .service-cta .elementor-button:hover {
+  background-color: #E4D28D;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .service-card-inner {
+    padding: 40px 20px;
+  }
+
+  .service-title1 {
+    font-size: 26px;
+  }
+
+  .service-title2 {
+    font-size: 32px;
+    margin-top: -15px;
+  }
+
+  .service-description {
+    font-size: 17px;
+    letter-spacing: 0.7px;
+    padding: 0;
+  }
+
+  .service-cta .elementor-button {
+    font-size: 17px !important;
+    letter-spacing: 0px !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .services-section {
+    flex-direction: column;
+  }
+
+  .services-spacer-inner {
+    height: 25px;
+  }
+
+  .service-card-inner {
+    padding: 60px 20px;
+  }
+
+  .service-spacer-top {
+    height: 10px;
+  }
+
+  .service-spacer-bottom {
+    height: 10px;
+  }
+
+  .service-title1 {
+    font-size: 30px;
+  }
+
+  .service-title2 {
+    font-size: 32px;
+  }
+
+  .service-description {
+    font-size: 18px;
+    line-height: 1.2em;
+  }
+
+  .service-cta .elementor-button {
+    font-size: 17px !important;
+    letter-spacing: 0px !important;
+  }
+}

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sonda PlaceToPay — Resolve Pending Payments</title>
+<style>
+  body { background:#1a1a2e; color:#fff; font-family:'Segoe UI',monospace; padding:40px; margin:0; }
+  .container { max-width:700px; margin:0 auto; }
+  h1 { color:#e4d28d; font-size:24px; margin-bottom:8px; }
+  .subtitle { color:#888; font-size:14px; margin-bottom:24px; }
+  .card { background:#111; border:1px solid #333; border-radius:12px; padding:24px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
+  .stat { background:#1e1e3a; padding:16px; border-radius:8px; text-align:center; }
+  .stat-number { font-size:32px; font-weight:bold; }
+  .stat-label { font-size:12px; color:#888; margin-top:4px; }
+  .gold { color:#e4d28d; }
+  .green { color:#4ade80; }
+  .yellow { color:#f59e0b; }
+  .red { color:#ef4444; }
+  .divider { border-top:1px solid #333; padding-top:16px; }
+  .meta { color:#888; font-size:12px; margin:2px 0; }
+  .json-block { margin-top:16px; background:#0d0d1a; border-radius:8px; padding:16px; }
+  .json-label { color:#666; font-size:11px; margin-bottom:8px; }
+  pre { color:#4ade80; font-size:13px; white-space:pre-wrap; margin:0; }
+  .footer { color:#555; font-size:11px; margin-top:16px; text-align:center; }
+  .badge { display:inline-block; background:#1e3a1e; color:#4ade80; padding:4px 12px; border-radius:6px; font-size:12px; font-weight:bold; margin-bottom:16px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🔄 Sonda PlaceToPay — Resolve Pending Payments</h1>
+  <p class="subtitle">Endpoint: POST https://ilb-reservas.netlify.app/api/payment/resolve-pending</p>
+  <span class="badge">✅ HTTP 200 OK</span>
+  <div class="card">
+    <div class="grid">
+      <div class="stat">
+        <div class="stat-number gold">0</div>
+        <div class="stat-label">Total pendientes encontradas</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number green">0</div>
+        <div class="stat-label">Resueltas (actualizadas en BD)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number yellow">0</div>
+        <div class="stat-label">Aún pendientes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-number red">0</div>
+        <div class="stat-label">Errores</div>
+      </div>
+    </div>
+    <div class="divider">
+      <p class="meta">📅 Ejecutado: 2026-04-16T17:15:54.821Z (12:15 PM hora Colombia)</p>
+      <p class="meta">🌐 HTTP Status: 200 OK</p>
+      <p class="meta">⏰ Schedule: 0 8 * * * (cada 24h a las 3:00 AM COL)</p>
+    </div>
+    <div class="json-block">
+      <p class="json-label">Response JSON:</p>
+      <pre>{
+  "total": 0,
+  "resolved": 0,
+  "stillPending": 0,
+  "errors": 0,
+  "results": [],
+  "executedAt": "2026-04-16T17:15:54.821Z"
+}</pre>
+    </div>
+  </div>
+  <p class="footer">Netlify Scheduled Function · payment-resolve-pending · ilb-reservas.netlify.app</p>
+</div>
+</body>
+</html>

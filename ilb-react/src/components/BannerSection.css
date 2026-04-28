@@ -1,0 +1,40 @@
+/* ============================================
+   BANNER SECTION - Red background, gold text
+   ============================================ */
+
+.banner-section {
+  background-color: #D83F36;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.banner-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #E4D28D;
+  line-height: 27px;
+  letter-spacing: 5px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 5px;
+}
+
+.banner-title strong {
+  color: #E4D28D;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .banner-section {
+    padding: 9px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .banner-title {
+    line-height: 1.4em;
+    letter-spacing: 3.4px;
+  }
+}

@@ -1,0 +1,934 @@
+/* ============================================
+   ADMIN PAGE
+   ============================================ */
+
+.admin-page {
+  background: #111;
+  min-height: 100vh;
+  padding-top: 100px;
+}
+
+/* ============================================
+   LOGIN
+   ============================================ */
+
+.admin-login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 200px);
+  padding: 20px;
+}
+
+.admin-login-card {
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 48px 40px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+}
+
+.admin-login-header {
+  margin-bottom: 32px;
+}
+
+.admin-login-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+}
+
+.admin-login-header h1 {
+  font-family: 'Yeseva One', cursive;
+  font-size: 1.6rem;
+  color: #e4d28d;
+  margin-bottom: 8px;
+}
+
+.admin-login-header p {
+  font-size: 14px;
+  color: rgba(255,255,255,0.4);
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.admin-input-group i {
+  color: rgba(255,255,255,0.3);
+  font-size: 16px;
+}
+
+.admin-input-group input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+}
+
+.admin-input-group input::placeholder {
+  color: rgba(255,255,255,0.25);
+}
+
+.admin-login-error {
+  color: #d83f36;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.admin-login-btn {
+  background: #d83f36;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.admin-login-btn:hover {
+  background: #c23530;
+  box-shadow: 0 4px 20px rgba(216,63,54,0.4);
+}
+
+/* ============================================
+   ADMIN LAYOUT
+   ============================================ */
+
+.admin-container {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: calc(100vh - 100px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  background: #161616;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 24px 0;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 100px;
+  height: calc(100vh - 100px);
+}
+
+.admin-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 16px;
+}
+
+.admin-sidebar-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.admin-sidebar-title {
+  font-family: 'Yeseva One', cursive;
+  font-size: 1.1rem;
+  color: #e4d28d;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 12px;
+  flex: 1;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  color: rgba(255,255,255,0.5);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.admin-nav-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.8);
+}
+
+.admin-nav-item.active {
+  background: rgba(216,63,54,0.12);
+  color: #d83f36;
+}
+
+.admin-nav-item i {
+  width: 20px;
+  text-align: center;
+  font-size: 15px;
+}
+
+.admin-nav-badge {
+  margin-left: auto;
+  background: rgba(228,210,141,0.15);
+  color: #e4d28d;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.admin-logout-btn {
+  margin: 16px 12px 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: transparent;
+  border-radius: 10px;
+  color: rgba(255,255,255,0.35);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.admin-logout-btn:hover {
+  border-color: #d83f36;
+  color: #d83f36;
+}
+
+/* Main content */
+.admin-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-topbar {
+  padding: 24px 32px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.02);
+}
+
+.admin-page-title {
+  font-family: 'Yeseva One', cursive;
+  font-size: 1.5rem;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-page-title i {
+  color: #e4d28d;
+  font-size: 20px;
+}
+
+.admin-content {
+  padding: 32px;
+  flex: 1;
+}
+
+/* ============================================
+   PANELS (shared across admin tabs)
+   ============================================ */
+
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-panel-desc {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+/* Form Fields */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-field-flex {
+  flex: 1;
+}
+
+.admin-field-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.3px;
+}
+
+.admin-field-desc {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 4px;
+}
+
+.admin-input {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.admin-input:focus {
+  border-color: #e4d28d;
+}
+
+.admin-input::placeholder {
+  color: rgba(255,255,255,0.2);
+}
+
+select.admin-input {
+  cursor: pointer;
+}
+
+.admin-input-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-input-prefix {
+  color: #e4d28d;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.admin-input-suffix {
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-field-current {
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+}
+
+/* Form rows */
+.admin-form-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-form-row-2 > .admin-field { flex: 1; min-width: 200px; }
+.admin-form-row-3 > .admin-field { flex: 1; min-width: 150px; }
+
+.admin-form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* Buttons */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.admin-btn-primary {
+  background: #d83f36;
+  color: #fff;
+}
+
+.admin-btn-primary:hover {
+  background: #c23530;
+  box-shadow: 0 4px 16px rgba(216,63,54,0.3);
+}
+
+.admin-btn-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.admin-btn-icon:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.admin-btn-danger:hover {
+  background: rgba(216,63,54,0.15);
+  border-color: #d83f36;
+  color: #d83f36;
+}
+
+.admin-saved-msg {
+  color: #4caf50;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Days grid */
+.admin-dias-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-dia-chip {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.5);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-dia-chip:hover {
+  border-color: rgba(228,210,141,0.3);
+  color: #e4d28d;
+}
+
+.admin-dia-chip.active {
+  background: rgba(216,63,54,0.12);
+  border-color: #d83f36;
+  color: #d83f36;
+}
+
+/* Hours grid */
+.admin-horas-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.admin-hora-chip {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.03);
+  color: rgba(255,255,255,0.5);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.admin-hora-chip:hover {
+  border-color: rgba(228,210,141,0.3);
+}
+
+.admin-hora-chip.active {
+  background: rgba(216,63,54,0.12);
+  border-color: #d83f36;
+  color: #d83f36;
+}
+
+/* Radio */
+.admin-radio-group {
+  display: flex;
+  gap: 20px;
+}
+
+.admin-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.6);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.admin-radio input {
+  accent-color: #d83f36;
+}
+
+/* ============================================
+   CARDS & LIST
+   ============================================ */
+
+.admin-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  transition: border-color 0.2s ease;
+}
+
+.admin-card:hover {
+  border-color: rgba(255,255,255,0.12);
+}
+
+.admin-promo-card,
+.admin-bloqueo-card,
+.admin-reserva-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  gap: 16px;
+}
+
+.admin-promo-card.inactive {
+  opacity: 0.5;
+}
+
+.admin-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-card-title {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff;
+}
+
+.admin-card-desc {
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-card-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.admin-card-meta span {
+  font-size: 12px;
+  color: rgba(255,255,255,0.35);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-card-meta i {
+  color: #e4d28d;
+  font-size: 11px;
+}
+
+.admin-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Badges */
+.admin-badge {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+
+.badge-green { background: rgba(76,175,80,0.15); color: #4caf50; }
+.badge-gray { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); }
+.badge-red { background: rgba(216,63,54,0.15); color: #d83f36; }
+.badge-blue { background: rgba(66,133,244,0.15); color: #4285f4; }
+
+/* Date group */
+.admin-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-date-heading {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.admin-date-heading i {
+  color: #e4d28d;
+}
+
+.admin-date-count {
+  margin-left: auto;
+  font-weight: 500;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+}
+
+/* Empty state */
+.admin-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255,255,255,0.2);
+}
+
+.admin-empty i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.admin-empty p {
+  font-size: 15px;
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ============================================
+   SECTION BLOCKS & HORARIOS
+   ============================================ */
+
+.admin-section-block {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-section-heading {
+  font-family: 'Yeseva One', cursive;
+  font-size: 1.2rem;
+  color: #e4d28d;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-section-heading i {
+  font-size: 18px;
+}
+
+.admin-horarios-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.admin-horario-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-horario-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+}
+
+.admin-horario-header i {
+  color: #e4d28d;
+  font-size: 16px;
+}
+
+.admin-horario-fields {
+  display: flex;
+  gap: 12px;
+}
+
+.admin-horario-fields .admin-field {
+  flex: 1;
+}
+
+@media (max-width: 921px) {
+  .admin-horarios-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-section-block {
+    padding: 20px 16px;
+  }
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 921px) {
+  .admin-container {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 16px 0;
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+    padding: 0 12px;
+  }
+
+  .admin-nav-item {
+    white-space: nowrap;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .admin-logout-btn {
+    margin: 12px 12px 0;
+  }
+
+  .admin-content {
+    padding: 24px 16px;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-horas-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 544px) {
+  .admin-page {
+    padding-top: 80px;
+  }
+
+  .admin-horas-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ─── 2×1 Info box in promo form ───────────────────────────── */
+.admin-promo-2x1-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(46, 125, 50, 0.1);
+  border: 1px solid rgba(46, 125, 50, 0.25);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+.admin-promo-2x1-info > i {
+  color: #81c784;
+  font-size: 1.2rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.admin-promo-2x1-info strong {
+  color: #81c784;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.admin-promo-2x1-info p {
+  margin: 0 0 6px;
+}
+
+.admin-promo-2x1-example {
+  color: rgba(228, 210, 141, 0.8);
+  font-style: italic;
+  font-size: .82rem;
+}
+
+/* ─── FloorPlan inside admin ───────────────────────────────── */
+.admin-floorplan-wrapper {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.admin-floorplan-wrapper .fp-wrapper {
+  max-width: 100%;
+}
+
+.admin-floorplan-wrapper .fp-scroll {
+  overflow-x: auto;
+}
+
+.admin-pistas-count {
+  color: #e4d28d;
+  font-weight: 600;
+}
+
+/* ─── Date range info + bloqueo summary ────────────────────── */
+.admin-date-range-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(228, 210, 141, 0.08);
+  border: 1px solid rgba(228, 210, 141, 0.2);
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: #e4d28d;
+  font-size: .88rem;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.admin-date-range-info i {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.admin-bloqueo-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(216, 63, 54, 0.08);
+  border: 1px solid rgba(216, 63, 54, 0.2);
+  border-radius: 8px;
+  padding: 10px 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: .88rem;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.admin-bloqueo-summary i {
+  color: #d83f36;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.admin-bloqueo-summary b {
+  color: #e4d28d;
+}

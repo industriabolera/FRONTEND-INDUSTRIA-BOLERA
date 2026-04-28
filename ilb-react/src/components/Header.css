@@ -1,0 +1,242 @@
+/* ============================================
+   HEADER — Exact match to Astra theme
+   ============================================ */
+
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 999;
+  transition: all 0.2s linear;
+}
+
+/* Primary bar */
+.ast-primary-header-bar {
+  background-color: #1a1a1a;
+  border-bottom: 5px solid #d83f36;
+  display: block;
+}
+
+/* Grid row container — centers content, max 1240px */
+.site-primary-header-wrap {
+  display: grid;
+  align-content: center;
+  min-height: 70px;
+  max-height: 130px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Grid row — 2 columns: logo auto, right fills rest */
+.ast-builder-grid-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  grid-column-gap: 20px;
+}
+
+/* Left section */
+.site-header-section-left {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  min-height: 0;
+  flex-wrap: nowrap;
+}
+
+.site-branding {
+  display: flex;
+  align-items: center;
+}
+
+.custom-logo-link img {
+  max-width: 87px;
+  height: auto;
+  transition: all 0.2s linear;
+}
+
+/* Right section — flex-end pushes nav+ticket to right */
+.site-header-section-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  min-height: 0;
+  flex-wrap: nowrap;
+}
+
+/* Nav */
+.desktop-nav {
+  display: flex;
+  align-items: center;
+}
+
+.main-navigation {
+  display: flex;
+  align-items: center;
+}
+
+.main-header-bar-alignment {
+  height: 100%;
+}
+
+.main-header-menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.main-header-menu .menu-item {
+  display: flex;
+  align-items: center;
+  line-height: 70px;
+}
+
+.main-header-menu .menu-link {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.6em;
+  font-family: 'Yeseva One', cursive;
+  font-size: 17px;
+  color: #e4d28d;
+  text-decoration: none;
+  position: relative;
+  transition: color 0.3s ease;
+  white-space: nowrap;
+}
+
+.main-header-menu .menu-link:hover {
+  color: #d83f36;
+}
+
+/* Underline hover effect — Astra style */
+.main-header-menu .menu-link::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  right: 50%;
+  bottom: 0;
+  height: 1px;
+  background-color: transparent;
+  transform: scale(0, 0) translate(-50%, 0);
+  transition: transform 0.3s ease-in-out, color 0s ease-in-out;
+}
+
+.main-header-menu .menu-link:hover::before {
+  width: calc(100% - 1.2em);
+  background-color: currentColor;
+  transform: scale(1, 1) translate(50%, 0);
+}
+
+/* Ticket image */
+.header-ticket {
+  flex-shrink: 0;
+  padding: 0 0 0 10px;
+}
+
+.header-ticket a {
+  display: block;
+}
+
+.header-ticket img {
+  width: 243px;
+  height: auto;
+  display: block;
+  position: relative;
+  top: 30px;
+}
+
+/* Mobile Toggle */
+.mobile-toggle {
+  display: none;
+}
+
+.menu-toggle {
+  background: transparent;
+  border: none;
+  color: #e4d28d;
+  cursor: pointer;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: #e4d28d;
+}
+
+/* Mobile Menu */
+.mobile-menu-content {
+  background-color: #1a1a1a;
+  padding: 10px 20px 20px;
+}
+
+.mobile-header-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mobile-header-menu .menu-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-header-menu .menu-link {
+  display: block;
+  padding: 12px 0;
+  font-family: 'Yeseva One', cursive;
+  font-size: 18px;
+  color: #e4d28d;
+  text-decoration: none;
+  line-height: 3;
+}
+
+.mobile-header-menu .menu-link:hover {
+  color: #d83f36;
+}
+
+/* Sticky states */
+.ast-header-sticked .ast-primary-header-bar {
+  background: rgba(0, 0, 0, 0.77);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.ast-sticky-shrunk .site-primary-header-wrap {
+  min-height: 60px;
+}
+
+.ast-sticky-shrunk .main-header-menu .menu-item {
+  line-height: 60px;
+}
+
+.ast-sticky-shrunk .custom-logo-link img {
+  max-width: 60px;
+}
+
+/* Responsive */
+@media (max-width: 921px) {
+  .desktop-nav {
+    display: none;
+  }
+
+  .mobile-toggle {
+    display: flex;
+  }
+
+  .ast-primary-header-bar {
+    display: grid;
+  }
+}
+
+@media (max-width: 544px) {
+  .custom-logo-link img {
+    max-width: 141px;
+  }
+}

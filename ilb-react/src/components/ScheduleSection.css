@@ -1,0 +1,196 @@
+/* ============================================
+   SCHEDULE / HORARIOS SECTION
+   ============================================ */
+
+.schedule-section {
+  background-image: url('/images/Fondo_BrickTile_Industria.jpg');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  min-height: 586px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 1025px) {
+  .schedule-section {
+    background-attachment: fixed;
+  }
+}
+
+.schedule-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 60px 20px;
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.schedule-subtitle {
+  font-family: 'Yeseva One', cursive;
+  font-size: 28px;
+  font-weight: 400;
+  color: #E68007;
+  letter-spacing: 25px;
+  margin-bottom: 0;
+}
+
+.schedule-title {
+  font-family: 'Yeseva One', cursive;
+  font-size: 70px;
+  font-weight: 400;
+  color: #E4D28D;
+  letter-spacing: 10px;
+  margin-top: -10px;
+  margin-bottom: 40px;
+}
+
+.schedule-grid {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.schedule-day {
+  flex: 1;
+  max-width: 140px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.schedule-circle {
+  width: 76px;
+  height: 76px;
+  border: 2px solid #E4D28D;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.schedule-day:hover .schedule-circle {
+  transform: scale(1.1);
+}
+
+.schedule-day-letter {
+  font-family: 'Yeseva One', cursive;
+  font-size: 42px;
+  font-weight: 400;
+  color: #E4D28D;
+  line-height: 1;
+}
+
+.schedule-hours {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #E4D28D;
+  line-height: 1.4;
+  letter-spacing: 3px;
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+.schedule-divider {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.schedule-divider-line {
+  display: block;
+  width: 30px;
+  height: 4px;
+  border-radius: 0;
+}
+
+/* Divider colors per day */
+.schedule-day-0 .schedule-divider-line,
+.schedule-day-1 .schedule-divider-line,
+.schedule-day-2 .schedule-divider-line {
+  background-color: #80AD80;
+}
+
+.schedule-day-3 .schedule-divider-line {
+  background-color: #E68007;
+}
+
+.schedule-day-4 .schedule-divider-line,
+.schedule-day-5 .schedule-divider-line,
+.schedule-day-6 .schedule-divider-line {
+  background-color: #D83F36;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .schedule-hours {
+    font-size: 14px;
+    letter-spacing: 0.9px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .schedule-section {
+    padding: 24px;
+  }
+
+  .schedule-subtitle {
+    font-size: 17px;
+    letter-spacing: 10px;
+  }
+
+  .schedule-title {
+    font-size: 43px;
+    letter-spacing: 5.4px;
+    margin-top: -5px;
+    margin-bottom: 20px;
+  }
+
+  .schedule-grid {
+    flex-wrap: wrap;
+    gap: 20px 0;
+  }
+
+  .schedule-day {
+    flex: 0 0 calc(100% / 4);
+    max-width: calc(100% / 4);
+  }
+
+  .schedule-circle {
+    width: 60px;
+    height: 60px;
+  }
+
+  .schedule-day-letter {
+    font-size: 32px;
+  }
+
+  .schedule-hours {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .schedule-day {
+    flex: 0 0 calc(100% / 4);
+    max-width: calc(100% / 4);
+  }
+
+  .schedule-circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .schedule-day-letter {
+    font-size: 26px;
+  }
+}

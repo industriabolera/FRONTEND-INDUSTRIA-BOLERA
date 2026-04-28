@@ -1,0 +1,17 @@
+/* ============================================
+   APP LAYOUT
+   ============================================ */
+
+.site {
+  overflow-x: hidden;
+  position: relative;
+}
+
+.site-content {
+  margin-top: 0;
+}
+
+.site-main {
+  margin: 0;
+  padding: 0;
+}

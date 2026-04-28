@@ -1,0 +1,492 @@
+/* ============================================
+   FLOOR PLAN — Interactive Bowling Alley Map
+   Paired lanes with shared tables and ball returns
+   ============================================ */
+
+.fp-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Legend */
+.fp-legend {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.fp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+}
+
+.fp-legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.fp-legend-available {
+  background: #5a4020;
+  border: 2px solid rgba(228, 210, 141, 0.3);
+}
+
+.fp-legend-selected {
+  background: #d83f36;
+  border: 2px solid #d83f36;
+  box-shadow: 0 0 8px rgba(216, 63, 54, 0.5);
+}
+
+.fp-legend-blocked {
+  background: #333;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+.fp-legend-blocked::after {
+  content: '×';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d83f36;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Scroll & SVG */
+.fp-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 0;
+}
+
+.fp-svg {
+  width: 100%;
+  min-width: 580px;
+  height: auto;
+  display: block;
+}
+
+.fp-hint {
+  text-align: center;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.fp-hint i {
+  color: #e4d28d;
+  margin-right: 6px;
+}
+
+/* ============================================
+   SVG BASE
+   ============================================ */
+
+.fp-bg {
+  fill: #0e0e0e;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 1;
+}
+
+/* ============================================
+   AMENITIES (left side)
+   ============================================ */
+
+.fp-amenity-box {
+  fill: rgba(228, 210, 141, 0.04);
+  stroke: rgba(228, 210, 141, 0.1);
+  stroke-width: 0.5;
+}
+
+.fp-amenity-title {
+  fill: rgba(228, 210, 141, 0.55);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 8px;
+  font-weight: 800;
+  text-anchor: middle;
+  letter-spacing: 1.5px;
+}
+
+.fp-amenity-vert {
+  fill: rgba(228, 210, 141, 0.45);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 7px;
+  font-weight: 800;
+  text-anchor: middle;
+  letter-spacing: 1px;
+}
+
+.fp-banos {
+  fill: rgba(255, 255, 255, 0.03);
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.fp-table {
+  fill: rgba(228, 210, 141, 0.08);
+  stroke: rgba(228, 210, 141, 0.12);
+  stroke-width: 0.4;
+}
+
+.fp-isla {
+  fill: none;
+  stroke: rgba(228, 210, 141, 0.25);
+  stroke-width: 1;
+}
+
+.fp-isla-text {
+  fill: rgba(228, 210, 141, 0.5);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 7px;
+  font-weight: 800;
+  text-anchor: middle;
+  letter-spacing: 1px;
+}
+
+/* ============================================
+   SEPARATORS & LABELS
+   ============================================ */
+
+.fp-separator {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 0.5;
+  stroke-dasharray: 4 3;
+}
+
+.fp-zone-label {
+  fill: rgba(255, 255, 255, 0.2);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 5.5px;
+  font-weight: 700;
+  text-anchor: middle;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+   PAIR MESA (shared table for paired lanes)
+   ============================================ */
+
+.fp-mesa {
+  fill: rgba(228, 210, 141, 0.1);
+  stroke: rgba(228, 210, 141, 0.18);
+  stroke-width: 0.6;
+  transition: all 0.25s ease;
+}
+
+.fp-mesa-num {
+  fill: #e4d28d;
+  font-family: 'Yeseva One', cursive;
+  font-size: 12px;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  transition: fill 0.25s ease;
+}
+
+.fp-mesa-label {
+  fill: rgba(228, 210, 141, 0.4);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 5px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.5px;
+}
+
+.fp-mesa-divider {
+  stroke: rgba(228, 210, 141, 0.15);
+  stroke-width: 0.4;
+}
+
+.fp-pair-mesa.selected .fp-mesa {
+  fill: rgba(216, 63, 54, 0.15);
+  stroke: #d83f36;
+  stroke-width: 1;
+}
+
+.fp-pair-mesa.selected .fp-mesa-num {
+  fill: #d83f36;
+}
+
+.fp-pair-mesa.selected .fp-mesa-label {
+  fill: rgba(216, 63, 54, 0.6);
+}
+
+.fp-pair-mesa.selected .fp-mesa-divider {
+  stroke: rgba(216, 63, 54, 0.3);
+}
+
+/* ============================================
+   BALL RETURN (between paired lanes)
+   ============================================ */
+
+.fp-ball-return {
+  fill: rgba(30, 30, 30, 0.9);
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 0.4;
+}
+
+.fp-return-box {
+  fill: rgba(228, 210, 141, 0.06);
+  stroke: rgba(228, 210, 141, 0.18);
+  stroke-width: 0.5;
+}
+
+.fp-return-ball {
+  fill: #c4a035;
+  opacity: 0.7;
+}
+
+.fp-return-box-label {
+  fill: rgba(228, 210, 141, 0.4);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 4px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.5px;
+}
+
+.fp-return-label {
+  fill: rgba(255, 255, 255, 0.10);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 4px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.8px;
+}
+
+/* ============================================
+   LANE ELEMENTS
+   ============================================ */
+
+.fp-lane {
+  cursor: pointer;
+  outline: none;
+}
+
+.fp-lane.blocked {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.fp-lane.blocked .fp-pista { fill: #222; }
+
+/* Approach */
+.fp-approach {
+  fill: rgba(255, 255, 255, 0.025);
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 0.4;
+  transition: all 0.25s ease;
+}
+
+.fp-lane:hover .fp-approach {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+.fp-lane.selected .fp-approach {
+  fill: rgba(216, 63, 54, 0.04);
+  stroke: rgba(216, 63, 54, 0.15);
+}
+
+.fp-approach-text {
+  fill: rgba(255, 255, 255, 0.1);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 4.5px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 1px;
+}
+
+/* Canals */
+.fp-canal {
+  fill: #151515;
+  stroke: rgba(255, 255, 255, 0.04);
+  stroke-width: 0.3;
+}
+
+.fp-lane.selected .fp-canal {
+  fill: #1a1210;
+  stroke: rgba(216, 63, 54, 0.15);
+}
+
+/* Lane surface */
+.fp-pista {
+  fill: url(#woodH);
+  stroke: rgba(228, 210, 141, 0.1);
+  stroke-width: 0.4;
+  transition: all 0.3s ease;
+}
+
+.fp-lane:hover .fp-pista {
+  fill: url(#woodSelH);
+  stroke: rgba(228, 210, 141, 0.3);
+}
+
+.fp-lane.selected .fp-pista {
+  fill: url(#woodSelH);
+  stroke: #d83f36;
+  stroke-width: 1.2;
+}
+
+.fp-pista-label {
+  fill: rgba(228, 210, 141, 0.08);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 7px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+
+.fp-lane:hover .fp-pista-label {
+  fill: rgba(228, 210, 141, 0.15);
+}
+
+.fp-lane.selected .fp-pista-label {
+  fill: rgba(255, 255, 255, 0.12);
+}
+
+/* Lane dots */
+.fp-lane-dot {
+  fill: rgba(228, 210, 141, 0.1);
+  transition: fill 0.25s ease;
+}
+
+.fp-lane:hover .fp-lane-dot {
+  fill: rgba(228, 210, 141, 0.25);
+}
+
+.fp-lane.selected .fp-lane-dot {
+  fill: rgba(216, 63, 54, 0.35);
+}
+
+/* Foul line */
+.fp-foul-line {
+  stroke: rgba(216, 63, 54, 0.15);
+  stroke-width: 0.6;
+}
+
+.fp-lane.selected .fp-foul-line {
+  stroke: rgba(216, 63, 54, 0.5);
+  stroke-width: 1;
+}
+
+/* Pin machine */
+.fp-pin-machine {
+  fill: rgba(255, 255, 255, 0.03);
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 0.4;
+  transition: all 0.25s ease;
+}
+
+.fp-lane.selected .fp-pin-machine {
+  fill: rgba(216, 63, 54, 0.06);
+  stroke: rgba(216, 63, 54, 0.2);
+}
+
+.fp-pin-dot {
+  fill: rgba(255, 255, 255, 0.2);
+  transition: fill 0.25s ease;
+}
+
+.fp-lane:hover .fp-pin-dot {
+  fill: rgba(228, 210, 141, 0.4);
+}
+
+.fp-lane.selected .fp-pin-dot {
+  fill: rgba(216, 63, 54, 0.6);
+}
+
+/* Selection glow */
+.fp-selection-glow {
+  fill: none;
+  stroke: #d83f36;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 3;
+  opacity: 0.7;
+  filter: url(#selGlow);
+  pointer-events: none;
+  animation: fpDash 1.2s linear infinite;
+}
+
+@keyframes fpDash {
+  to { stroke-dashoffset: -16; }
+}
+
+/* Selection badge */
+.fp-sel-badge {
+  fill: #d83f36;
+  stroke: #fff;
+  stroke-width: 1.2;
+  filter: url(#selGlow);
+}
+
+.fp-sel-badge-text {
+  fill: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 9px;
+  font-weight: 800;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+/* ============================================
+   BOTTOM BAR
+   ============================================ */
+
+.fp-bottom-bar {
+  fill: rgba(255, 255, 255, 0.02);
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 0.5;
+}
+
+.fp-bottom-item {
+  fill: rgba(228, 210, 141, 0.05);
+  stroke: rgba(228, 210, 141, 0.1);
+  stroke-width: 0.4;
+}
+
+.fp-bottom-text {
+  fill: rgba(228, 210, 141, 0.4);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 5.5px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 767px) {
+  .fp-scroll {
+    margin: 0 -16px;
+    padding: 4px 16px;
+  }
+
+  .fp-svg {
+    min-width: 520px;
+  }
+
+  .fp-legend {
+    gap: 16px;
+  }
+
+  .fp-legend-item {
+    font-size: 12px;
+  }
+}

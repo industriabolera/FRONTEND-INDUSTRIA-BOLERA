@@ -1,0 +1,107 @@
+/**
+ * Scheduled Function: Resolve Pending Payments
+ * 
+ * Consulta todas las transacciones en estado "pendiente" y verifica su estado
+ * final en PlaceToPay para garantizar el estado final en base de datos.
+ * 
+ * ─── Configuración de ejecución ───
+ * Frecuencia: Cada 24 horas
+ * Hora: 3:00 AM (hora Colombia, UTC-5) = 8:00 AM UTC
+ * Cron: "0 8 * * *" (configurado en netlify.toml)
+ * 
+ * También puede invocarse manualmente via POST /api/payment/resolve-pending
+ */
+import { getReservasCollection } from './lib/db.js'
+import { querySession } from './lib/placetopay.js'
+
+function mapStatus(paymentStatus) {
+  if (paymentStatus === 'APPROVED') return 'exitosa'
+  if (paymentStatus === 'REJECTED') return 'rechazada'
+  if (paymentStatus === 'CANCELLED') return 'cancelada'
+  return 'pendiente'
+}
+
+async function resolvePendingPayments() {
+  const reservas = await getReservasCollection()
+
+  // Buscar todas las reservas en estado pendiente
+  const pendientes = await reservas
+    .find({ estado: 'pendiente' })
+    .project({ requestId: 1, reference: 1, creadaEn: 1 })
+    .toArray()
+
+  console.log(`[CronJob] Found ${pendientes.length} pending reservations to resolve`)
+
+  let resolved = 0
+  let errors = 0
+  const results = []
+
+  for (const reserva of pendientes) {
+    try {
+      const result = await querySession(reserva.requestId)
+      const paymentStatus = result.status?.status
+      const estado = mapStatus(paymentStatus)
+
+      if (estado !== 'pendiente') {
+        await reservas.updateOne(
+          { requestId: String(reserva.requestId) },
+          {
+            $set: {
+              estado,
+              'placetopay.status': paymentStatus,
+              'placetopay.statusMessage': result.status?.message,
+              actualizadaEn: new Date(),
+              resolvedByCron: true,
+            },
+          }
+        )
+        resolved++
+        results.push({ ref: reserva.reference, requestId: reserva.requestId, from: 'pendiente', to: estado })
+        console.log(`[CronJob] Resolved: ref=${reserva.reference} requestId=${reserva.requestId} → ${estado}`)
+      }
+    } catch (err) {
+      errors++
+      console.error(`[CronJob] Error resolving requestId=${reserva.requestId}: ${err.message}`)
+    }
+
+    // Pequeña pausa para no saturar la API de PlaceToPay
+    await new Promise(r => setTimeout(r, 200))
+  }
+
+  const summary = {
+    total: pendientes.length,
+    resolved,
+    stillPending: pendientes.length - resolved - errors,
+    errors,
+    results,
+    executedAt: new Date().toISOString(),
+  }
+
+  console.log(`[CronJob] Summary: ${JSON.stringify(summary)}`)
+  return summary
+}
+
+// ── Netlify Scheduled Function handler ──
+export async function handler(event) {
+  // Soportar tanto invocación programada como manual (POST)
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'POST' } }
+  }
+
+  try {
+    const summary = await resolvePendingPayments()
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(summary),
+    }
+  } catch (err) {
+    console.error('[CronJob] Fatal error:', err.message)
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: err.message }),
+    }
+  }
+}

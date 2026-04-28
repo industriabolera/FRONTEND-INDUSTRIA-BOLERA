@@ -1,0 +1,57 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[dev]
+  command = "npm run dev"
+  targetPort = 5173
+  port = 8888
+  autoLaunch = false
+
+[[redirects]]
+  from = "/api/payment/create"
+  to = "/.netlify/functions/payment-create"
+  status = 200
+
+[[redirects]]
+  from = "/api/payment/verify"
+  to = "/.netlify/functions/payment-verify"
+  status = 200
+
+[[redirects]]
+  from = "/api/payment/notify"
+  to = "/.netlify/functions/payment-notify"
+  status = 200
+
+[[redirects]]
+  from = "/api/reservas/slots"
+  to = "/.netlify/functions/reservas-slots"
+  status = 200
+
+[[redirects]]
+  from = "/api/reservas"
+  to = "/.netlify/functions/reservas-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/payment/resolve-pending"
+  to = "/.netlify/functions/payment-resolve-pending"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
+  status = 200
+
+# ── Scheduled Function: resolver pagos pendientes cada 24h (3:00 AM UTC-5 = 8:00 AM UTC) ──
+[functions."payment-resolve-pending"]
+  schedule = "0 8 * * *"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

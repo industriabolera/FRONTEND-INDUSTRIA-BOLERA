@@ -1,0 +1,39 @@
+/* ============================================
+   SCROLL TO TOP BUTTON
+   ============================================ */
+
+.scroll-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 40px;
+  height: 40px;
+  background-color: #d83f36;
+  color: #ffffff;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px) rotate(180deg);
+  transition: all 0.3s ease;
+  z-index: 998;
+}
+
+.scroll-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) rotate(180deg);
+}
+
+.scroll-to-top:hover {
+  background-color: #c0362e;
+}
+
+.scroll-to-top svg {
+  width: 15px;
+  height: auto;
+}

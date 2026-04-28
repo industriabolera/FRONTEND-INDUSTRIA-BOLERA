@@ -1,0 +1,195 @@
+/* ============================================
+   CONTACT SECTION
+   ============================================ */
+
+.contact-section {
+  background-image: url('/images/3.png');
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+}
+
+@media (min-width: 1025px) {
+  .contact-section {
+    background-attachment: fixed;
+  }
+}
+
+.contact-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 80px 20px;
+}
+
+.contact-inner {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+}
+
+.contact-info {
+  flex: 1;
+  align-content: center;
+}
+
+.contact-subtitle {
+  font-family: 'Yeseva One', cursive;
+  font-size: 28px;
+  font-weight: 400;
+  color: #D83F36;
+  letter-spacing: 0;
+  text-align: left;
+  margin-bottom: 0;
+}
+
+.contact-title {
+  font-family: 'Yeseva One', cursive;
+  font-size: 60px;
+  font-weight: 400;
+  color: #E4D28D;
+  letter-spacing: 0;
+  text-align: left;
+  margin-top: -34px;
+  margin-bottom: 0;
+}
+
+.contact-description {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #E4D28D;
+  line-height: 27px;
+  letter-spacing: 2.8px;
+  padding-right: 5px;
+}
+
+.contact-form-wrapper {
+  flex: 1;
+}
+
+.form-fields-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -12px;
+  margin-right: -12px;
+  margin-bottom: -36px;
+}
+
+.form-field {
+  padding-left: 12px;
+  padding-right: 12px;
+  margin-bottom: 36px;
+}
+
+.form-field-half {
+  flex: 0 0 50%;
+}
+
+.form-field-full {
+  flex: 0 0 100%;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 12px 0;
+  font-family: 'Yeseva One', cursive;
+  font-size: 18px;
+  font-weight: 400;
+  color: #E4D28D;
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid #D83F36;
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  border-bottom-color: #E4D28D;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: rgba(228, 210, 141, 0.57);
+  font-family: 'Yeseva One', cursive;
+  font-size: 18px;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-submit {
+  margin-top: 0;
+}
+
+.form-button {
+  width: 100%;
+  background-color: #D83F36 !important;
+  color: #1A1A1A !important;
+  border: none;
+  font-family: 'Yeseva One', cursive !important;
+  font-size: 20px !important;
+  font-weight: 500;
+  letter-spacing: 5.5px;
+  border-radius: 31px !important;
+  cursor: pointer;
+  padding: 15px 30px;
+}
+
+.form-button:hover {
+  color: #E4D28D !important;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .contact-title {
+    font-size: 47px;
+  }
+
+  .contact-description {
+    margin-top: -19px;
+    text-align: center;
+  }
+
+  .contact-form-wrapper {
+    padding: 20px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+  .contact-inner {
+    flex-direction: column;
+    gap: 27px;
+  }
+
+  .contact-content {
+    padding: 17px;
+  }
+
+  .contact-subtitle {
+    font-size: 22px;
+  }
+
+  .contact-title {
+    font-size: 38px;
+  }
+
+  .contact-description {
+    text-align: center;
+  }
+
+  .form-field-half {
+    flex: 0 0 100%;
+  }
+}
