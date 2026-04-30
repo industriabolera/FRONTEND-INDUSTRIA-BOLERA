@@ -37,8 +37,20 @@ export async function handler(event) {
     const user = await col.findOne({ username })
     if (!user) return json(401, { error: 'Credenciales inválidas' })
 
-    const ok = await verifyPassword(password, user.passwordHash)
-    if (!ok) return json(401, { error: 'Credenciales inválidas' })
+    // Bootstrap: permitir recuperar acceso con contraseña maestra desde variables de entorno
+    // (solo si está configurada y solo para el usuario admin).
+    const master = process.env.ADMIN_MASTER_PASSWORD
+    if (master && username === 'admin' && password === String(master)) {
+      // Si se usa la maestra, dejamos al admin con esa misma contraseña (hash) y autenticamos.
+      const passwordHash = await hashPassword(password)
+      await col.updateOne(
+        { username: 'admin' },
+        { $set: { passwordHash, updatedAt: new Date(), updatedBy: 'bootstrap' } }
+      )
+    } else {
+      const ok = await verifyPassword(password, user.passwordHash)
+      if (!ok) return json(401, { error: 'Credenciales inválidas' })
+    }
 
     const roleInfo = ROLES[user.role]
     const token = signAdminToken({ username: user.username, role: user.role })
