@@ -7,8 +7,7 @@ const services = [
     title2: 'strikes?',
     description: <>Nuestras <span style={{ color: '#e68007' }}>pistas de bolos</span> están listas para ti.</>,
     buttonText: '¡RESERVA YA!',
-    buttonLink: 'https://wa.me/573113540008',
-    buttonTarget: '_blank',
+    buttonLink: '/reservas#reservar',
   },
   {
     id: 'menu',
@@ -50,8 +49,9 @@ export default function ServicesSection() {
                 <a
                   className="elementor-button elementor-animation-grow"
                   href={service.buttonLink}
-                  target={service.buttonTarget}
-                  rel="noopener noreferrer"
+                  {...(service.buttonLink?.startsWith('http')
+                    ? { target: service.buttonTarget || '_blank', rel: 'noopener noreferrer' }
+                    : {})}
                 >
                   {service.buttonText}
                 </a>

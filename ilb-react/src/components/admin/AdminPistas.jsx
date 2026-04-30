@@ -20,9 +20,29 @@ function bloqueoSortKey(b) {
   return b.fechaInicio || b.fecha || ''
 }
 
+function bloqueoPasaFiltros(b, { filtroFecha, filtroHora, filtroPista }) {
+  if (filtroPista && String(b.pista) !== String(filtroPista)) return false
+  if (filtroFecha) {
+    const fi = b.fechaInicio || b.fecha
+    const ff = b.fechaFin || b.fecha || fi
+    if (!fi || filtroFecha < fi || filtroFecha > ff) return false
+  }
+  if (filtroHora) {
+    const horas = Array.isArray(b.horas) ? b.horas : []
+    if (horas.length > 0 && !horas.includes(filtroHora)) return false
+  }
+  return true
+}
+
+const PISTA_OPTIONS = Array.from({ length: 11 }, (_, i) => i + 1)
+
 export default function AdminPistas() {
   const { config, addBloqueo, deleteBloqueo } = useBolera()
+  const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [filtroFecha, setFiltroFecha] = useState('')
+  const [filtroHora, setFiltroHora] = useState('')
+  const [filtroPista, setFiltroPista] = useState('')
   const [previewDate, setPreviewDate] = useState('')
   const [form, setForm] = useState({
     pistas: [],
@@ -85,27 +105,51 @@ export default function AdminPistas() {
     return Math.max(1, Math.round((end - start) / 86400000) + 1)
   }, [form.fechaInicio, form.fechaFin])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.fechaInicio || !form.fechaFin || form.pistas.length === 0) return
-    for (const pista of form.pistas) {
-      addBloqueo({
-        pista,
-        fechaInicio: form.fechaInicio,
-        fechaFin: form.fechaFin,
-        horas: form.todoElDia ? [] : form.horas,
-        motivo: form.motivo,
-      })
+    setSaving(true)
+    try {
+      for (const pista of form.pistas) {
+        await addBloqueo({
+          pista,
+          fechaInicio: form.fechaInicio,
+          fechaFin: form.fechaFin,
+          horas: form.todoElDia ? [] : form.horas,
+          motivo: form.motivo,
+        })
+      }
+      setForm({ pistas: [], fechaInicio: '', fechaFin: '', horas: [], motivo: '', todoElDia: true })
+      setPreviewDate('')
+      setShowForm(false)
+    } catch (err) {
+      window.alert(`No se pudo guardar el bloqueo: ${err.message || err}`)
+    } finally {
+      setSaving(false)
     }
-    setForm({ pistas: [], fechaInicio: '', fechaFin: '', horas: [], motivo: '', todoElDia: true })
-    setPreviewDate('')
-    setShowForm(false)
   }
 
   const sortedBloqueos = useMemo(() =>
     [...config.bloqueos].sort((a, b) => bloqueoSortKey(a).localeCompare(bloqueoSortKey(b))),
     [config.bloqueos]
   )
+
+  const filtros = useMemo(() => ({
+    filtroFecha,
+    filtroHora,
+    filtroPista,
+  }), [filtroFecha, filtroHora, filtroPista])
+
+  const bloqueosFiltrados = useMemo(
+    () => sortedBloqueos.filter(b => bloqueoPasaFiltros(b, filtros)),
+    [sortedBloqueos, filtros]
+  )
+
+  const limpiarFiltros = () => {
+    setFiltroFecha('')
+    setFiltroHora('')
+    setFiltroPista('')
+  }
 
   return (
     <div className="admin-panel">
@@ -240,12 +284,47 @@ export default function AdminPistas() {
             <button
               type="submit"
               className="admin-btn admin-btn-primary"
-              disabled={form.pistas.length === 0 || !form.fechaInicio || !form.fechaFin}
+              disabled={saving || form.pistas.length === 0 || !form.fechaInicio || !form.fechaFin}
             >
-              <i className="fas fa-ban" /> Crear Bloqueo{form.pistas.length > 1 ? 's' : ''}
+              <i className={saving ? 'fas fa-spinner fa-spin' : 'fas fa-ban'} />
+              {saving ? 'Guardando…' : `Crear Bloqueo${form.pistas.length > 1 ? 's' : ''}`}
             </button>
           </div>
         </form>
+      )}
+
+      {sortedBloqueos.length > 0 && (
+        <div className="admin-bloqueos-filtros">
+          <div className="admin-field admin-field-flex" style={{ minWidth: 160, margin: 0 }}>
+            <label className="admin-field-label">Fecha</label>
+            <input
+              className="admin-input"
+              type="date"
+              value={filtroFecha}
+              onChange={e => setFiltroFecha(e.target.value)}
+            />
+          </div>
+          <div className="admin-field admin-field-flex" style={{ minWidth: 140, margin: 0 }}>
+            <label className="admin-field-label">Hora</label>
+            <select className="admin-input" value={filtroHora} onChange={e => setFiltroHora(e.target.value)}>
+              <option value="">Todas</option>
+              {ALL_HORAS.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+          <div className="admin-field admin-field-flex" style={{ minWidth: 120, margin: 0 }}>
+            <label className="admin-field-label">Pista</label>
+            <select className="admin-input" value={filtroPista} onChange={e => setFiltroPista(e.target.value)}>
+              <option value="">Todas</option>
+              {PISTA_OPTIONS.map(p => <option key={p} value={String(p)}>Pista {p}</option>)}
+            </select>
+          </div>
+          <button type="button" className="admin-bloqueos-clear" onClick={limpiarFiltros} title="Quitar filtros">
+            <i className="fas fa-eraser" /> Limpiar
+          </button>
+          <span className="admin-bloqueos-filtros-count">
+            Mostrando <strong>{bloqueosFiltrados.length}</strong> de {sortedBloqueos.length}
+          </span>
+        </div>
       )}
 
       <div className="admin-list">
@@ -254,8 +333,16 @@ export default function AdminPistas() {
             <i className="fas fa-check-circle" />
             <p>No hay pistas bloqueadas</p>
           </div>
+        ) : bloqueosFiltrados.length === 0 ? (
+          <div className="admin-empty">
+            <i className="fas fa-filter" />
+            <p>Ningún bloqueo coincide con los filtros</p>
+            <button type="button" className="admin-btn admin-btn-primary" style={{ marginTop: 12 }} onClick={limpiarFiltros}>
+              Limpiar filtros
+            </button>
+          </div>
         ) : (
-          sortedBloqueos.map(b => (
+          bloqueosFiltrados.map(b => (
             <div key={b.id} className="admin-card admin-bloqueo-card">
               <div className="admin-card-body">
                 <div className="admin-card-top">
@@ -275,7 +362,18 @@ export default function AdminPistas() {
                 {b.motivo && <p className="admin-card-desc"><i className="fas fa-info-circle" /> {b.motivo}</p>}
               </div>
               <div className="admin-card-actions">
-                <button className="admin-btn-icon admin-btn-danger" title="Eliminar bloqueo" onClick={() => deleteBloqueo(b.id)}>
+                <button
+                  className="admin-btn-icon admin-btn-danger"
+                  title="Eliminar bloqueo"
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await deleteBloqueo(b.id)
+                    } catch (err) {
+                      window.alert(`No se pudo eliminar: ${err.message || err}`)
+                    }
+                  }}
+                >
                   <i className="fas fa-trash" />
                 </button>
               </div>

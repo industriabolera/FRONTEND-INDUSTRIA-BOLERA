@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import { createHash } from 'crypto'
+import { createHash, randomUUID } from 'crypto'
 import { MongoClient } from 'mongodb'
 import { createSession, querySession } from './placetopay.js'
 
@@ -10,13 +10,14 @@ const PORT = process.env.PORT || 3001
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
 }))
 app.use(express.json())
 
 // ─── MongoDB ─────────────────────────────────────────────────
 let cachedClient = null
 let indexesEnsured = false
+let bloqueosIndexesEnsured = false
 
 async function getReservasCollection() {
   if (!cachedClient) {
@@ -35,6 +36,16 @@ async function getReservasCollection() {
       col.createIndex({ fecha: 1 }),
     ])
     indexesEnsured = true
+  }
+  return col
+}
+
+async function getBloqueosCollection() {
+  await getReservasCollection()
+  const col = cachedClient.db('administracion').collection('bloqueos')
+  if (!bloqueosIndexesEnsured) {
+    await col.createIndex({ id: 1 }, { unique: true })
+    bloqueosIndexesEnsured = true
   }
   return col
 }
@@ -333,6 +344,71 @@ app.post('/api/payment/resolve-pending', async (req, res) => {
     })
   } catch (err) {
     console.error('[CronJob] Fatal error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─── Bloqueos de pista (colección `bloqueos`, no `reservas`) ───
+app.get('/api/bloqueos', async (req, res) => {
+  try {
+    const col = await getBloqueosCollection()
+    const docs = await col.find({}).sort({ fechaInicio: 1, pista: 1 }).toArray()
+    const list = docs.map(d => ({
+      id: d.id,
+      pista: d.pista,
+      fechaInicio: d.fechaInicio,
+      fechaFin: d.fechaFin,
+      horas: Array.isArray(d.horas) ? d.horas : [],
+      motivo: d.motivo || '',
+      fecha: d.fecha,
+      creadaEn: d.creadaEn,
+    }))
+    res.json({ bloqueos: list })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/bloqueos', async (req, res) => {
+  try {
+    const { fechaInicio, fechaFin, motivo = '' } = req.body
+    const pista = Number(req.body.pista)
+    const horas = Array.isArray(req.body.horas) ? req.body.horas : []
+
+    if (!Number.isInteger(pista) || pista < 1 || !fechaInicio || !fechaFin) {
+      return res.status(400).json({ error: 'pista, fechaInicio y fechaFin son requeridos' })
+    }
+
+    const id = (typeof req.body.id === 'string' && req.body.id) ? req.body.id : randomUUID()
+    const doc = {
+      id,
+      pista,
+      fechaInicio,
+      fechaFin,
+      horas,
+      motivo: String(motivo),
+      creadaEn: new Date(),
+    }
+    if (req.body.fecha) doc.fecha = req.body.fecha
+
+    const col = await getBloqueosCollection()
+    await col.insertOne(doc)
+    res.status(201).json({ bloqueo: { ...doc, creadaEn: doc.creadaEn } })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/bloqueos', async (req, res) => {
+  try {
+    const id = req.body?.id
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'id es requerido' })
+    }
+    const col = await getBloqueosCollection()
+    const result = await col.deleteOne({ id })
+    res.json({ deleted: result.deletedCount })
+  } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })

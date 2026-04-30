@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 
 const ALL_HORAS = [
@@ -18,10 +18,80 @@ const EMPTY_FORM = {
   notas: '',
 }
 
+const ESTADO_CONFIG = {
+  exitosa:   { label: 'Confirmada', icon: 'fas fa-check-circle', cls: 'success' },
+  pendiente: { label: 'Pendiente',  icon: 'fas fa-clock',        cls: 'pending' },
+  rechazada: { label: 'Rechazada',  icon: 'fas fa-times-circle', cls: 'rejected' },
+  cancelada: { label: 'Cancelada',  icon: 'fas fa-ban',          cls: 'cancelled' },
+  manual:    { label: 'Manual',     icon: 'fas fa-user-shield',  cls: 'manual' },
+}
+
+function formatPrice(n) {
+  if (n === null || n === undefined) return '—'
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: 'COP', maximumFractionDigits: 0,
+  }).format(n)
+}
+
+function formatDateTime(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleDateString('es-CO', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function parseHorasFromString(horas) {
+  if (!horas) return []
+  const result = []
+  horas.split('|').forEach(block => {
+    const m = block.match(/^P(\d+):(.+)$/)
+    if (m) {
+      const pista = parseInt(m[1], 10)
+      m[2].split(',').forEach(h => result.push({ pista, hora: h.trim() }))
+    }
+  })
+  return result
+}
+
+function pistasResumen(slots) {
+  const set = new Set(slots.map(s => s.pista))
+  return Array.from(set).sort((a, b) => a - b).map(p => `P${p}`).join(', ')
+}
+
+function horasResumen(slots) {
+  const set = new Set(slots.map(s => s.hora))
+  return Array.from(set).join(' · ')
+}
+
 export default function AdminReservas() {
   const { config, addReservaAdmin, deleteReservaAdmin, isLaneBlocked } = useBolera()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [onlineReservas, setOnlineReservas] = useState([])
+  const [loadingOnline, setLoadingOnline] = useState(true)
+  const [errorOnline, setErrorOnline] = useState(null)
+  const [expanded, setExpanded] = useState(null)
+  const [filtro, setFiltro] = useState('todas')
+  const [busqueda, setBusqueda] = useState('')
+
+  const fetchOnline = () => {
+    fetch('/api/reservas')
+      .then(r => r.json())
+      .then(data => {
+        if (data.reservas) setOnlineReservas(data.reservas)
+        setErrorOnline(null)
+      })
+      .catch(e => setErrorOnline(e.message))
+      .finally(() => setLoadingOnline(false))
+  }
+
+  useEffect(() => {
+    fetchOnline()
+    const interval = setInterval(fetchOnline, 20000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
 
@@ -38,19 +108,104 @@ export default function AdminReservas() {
     return !isLaneBlocked(form.pista, form.fecha, h)
   })
 
-  const grouped = config.reservasAdmin.reduce((acc, r) => {
-    if (!acc[r.fecha]) acc[r.fecha] = []
-    acc[r.fecha].push(r)
-    return acc
-  }, {})
+  // ── Construir lista unificada (online + manual) ─────────────
+  const unified = useMemo(() => {
+    const onlineList = onlineReservas.map(r => {
+      const slots = parseHorasFromString(r.horas)
+      return {
+        key: `online-${r.reference}`,
+        origen: 'online',
+        numero: r.reference,
+        fecha: r.fecha,
+        slots,
+        pistasResumen: pistasResumen(slots) || (r.pistas ? `P${r.pistas}` : '—'),
+        horasResumen: horasResumen(slots) || '—',
+        personas: r.personas,
+        valor: r.total,
+        estado: r.estado,
+        cliente: r.datosPersonales?.nombre || '—',
+        telefono: r.datosPersonales?.telefono || '',
+        correo: r.datosPersonales?.correo || '',
+        documento: r.datosPersonales ? `${r.datosPersonales.tipoDocumento || ''} ${r.datosPersonales.documento || ''}`.trim() : '',
+        fechaNacimiento: r.datosPersonales?.fechaNacimiento || '',
+        extras: r.extras || '',
+        descripcion: r.description || '',
+        notas: '',
+        creadaEn: r.creadaEn,
+        actualizadaEn: r.actualizadaEn,
+        raw: r,
+      }
+    })
+
+    const manualList = config.reservasAdmin.map(r => ({
+      key: `manual-${r.id}`,
+      origen: 'manual',
+      numero: r.id ? `MAN-${String(r.id).slice(0, 8).toUpperCase()}` : '—',
+      fecha: r.fecha,
+      slots: [{ pista: r.pista, hora: r.hora }],
+      pistasResumen: `P${r.pista}`,
+      horasResumen: r.hora,
+      personas: r.personas,
+      valor: null,
+      estado: 'manual',
+      cliente: r.nombre || '—',
+      telefono: r.telefono || '',
+      correo: '',
+      documento: '',
+      fechaNacimiento: '',
+      extras: '',
+      descripcion: '',
+      notas: r.notas || '',
+      creadaEn: r.creadaEn,
+      actualizadaEn: '',
+      raw: r,
+    }))
+
+    return [...onlineList, ...manualList]
+  }, [onlineReservas, config.reservasAdmin])
+
+  const filtered = useMemo(() => {
+    let list = unified
+    if (filtro !== 'todas') list = list.filter(r => r.estado === filtro)
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase()
+      list = list.filter(r =>
+        (r.numero || '').toLowerCase().includes(q) ||
+        (r.cliente || '').toLowerCase().includes(q) ||
+        (r.telefono || '').includes(q) ||
+        (r.correo || '').toLowerCase().includes(q) ||
+        (r.documento || '').includes(q) ||
+        (r.fecha || '').includes(q)
+      )
+    }
+    return list
+  }, [unified, filtro, busqueda])
+
+  const grouped = useMemo(() => {
+    return filtered.reduce((acc, r) => {
+      const key = r.fecha || 'Sin fecha'
+      if (!acc[key]) acc[key] = []
+      acc[key].push(r)
+      return acc
+    }, {})
+  }, [filtered])
 
   const sortedDates = Object.keys(grouped).sort().reverse()
+
+  const counts = useMemo(() => ({
+    todas: unified.length,
+    exitosa: unified.filter(r => r.estado === 'exitosa').length,
+    pendiente: unified.filter(r => r.estado === 'pendiente').length,
+    rechazada: unified.filter(r => r.estado === 'rechazada').length,
+    cancelada: unified.filter(r => r.estado === 'cancelada').length,
+    manual: unified.filter(r => r.estado === 'manual').length,
+  }), [unified])
 
   return (
     <div className="admin-panel">
       <div className="admin-panel-header">
         <p className="admin-panel-desc">
-          Crea reservas manuales desde el panel. Estas reservas bloquean el horario en la pista seleccionada.
+          Listado completo de reservas online y manuales. Haz clic en una tarjeta para ver toda la información del cliente y del pago.
         </p>
         <button className="admin-btn admin-btn-primary" onClick={() => setShowForm(!showForm)}>
           <i className={showForm ? 'fas fa-times' : 'fas fa-plus'} />
@@ -110,43 +265,163 @@ export default function AdminReservas() {
         </form>
       )}
 
-      <div className="admin-list">
-        {sortedDates.length === 0 ? (
-          <div className="admin-empty">
-            <i className="fas fa-calendar" />
-            <p>No hay reservas creadas desde el admin</p>
-          </div>
-        ) : (
-          sortedDates.map(fecha => (
+      {/* ── Toolbar (search + filters) ──────────────────────── */}
+      <div className="dash-toolbar">
+        <div className="dash-search">
+          <i className="fas fa-search" />
+          <input
+            type="text"
+            placeholder="Buscar por número, nombre, teléfono, documento..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+          />
+        </div>
+        <div className="dash-filters">
+          {['todas', 'exitosa', 'pendiente', 'rechazada', 'cancelada', 'manual'].map(f => (
+            <button
+              key={f}
+              className={`dash-filter-btn ${filtro === f ? 'active' : ''}`}
+              onClick={() => setFiltro(f)}
+            >
+              {f === 'todas' ? 'Todas' : ESTADO_CONFIG[f]?.label || f}
+              <span className="dash-filter-count">{counts[f] || 0}</span>
+            </button>
+          ))}
+        </div>
+        <button className="dash-refresh-btn" onClick={fetchOnline} title="Actualizar">
+          <i className="fas fa-sync-alt" />
+        </button>
+      </div>
+
+      {errorOnline && (
+        <div className="dash-error">
+          <i className="fas fa-exclamation-triangle" />
+          <span>Error cargando reservas online: {errorOnline}</span>
+          <button onClick={fetchOnline}>Reintentar</button>
+        </div>
+      )}
+
+      {loadingOnline && unified.length === 0 ? (
+        <div className="dash-loading">
+          <i className="fas fa-spinner fa-spin" />
+          <span>Cargando reservas...</span>
+        </div>
+      ) : sortedDates.length === 0 ? (
+        <div className="admin-empty">
+          <i className="fas fa-calendar" />
+          <p>No hay reservas {filtro !== 'todas' ? `con estado "${ESTADO_CONFIG[filtro]?.label || filtro}"` : ''}</p>
+        </div>
+      ) : (
+        <div className="admin-list">
+          {sortedDates.map(fecha => (
             <div key={fecha} className="admin-date-group">
               <h4 className="admin-date-heading">
                 <i className="far fa-calendar" /> {fecha}
                 <span className="admin-date-count">{grouped[fecha].length} reserva(s)</span>
               </h4>
-              {grouped[fecha].sort((a, b) => a.hora.localeCompare(b.hora)).map(r => (
-                <div key={r.id} className="admin-card admin-reserva-card">
-                  <div className="admin-card-body">
-                    <div className="admin-card-top">
-                      <h4 className="admin-card-title">{r.nombre}</h4>
-                      <span className="admin-badge badge-blue">Pista {r.pista} — {r.hora}</span>
-                    </div>
-                    <div className="admin-card-meta">
-                      <span><i className="fas fa-users" /> {r.personas} personas</span>
-                      {r.telefono && <span><i className="fas fa-phone" /> {r.telefono}</span>}
-                      {r.notas && <span><i className="fas fa-sticky-note" /> {r.notas}</span>}
-                    </div>
-                  </div>
-                  <div className="admin-card-actions">
-                    <button className="admin-btn-icon admin-btn-danger" title="Eliminar reserva" onClick={() => deleteReservaAdmin(r.id)}>
-                      <i className="fas fa-trash" />
+              {grouped[fecha].slice().sort((a, b) => (a.horasResumen || '').localeCompare(b.horasResumen || '')).map(r => {
+                const isOpen = expanded === r.key
+                const estadoCfg = ESTADO_CONFIG[r.estado] || { label: r.estado, icon: 'fas fa-question', cls: 'pending' }
+                return (
+                  <div key={r.key} className={`admin-card admin-reserva-full ${isOpen ? 'is-open' : ''}`}>
+                    <button
+                      className="admin-reserva-summary"
+                      onClick={() => setExpanded(isOpen ? null : r.key)}
+                      type="button"
+                    >
+                      <div className="admin-reserva-summary-main">
+                        <div className="admin-reserva-summary-top">
+                          <span className="admin-reserva-numero">
+                            <i className="fas fa-hashtag" /> {r.numero}
+                          </span>
+                          <span className={`dash-badge dash-badge-${estadoCfg.cls}`}>
+                            <i className={estadoCfg.icon} />
+                            {estadoCfg.label}
+                          </span>
+                          {r.origen === 'manual' && (
+                            <span className="admin-badge badge-gray">Manual</span>
+                          )}
+                        </div>
+                        <div className="admin-reserva-summary-fields">
+                          <span><i className="fas fa-bowling-ball" /> <strong>Pista:</strong> {r.pistasResumen}</span>
+                          <span><i className="far fa-clock" /> <strong>Hora:</strong> {r.horasResumen}</span>
+                          <span><i className="fas fa-users" /> <strong>Personas:</strong> {r.personas ?? '—'}</span>
+                          <span className="admin-reserva-valor">
+                            <i className="fas fa-dollar-sign" /> <strong>Valor:</strong> {formatPrice(r.valor)}
+                          </span>
+                          <span><i className="fas fa-user" /> <strong>Cliente:</strong> {r.cliente}</span>
+                        </div>
+                      </div>
+                      <div className="admin-reserva-summary-actions">
+                        <span className="admin-reserva-toggle">
+                          <i className={`fas fa-chevron-${isOpen ? 'up' : 'down'}`} />
+                        </span>
+                      </div>
                     </button>
+
+                    {isOpen && (
+                      <div className="admin-reserva-detail">
+                        <div className="dash-detail-grid">
+                          <div className="dash-detail-section">
+                            <h4><i className="fas fa-bowling-ball" /> Detalle de la reserva</h4>
+                            <div className="dash-detail-row"><span>Número</span><strong>{r.numero}</strong></div>
+                            <div className="dash-detail-row"><span>Fecha</span><strong>{r.fecha}</strong></div>
+                            <div className="dash-detail-row"><span>Pistas</span><strong>{r.pistasResumen}</strong></div>
+                            <div className="dash-detail-row"><span>Horarios</span><strong>{r.horasResumen}</strong></div>
+                            <div className="dash-detail-row"><span>Personas</span><strong>{r.personas ?? '—'}</strong></div>
+                            {r.extras && <div className="dash-detail-row"><span>Extras</span><strong>{r.extras}</strong></div>}
+                            {r.descripcion && <div className="dash-detail-row"><span>Descripción</span><strong>{r.descripcion}</strong></div>}
+                            {r.notas && <div className="dash-detail-row"><span>Notas</span><strong>{r.notas}</strong></div>}
+                            <div className="dash-detail-row">
+                              <span>Valor total</span>
+                              <strong className="dash-detail-total">{formatPrice(r.valor)}</strong>
+                            </div>
+                            <div className="dash-detail-row">
+                              <span>Estado</span>
+                              <strong>
+                                <span className={`dash-badge dash-badge-${estadoCfg.cls}`}>
+                                  <i className={estadoCfg.icon} /> {estadoCfg.label}
+                                </span>
+                              </strong>
+                            </div>
+                            <div className="dash-detail-row"><span>Origen</span><strong>{r.origen === 'online' ? 'Online (PlaceToPay)' : 'Manual (Admin)'}</strong></div>
+                            {r.creadaEn && <div className="dash-detail-row"><span>Creada</span><strong>{formatDateTime(r.creadaEn)}</strong></div>}
+                            {r.actualizadaEn && <div className="dash-detail-row"><span>Actualizada</span><strong>{formatDateTime(r.actualizadaEn)}</strong></div>}
+                          </div>
+
+                          <div className="dash-detail-section">
+                            <h4><i className="fas fa-user" /> Datos del cliente</h4>
+                            <div className="dash-detail-row"><span>Nombre</span><strong>{r.cliente}</strong></div>
+                            {r.telefono && <div className="dash-detail-row"><span>Teléfono</span><strong>{r.telefono}</strong></div>}
+                            {r.correo && <div className="dash-detail-row"><span>Correo</span><strong>{r.correo}</strong></div>}
+                            {r.documento && <div className="dash-detail-row"><span>Documento</span><strong>{r.documento}</strong></div>}
+                            {r.fechaNacimiento && <div className="dash-detail-row"><span>Fecha de nacimiento</span><strong>{r.fechaNacimiento}</strong></div>}
+                            {!r.telefono && !r.correo && !r.documento && r.origen === 'manual' && (
+                              <p className="admin-reserva-empty-hint">Sin datos adicionales del cliente.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {r.origen === 'manual' && (
+                          <div className="admin-reserva-detail-actions">
+                            <button
+                              className="admin-btn-icon admin-btn-danger"
+                              title="Eliminar reserva manual"
+                              onClick={() => deleteReservaAdmin(r.raw.id)}
+                            >
+                              <i className="fas fa-trash" /> Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

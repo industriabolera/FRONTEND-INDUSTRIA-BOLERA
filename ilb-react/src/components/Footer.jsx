@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom'
 import './Footer.css'
 
 const NAV_ITEMS = [
-  { label: 'Home', href: '/', static: false },
-  { label: 'Servicios', href: '/servicios', static: true },
-  { label: 'Reservas', href: '/reservas', static: false },
-  { label: 'Sobre Nosotros', href: '/sobre-nosotros', static: true },
-  { label: 'Contacto', href: '/contacto', static: true },
-  { label: 'Blog', href: '/blog', static: true },
-  { label: 'FAQ', href: '/faq', static: true },
+  { label: 'Home', href: '/' },
+  { label: 'Servicios', href: '/servicios' },
+  { label: 'Reservas', href: '/reservas' },
+  { label: 'Sobre Nosotros', href: '/sobre-nosotros' },
+  { label: 'Contacto', href: '/contacto' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'FAQ', href: '/faq' },
 ]
 
 export default function Footer() {
@@ -34,11 +34,7 @@ export default function Footer() {
               <ul className="footer-nav-menu">
                 {NAV_ITEMS.map((item) => (
                   <li key={item.label}>
-                    {item.static ? (
-                      <a href={item.href} className="footer-nav-link">{item.label}</a>
-                    ) : (
-                      <Link to={item.href} className="footer-nav-link">{item.label}</Link>
-                    )}
+                    <Link to={item.href} className="footer-nav-link">{item.label}</Link>
                   </li>
                 ))}
               </ul>

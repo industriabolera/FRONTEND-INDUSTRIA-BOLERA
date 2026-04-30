@@ -1,3 +1,7 @@
+# Nota: en el repo principal (ILB-FRONTEND) el despliegue usa el netlify.toml de la RAÍZ del repo,
+# porque la app está en esta carpeta pero el proyecto git incluye otros archivos fuera de ilb-react/.
+# Si despliegas solo esta carpeta, esta configuración sí aplica por sí sola.
+
 [build]
   command = "npm run build"
   publish = "dist"
@@ -35,6 +39,11 @@
 [[redirects]]
   from = "/api/reservas"
   to = "/.netlify/functions/reservas-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/bloqueos"
+  to = "/.netlify/functions/bloqueos"
   status = 200
 
 [[redirects]]

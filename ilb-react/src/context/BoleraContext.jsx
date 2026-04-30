@@ -65,6 +65,7 @@ function loadConfig() {
       return {
         ...DEFAULT_CONFIG,
         ...parsed,
+        bloqueos: [],
         precios: { ...DEFAULT_CONFIG.precios, ...parsed.precios },
         horarios: { ...DEFAULT_CONFIG.horarios, ...parsed.horarios },
       }
@@ -74,7 +75,9 @@ function loadConfig() {
 }
 
 function saveConfig(config) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+  const persist = { ...config }
+  delete persist.bloqueos
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(persist))
 }
 
 const BoleraContext = createContext(null)
@@ -97,6 +100,31 @@ export function BoleraProvider({ children }) {
     const interval = setInterval(fetchSlots, 30000)
     return () => { cancelled = true; clearInterval(interval) }
   }, [])
+
+  const fetchBloqueos = useCallback(() => {
+    return fetch('/api/bloqueos')
+      .then(r => {
+        if (!r.ok) throw new Error(String(r.status))
+        return r.json()
+      })
+      .then(data => {
+        if (data.bloqueos) {
+          const bloqueos = data.bloqueos.map(b => ({
+            ...b,
+            horas: Array.isArray(b.horas) ? b.horas : [],
+            motivo: b.motivo ?? '',
+          }))
+          setConfig(prev => ({ ...prev, bloqueos }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetchBloqueos()
+    const interval = setInterval(fetchBloqueos, 30000)
+    return () => clearInterval(interval)
+  }, [fetchBloqueos])
 
   const updatePrecios = useCallback((precios) => {
     setConfig(prev => ({ ...prev, precios: { ...prev.precios, ...precios } }))
@@ -127,19 +155,34 @@ export function BoleraProvider({ children }) {
     }))
   }, [])
 
-  const addBloqueo = useCallback((bloqueo) => {
-    setConfig(prev => ({
-      ...prev,
-      bloqueos: [...prev.bloqueos, { ...bloqueo, id: crypto.randomUUID() }]
-    }))
-  }, [])
+  const addBloqueo = useCallback(async (bloqueo) => {
+    const id = crypto.randomUUID()
+    const payload = { ...bloqueo, id }
+    const r = await fetch('/api/bloqueos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}))
+      throw new Error(err.error || `Error ${r.status}`)
+    }
+    await r.json().catch(() => ({}))
+    await fetchBloqueos()
+  }, [fetchBloqueos])
 
-  const deleteBloqueo = useCallback((id) => {
-    setConfig(prev => ({
-      ...prev,
-      bloqueos: prev.bloqueos.filter(b => b.id !== id)
-    }))
-  }, [])
+  const deleteBloqueo = useCallback(async (id) => {
+    const r = await fetch('/api/bloqueos', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}))
+      throw new Error(err.error || `Error ${r.status}`)
+    }
+    await fetchBloqueos()
+  }, [fetchBloqueos])
 
   const addReservaAdmin = useCallback((reserva) => {
     setConfig(prev => ({

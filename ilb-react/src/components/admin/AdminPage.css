@@ -831,6 +831,242 @@ select.admin-input {
   }
 }
 
+/* ─── Filtros lista bloqueos (Admin Pistas) ───────────────── */
+.admin-bloqueos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.admin-bloqueos-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: fit-content;
+  margin-bottom: 2px;
+}
+
+.admin-bloqueos-clear:hover {
+  border-color: rgba(228, 210, 141, 0.35);
+  color: #e4d28d;
+}
+
+.admin-bloqueos-filtros-count {
+  margin-left: auto;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  align-self: center;
+  padding-bottom: 4px;
+}
+
+.admin-bloqueos-filtros-count strong {
+  color: #e4d28d;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .admin-bloqueos-filtros-count {
+    margin-left: 0;
+    width: 100%;
+    padding-top: 4px;
+  }
+}
+
+/* ============================================
+   ADMIN RESERVAS — Tarjeta expandible
+   ============================================ */
+
+.admin-reserva-full {
+  padding: 0;
+  overflow: hidden;
+  display: block;
+}
+
+.admin-reserva-full.is-open {
+  border-color: rgba(228, 210, 141, 0.35);
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.25);
+}
+
+.admin-reserva-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  transition: background 0.15s ease;
+}
+
+.admin-reserva-summary:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-reserva-summary-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-reserva-summary-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-reserva-numero {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #e4d28d;
+  letter-spacing: 0.4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-reserva-numero i {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.admin-reserva-summary-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+}
+
+.admin-reserva-summary-fields span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-reserva-summary-fields strong {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.admin-reserva-summary-fields i {
+  color: #e4d28d;
+  font-size: 12px;
+  width: 14px;
+  text-align: center;
+}
+
+.admin-reserva-valor strong {
+  color: rgba(228, 210, 141, 0.7) !important;
+}
+
+.admin-reserva-valor {
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.admin-reserva-summary-actions {
+  flex-shrink: 0;
+}
+
+.admin-reserva-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.admin-reserva-summary:hover .admin-reserva-toggle {
+  background: rgba(228, 210, 141, 0.12);
+  color: #e4d28d;
+}
+
+.admin-reserva-detail {
+  padding: 20px;
+  border-top: 1px solid rgba(228, 210, 141, 0.15);
+  background: rgba(228, 210, 141, 0.03);
+  animation: slideDown 0.25s ease;
+}
+
+.admin-reserva-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.admin-reserva-detail-actions .admin-btn-icon {
+  width: auto;
+  padding: 8px 14px;
+  gap: 8px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-reserva-empty-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.dash-badge-manual {
+  background: rgba(155, 89, 182, 0.15);
+  color: #b07cd6;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 767px) {
+  .admin-reserva-summary {
+    padding: 14px 16px;
+  }
+
+  .admin-reserva-summary-fields {
+    gap: 8px 14px;
+  }
+
+  .admin-reserva-summary-fields span {
+    font-size: 12px;
+  }
+}
+
 /* ─── 2×1 Info box in promo form ───────────────────────────── */
 .admin-promo-2x1-info {
   display: flex;

@@ -1,0 +1,69 @@
+# La app está en ilb-react/ (la raíz del repo no tiene package.json).
+# Si el sitio en Netlify queda en blanco o el build falla, suele ser porque
+# el dashboard apuntaba a la raíz sin esta configuración.
+
+[build]
+  command = "cd ilb-react && npm install && npm run build"
+  publish = "ilb-react/dist"
+  functions = "ilb-react/netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  node_bundler = "esbuild"
+
+[dev]
+  command = "cd ilb-react && npm run dev"
+  targetPort = 5173
+  port = 8888
+  autoLaunch = false
+
+[[redirects]]
+  from = "/api/payment/create"
+  to = "/.netlify/functions/payment-create"
+  status = 200
+
+[[redirects]]
+  from = "/api/payment/verify"
+  to = "/.netlify/functions/payment-verify"
+  status = 200
+
+[[redirects]]
+  from = "/api/payment/notify"
+  to = "/.netlify/functions/payment-notify"
+  status = 200
+
+[[redirects]]
+  from = "/api/reservas/slots"
+  to = "/.netlify/functions/reservas-slots"
+  status = 200
+
+[[redirects]]
+  from = "/api/reservas"
+  to = "/.netlify/functions/reservas-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/bloqueos"
+  to = "/.netlify/functions/bloqueos"
+  status = 200
+
+[[redirects]]
+  from = "/api/payment/resolve-pending"
+  to = "/.netlify/functions/payment-resolve-pending"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
+  status = 200
+
+[functions."payment-resolve-pending"]
+  schedule = "0 8 * * *"
+
+# SPA (React Router)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

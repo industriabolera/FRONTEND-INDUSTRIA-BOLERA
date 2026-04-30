@@ -1,0 +1,28 @@
+/* Contenedor del main() extraído de export HTML (WordPress/Elementor) */
+.legacy-html-page {
+  max-width: 100%;
+  min-height: 40vh;
+  /* Compensa header fijo + padding del layout React */
+  padding-top: clamp(8px, 2vw, 24px);
+  padding-bottom: 32px;
+}
+
+.legacy-html-page .entry-content,
+.legacy-html-page .elementor {
+  max-width: 100%;
+}
+
+.legacy-html-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 45vh;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.legacy-html-loading i {
+  color: #e4d28d;
+}

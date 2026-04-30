@@ -1,0 +1,177 @@
+.servicios-extras {
+  position: relative;
+  background: #0d0d0d;
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.95) 100%),
+    url('/images/FondoTextura_Bolera.png');
+  background-size: cover;
+  background-position: center center;
+  padding: 90px 0 110px;
+  overflow: hidden;
+}
+
+.servicios-extras-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(700px 320px at 80% 15%, rgba(216, 63, 54, 0.12), transparent 60%),
+    radial-gradient(700px 320px at 15% 85%, rgba(228, 210, 141, 0.10), transparent 60%);
+  pointer-events: none;
+}
+
+.servicios-extras-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.servicios-extras-heading {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.servicios-extras-title-yellow {
+  margin: 0;
+  color: #e4d28d;
+  font-family: 'Yeseva One', serif;
+  font-size: clamp(26px, 3vw, 38px);
+  letter-spacing: 1.5px;
+  line-height: 1.2;
+}
+
+.servicios-extras-title-big {
+  font-size: clamp(34px, 4.5vw, 54px);
+}
+
+.servicios-extras-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.servicios-extras-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(228, 210, 141, 0.18);
+  border-radius: 18px;
+  padding: 30px 26px;
+  text-align: center;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.servicios-extras-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(228, 210, 141, 0.45);
+}
+
+.servicios-extras-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #e4d28d;
+  margin-bottom: 16px;
+}
+
+.servicios-extras-circle span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e4d28d;
+}
+
+.servicios-extras-image {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.servicios-extras-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.servicios-extras-card:hover .servicios-extras-image img {
+  transform: scale(1.06);
+}
+
+.servicios-extras-card-title {
+  margin: 0 0 8px;
+  font-family: 'Yeseva One', serif;
+  font-size: 20px;
+  color: #e4d28d;
+  line-height: 1.25;
+  letter-spacing: 1px;
+}
+
+.servicios-extras-card-description {
+  margin: 0 0 12px;
+  font-family: 'Montserrat', sans-serif;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.servicios-extras-card-price {
+  margin: auto 0 0;
+  padding-top: 10px;
+  font-family: 'Yeseva One', serif;
+  color: #d83f36;
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+.servicios-extras-cta {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.servicios-extras-button {
+  display: inline-block;
+  background: #d83f36;
+  color: #fff;
+  font-family: 'Yeseva One', serif;
+  font-size: 18px;
+  letter-spacing: 5px;
+  padding: 14px 38px;
+  border-radius: 33px;
+  text-decoration: none;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.servicios-extras-button:hover {
+  background: #e68007;
+  transform: scale(1.05);
+}
+
+@media (max-width: 900px) {
+  .servicios-extras-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .servicios-extras {
+    padding: 70px 0 90px;
+  }
+
+  .servicios-extras-button {
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 12px 30px;
+  }
+}

@@ -789,7 +789,7 @@ export default function ReservasPage() {
         </div>
       )}
 
-      <div className="reservas-container">
+      <div className="reservas-container" id="reservar">
         <div className="reservas-header-block">
           <h1 className="reservas-main-title">Reserva tu Pista</h1>
           <p className="reservas-subtitle">Selecciona la fecha, pista y hora para disfrutar en La Industria Bolera</p>
@@ -1350,15 +1350,6 @@ export default function ReservasPage() {
                     Acepto los{' '}
                     <a href="/docs/Terminos y Condiciones La Industria Bolera.docx" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
                       Términos y Condiciones
-                    </a>, la{' '}
-                    <a href="/docs/POLÍTICAS DE TRATAMIENTO DE DATOS.docx" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                      Política de Tratamiento de Datos
-                    </a>, la{' '}
-                    <a href="/docs/BO - EXONERACIÓN DE LA RESPONSABILIDAD BOLERA.docx" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                      Exoneración de Responsabilidad
-                    </a>{' '}y la{' '}
-                    <a href="/docs/BO - EXONERACIÓN DE LA RESPONSABILIDAD MENORES DE EDAD BOLERA.docx" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                      Exoneración de Responsabilidad para Menores de Edad
                     </a>.
                   </span>
                 </label>

@@ -2,16 +2,14 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './Header.css'
 
-// static = true → usa <a> normal (carga HTML estático de Netlify)
-// static = false → usa React Router <Link>
 const NAV_ITEMS = [
-  { label: 'Home', href: '/', static: false },
-  { label: 'Servicios', href: '/servicios', static: true },
-  { label: 'Reservas', href: '/reservas', static: false },
-  { label: 'Sobre Nosotros', href: '/sobre-nosotros', static: true },
-  { label: 'Contacto', href: '/contacto', static: true },
-  { label: 'Blog', href: '/blog', static: true },
-  { label: 'FAQ', href: '/faq', static: true },
+  { label: 'Home', href: '/' },
+  { label: 'Servicios', href: '/servicios' },
+  { label: 'Reservas', href: '/reservas' },
+  { label: 'Sobre Nosotros', href: '/sobre-nosotros' },
+  { label: 'Contacto', href: '/contacto' },
+  { label: 'Blog', href: '/blog' },
+  { label: 'FAQ', href: '/faq' },
 ]
 
 export default function Header() {
@@ -60,29 +58,23 @@ export default function Header() {
                   <ul className="main-header-menu">
                     {NAV_ITEMS.map((item) => (
                       <li key={item.label} className="menu-item">
-                        {item.static ? (
-                          <a href={item.href} className="menu-link">
-                            <span className="menu-text">{item.label}</span>
-                          </a>
-                        ) : (
-                          <Link to={item.href} className="menu-link">
-                            <span className="menu-text">{item.label}</span>
-                          </Link>
-                        )}
+                        <Link to={item.href} className="menu-link">
+                          <span className="menu-text">{item.label}</span>
+                        </Link>
                       </li>
                     ))}
                   </ul>
                 </nav>
 
                 <div className="header-ticket">
-                  <a href="https://wa.me/573113540008" target="_blank" rel="noopener noreferrer">
+                  <Link to="/reservas#reservar" className="header-ticket-link" title="¡Reserva ya!">
                     <img
                       src="/images/TicketHeader-300x191.png"
-                      alt="Reserva tu ticket"
+                      alt="¡Reserva ya! Ir al formulario de reservas"
                       width="243"
                       height="155"
                     />
-                  </a>
+                  </Link>
                 </div>
               </div>
 
@@ -117,15 +109,9 @@ export default function Header() {
               <ul className="mobile-header-menu">
                 {NAV_ITEMS.map((item) => (
                   <li key={item.label} className="menu-item">
-                    {item.static ? (
-                      <a href={item.href} className="menu-link" onClick={() => setMobileMenuOpen(false)}>
-                        <span className="menu-text">{item.label}</span>
-                      </a>
-                    ) : (
-                      <Link to={item.href} className="menu-link" onClick={() => setMobileMenuOpen(false)}>
-                        <span className="menu-text">{item.label}</span>
-                      </Link>
-                    )}
+                    <Link to={item.href} className="menu-link" onClick={() => setMobileMenuOpen(false)}>
+                      <span className="menu-text">{item.label}</span>
+                    </Link>
                   </li>
                 ))}
               </ul>

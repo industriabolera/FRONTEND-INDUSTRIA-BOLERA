@@ -1,0 +1,260 @@
+.servicios-tips {
+  position: relative;
+  background: #1a1a1a;
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%),
+    url('/images/FondoTextura_Bolera.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  padding: 120px 0 80px;
+  overflow: hidden;
+}
+
+.servicios-tips-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(700px 320px at 15% 20%, rgba(216, 63, 54, 0.15), transparent 60%),
+    radial-gradient(700px 320px at 85% 25%, rgba(228, 210, 141, 0.10), transparent 60%);
+  pointer-events: none;
+}
+
+.servicios-tips-container {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.servicios-tips-logo {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.servicios-tips-logo img {
+  max-width: 320px;
+  height: auto;
+  display: inline-block;
+}
+
+.servicios-tips-heading {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.servicios-tips-heading-spacer {
+  margin-top: 70px;
+}
+
+.servicios-tips-title-yellow {
+  margin: 0;
+  color: #e4d28d;
+  font-family: 'Yeseva One', serif;
+  font-size: clamp(34px, 4.5vw, 54px);
+  letter-spacing: 1.5px;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.servicios-tips-title-cursive {
+  margin: 0;
+  color: #d83f36;
+  font-family: 'Calligraffitti', cursive;
+  font-size: clamp(28px, 3.4vw, 42px);
+  letter-spacing: 1px;
+  line-height: 1.1;
+  font-weight: 400;
+}
+
+.servicios-tips-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+  margin-bottom: 30px;
+}
+
+.servicios-tip-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(228, 210, 141, 0.18);
+  border-radius: 18px;
+  padding: 28px 22px 22px;
+  text-align: center;
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.servicios-tip-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(228, 210, 141, 0.45);
+}
+
+.servicios-tip-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #e4d28d;
+  margin-bottom: 14px;
+}
+
+.servicios-tip-circle span {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e4d28d;
+}
+
+.servicios-tip-image {
+  width: 130px;
+  height: 130px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.servicios-tip-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.servicios-tip-card:hover .servicios-tip-image img {
+  transform: scale(1.06);
+}
+
+.servicios-tip-text {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.servicios-horarios {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  padding: 0;
+  margin: 0 0 36px;
+}
+
+.servicios-horario-item {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(228, 210, 141, 0.18);
+  border-radius: 14px;
+  padding: 18px 8px 14px;
+  text-align: center;
+  transition: border-color 0.3s ease, transform 0.3s ease;
+}
+
+.servicios-horario-item:hover {
+  transform: translateY(-3px);
+  border-color: rgba(228, 210, 141, 0.45);
+}
+
+.servicios-horario-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #e4d28d;
+  margin-bottom: 8px;
+}
+
+.servicios-horario-circle span {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #e4d28d;
+}
+
+.servicios-horario-day {
+  display: block;
+  font-family: 'Yeseva One', serif;
+  color: #e4d28d;
+  font-size: 24px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.servicios-horario-hours {
+  display: block;
+  font-family: 'Montserrat', sans-serif;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.servicios-horario-divider {
+  display: block;
+  margin: 10px auto 0;
+  width: 30px;
+  height: 1px;
+  background: rgba(228, 210, 141, 0.45);
+}
+
+.servicios-tips-cta {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.servicios-tips-button {
+  display: inline-block;
+  background: #e4d28d;
+  color: #1a1a1a;
+  font-family: 'Yeseva One', serif;
+  font-size: 18px;
+  letter-spacing: 5px;
+  padding: 14px 38px;
+  border-radius: 33px;
+  text-decoration: none;
+  transition: transform 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+
+.servicios-tips-button:hover {
+  background: #d83f36;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+@media (max-width: 900px) {
+  .servicios-tips-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .servicios-horarios {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .servicios-tips {
+    padding: 90px 0 60px;
+  }
+
+  .servicios-tips-heading-spacer {
+    margin-top: 50px;
+  }
+
+  .servicios-horarios {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .servicios-tips-button {
+    font-size: 15px;
+    letter-spacing: 3px;
+    padding: 12px 30px;
+  }
+}

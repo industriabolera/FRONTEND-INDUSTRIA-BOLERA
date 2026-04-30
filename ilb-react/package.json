@@ -10,7 +10,8 @@
     "build": "vite build",
     "start": "NODE_ENV=production node server/index.js",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:bloqueos-pdf": "node scripts/import-bloqueos-from-pdf.mjs"
   },
   "dependencies": {
     "cors": "^2.8.6",
@@ -26,10 +27,17 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "@zxing/library": "^0.23.0",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jimp": "^1.6.1",
+    "jsqr": "^1.4.0",
+    "pdf-parse": "^1.1.1",
+    "pngjs": "^7.0.0",
+    "qrcode": "^1.5.4",
+    "quirc": "^1.0.0-alpha.4",
     "vite": "^7.3.1"
   }
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import './AdminDashboard.css'
 
 const ESTADO_CONFIG = {
@@ -21,6 +21,32 @@ function formatDate(iso) {
 function parseHorasDisplay(horas) {
   if (!horas) return '—'
   return horas.replace(/\|/g, ' · ').replace(/P(\d+):/g, 'P$1: ')
+}
+
+function ReservaDetailPanel({ r }) {
+  return (
+    <div className="dash-detail-panel">
+      <div className="dash-detail-grid">
+        <div className="dash-detail-section">
+          <h4><i className="fas fa-bowling-ball" /> Reserva</h4>
+          <div className="dash-detail-row"><span>Referencia</span><strong>{r.reference}</strong></div>
+          <div className="dash-detail-row"><span>Fecha</span><strong>{r.fecha}</strong></div>
+          <div className="dash-detail-row"><span>Pistas</span><strong>{r.pistas}</strong></div>
+          <div className="dash-detail-row"><span>Horarios</span><strong>{parseHorasDisplay(r.horas)}</strong></div>
+          <div className="dash-detail-row"><span>Personas</span><strong>{r.personas}</strong></div>
+          {r.extras && <div className="dash-detail-row"><span>Extras</span><strong>{r.extras}</strong></div>}
+          <div className="dash-detail-row"><span>Total</span><strong className="dash-detail-total">{formatPrice(r.total || 0)}</strong></div>
+        </div>
+        <div className="dash-detail-section">
+          <h4><i className="fas fa-user" /> Datos del Cliente</h4>
+          <div className="dash-detail-row"><span>Nombre</span><strong>{r.datosPersonales?.nombre}</strong></div>
+          <div className="dash-detail-row"><span>Teléfono</span><strong>{r.datosPersonales?.telefono}</strong></div>
+          <div className="dash-detail-row"><span>Correo</span><strong>{r.datosPersonales?.correo}</strong></div>
+          <div className="dash-detail-row"><span>Documento</span><strong>{r.datosPersonales?.tipoDocumento} {r.datosPersonales?.documento}</strong></div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function AdminDashboard() {
@@ -177,60 +203,41 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {filtered.map(r => (
-                <tr key={r.reference} className={expanded === r.reference ? 'expanded' : ''}>
-                  <td className="dash-cell-ref">{r.reference}</td>
-                  <td>{r.fecha}</td>
-                  <td className="dash-cell-name">{r.datosPersonales?.nombre || '—'}</td>
-                  <td>{r.pistas || '—'}</td>
-                  <td className="dash-cell-total">{formatPrice(r.total || 0)}</td>
-                  <td>
-                    <span className={`dash-badge dash-badge-${ESTADO_CONFIG[r.estado]?.cls || 'pending'}`}>
-                      <i className={ESTADO_CONFIG[r.estado]?.icon || 'fas fa-question'} />
-                      {ESTADO_CONFIG[r.estado]?.label || r.estado}
-                    </span>
-                  </td>
-                  <td className="dash-cell-date">{formatDate(r.creadaEn)}</td>
-                  <td>
-                    <button
-                      className="dash-expand-btn"
-                      onClick={() => setExpanded(expanded === r.reference ? null : r.reference)}
-                    >
-                      <i className={`fas fa-chevron-${expanded === r.reference ? 'up' : 'down'}`} />
-                    </button>
-                  </td>
-                </tr>
+                <Fragment key={r.reference}>
+                  <tr className={expanded === r.reference ? 'expanded' : ''}>
+                    <td className="dash-cell-ref">{r.reference}</td>
+                    <td>{r.fecha}</td>
+                    <td className="dash-cell-name">{r.datosPersonales?.nombre || '—'}</td>
+                    <td>{r.pistas || '—'}</td>
+                    <td className="dash-cell-total">{formatPrice(r.total || 0)}</td>
+                    <td>
+                      <span className={`dash-badge dash-badge-${ESTADO_CONFIG[r.estado]?.cls || 'pending'}`}>
+                        <i className={ESTADO_CONFIG[r.estado]?.icon || 'fas fa-question'} />
+                        {ESTADO_CONFIG[r.estado]?.label || r.estado}
+                      </span>
+                    </td>
+                    <td className="dash-cell-date">{formatDate(r.creadaEn)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="dash-expand-btn"
+                        onClick={() => setExpanded(expanded === r.reference ? null : r.reference)}
+                      >
+                        <i className={`fas fa-chevron-${expanded === r.reference ? 'up' : 'down'}`} />
+                      </button>
+                    </td>
+                  </tr>
+                  {expanded === r.reference && (
+                    <tr className="dash-detail-expand" aria-live="polite">
+                      <td colSpan={8}>
+                        <ReservaDetailPanel r={r} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
-
-          {/* Expanded detail */}
-          {expanded && (() => {
-            const r = filtered.find(x => x.reference === expanded)
-            if (!r) return null
-            return (
-              <div className="dash-detail-panel">
-                <div className="dash-detail-grid">
-                  <div className="dash-detail-section">
-                    <h4><i className="fas fa-bowling-ball" /> Reserva</h4>
-                    <div className="dash-detail-row"><span>Referencia</span><strong>{r.reference}</strong></div>
-                    <div className="dash-detail-row"><span>Fecha</span><strong>{r.fecha}</strong></div>
-                    <div className="dash-detail-row"><span>Pistas</span><strong>{r.pistas}</strong></div>
-                    <div className="dash-detail-row"><span>Horarios</span><strong>{parseHorasDisplay(r.horas)}</strong></div>
-                    <div className="dash-detail-row"><span>Personas</span><strong>{r.personas}</strong></div>
-                    {r.extras && <div className="dash-detail-row"><span>Extras</span><strong>{r.extras}</strong></div>}
-                    <div className="dash-detail-row"><span>Total</span><strong className="dash-detail-total">{formatPrice(r.total || 0)}</strong></div>
-                  </div>
-                  <div className="dash-detail-section">
-                    <h4><i className="fas fa-user" /> Datos del Cliente</h4>
-                    <div className="dash-detail-row"><span>Nombre</span><strong>{r.datosPersonales?.nombre}</strong></div>
-                    <div className="dash-detail-row"><span>Teléfono</span><strong>{r.datosPersonales?.telefono}</strong></div>
-                    <div className="dash-detail-row"><span>Correo</span><strong>{r.datosPersonales?.correo}</strong></div>
-                    <div className="dash-detail-row"><span>Documento</span><strong>{r.datosPersonales?.tipoDocumento} {r.datosPersonales?.documento}</strong></div>
-                  </div>
-                </div>
-              </div>
-            )
-          })()}
         </div>
       )}
     </div>

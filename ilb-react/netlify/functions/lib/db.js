@@ -5,6 +5,7 @@ const DB_NAME = 'administracion'
 
 let cachedClient = null
 let indexesEnsured = false
+let bloqueosIndexesEnsured = false
 
 export async function getDb() {
   if (cachedClient) {
@@ -41,6 +42,18 @@ export async function getReservasCollection() {
       collection.createIndex({ 'datosPersonales.documento': 1 }),
     ])
     indexesEnsured = true
+  }
+
+  return collection
+}
+
+export async function getBloqueosCollection() {
+  const db = await getDb()
+  const collection = db.collection('bloqueos')
+
+  if (!bloqueosIndexesEnsured) {
+    await collection.createIndex({ id: 1 }, { unique: true })
+    bloqueosIndexesEnsured = true
   }
 
   return collection
