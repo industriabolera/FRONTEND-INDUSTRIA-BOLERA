@@ -497,6 +497,13 @@ export default function ReservasPage() {
     if (d < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return
     setSelectedDate(d)
     setPistaSelection([])
+    // UX: al seleccionar fecha, avanzar automáticamente a "Pista y Hora"
+    setCurrentStep(1)
+    // En móvil, mantener el flujo sin que el usuario tenga que buscar el siguiente paso
+    setTimeout(() => {
+      const el = document.getElementById('reservar')
+      if (el) scrollToEl(el)
+    }, 0)
   }
 
   const isToday = (day) =>
@@ -1054,6 +1061,18 @@ export default function ReservasPage() {
                       <i className="fas fa-plus" />
                     </button>
                   </div>
+                </div>
+
+                {/* Mobile: botón continuar dentro del paso */}
+                <div className="step-mobile-actions">
+                  <button
+                    className="step-mobile-continue"
+                    onClick={goNext}
+                    disabled={!canContinue()}
+                    type="button"
+                  >
+                    Continuar
+                  </button>
                 </div>
               </div>
             )}

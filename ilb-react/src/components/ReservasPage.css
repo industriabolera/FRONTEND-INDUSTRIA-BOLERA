@@ -685,6 +685,35 @@
 .personas-btn-sm { width: 32px; height: 32px; border-radius: 8px; font-size: 12px; }
 .personas-count-sm { font-size: 1.3rem; min-width: 30px; }
 
+/* ─── Mobile step actions (Continuar dentro del formulario) ─── */
+.step-mobile-actions {
+  display: none;
+}
+
+.step-mobile-continue {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: #d83f36;
+  color: #fff;
+}
+
+.step-mobile-continue:disabled {
+  background: rgba(216, 63, 54, 0.4);
+  cursor: not-allowed;
+}
+
+.step-mobile-continue:hover:not(:disabled) {
+  background: #c23530;
+  box-shadow: 0 4px 16px rgba(216, 63, 54, 0.35);
+}
+
 /* ============================================
    EXTRAS (Step 2)
    ============================================ */
@@ -1370,6 +1399,11 @@
   .calendar-pricing-info {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .step-mobile-actions {
+    display: block;
+    margin-top: 18px;
   }
 }
 
