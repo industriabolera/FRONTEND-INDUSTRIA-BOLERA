@@ -28,6 +28,12 @@ async function resolvePendingPayments() {
   const timeoutMs = Math.max(5, timeoutMinutes) * 60 * 1000
   const expiredBefore = new Date(Date.now() - timeoutMs)
 
+  // Si una reserva queda "pendiente" demasiado tiempo, la eliminamos para limpiar BD.
+  // Por defecto: 2 horas.
+  const deleteAfterMinutes = Number(process.env.PENDING_DELETE_AFTER_MINUTES || 120)
+  const deleteAfterMs = Math.max(10, deleteAfterMinutes) * 60 * 1000
+  const deleteBefore = new Date(Date.now() - deleteAfterMs)
+
   // Buscar todas las reservas en estado pendiente
   const pendientes = await reservas
     .find({ estado: 'pendiente' })
@@ -37,11 +43,21 @@ async function resolvePendingPayments() {
   console.log(`[CronJob] Found ${pendientes.length} pending reservations to resolve`)
 
   let resolved = 0
+  let deleted = 0
   let errors = 0
   const results = []
 
   for (const reserva of pendientes) {
     try {
+      // Si está pendiente por más de N minutos, eliminarla (limpieza de base de datos)
+      if (reserva.creadaEn && new Date(reserva.creadaEn) < deleteBefore) {
+        await reservas.deleteOne({ requestId: String(reserva.requestId) })
+        deleted++
+        results.push({ ref: reserva.reference, requestId: reserva.requestId, from: 'pendiente', to: 'eliminada', reason: 'delete_timeout' })
+        console.log(`[CronJob] Deleted stale pending: ref=${reserva.reference} requestId=${reserva.requestId} (>${deleteAfterMinutes} min)`)
+        continue
+      }
+
       // Si la sesión está pendiente demasiado tiempo, marcar como cancelada/expirada
       if (reserva.creadaEn && new Date(reserva.creadaEn) < expiredBefore) {
         await reservas.updateOne(
@@ -95,7 +111,8 @@ async function resolvePendingPayments() {
   const summary = {
     total: pendientes.length,
     resolved,
-    stillPending: pendientes.length - resolved - errors,
+    deleted,
+    stillPending: pendientes.length - resolved - deleted - errors,
     errors,
     results,
     executedAt: new Date().toISOString(),
