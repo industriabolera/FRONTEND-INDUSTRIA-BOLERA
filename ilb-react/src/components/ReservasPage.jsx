@@ -307,6 +307,39 @@ function toDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function startOfCalendarDayLocal(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
+
+/** Inicio del slot en el calendario local (misma hora que el usuario del navegador). */
+function slotStartOnCalendarDay(dayDate, slotStr) {
+  const m = String(slotStr).trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  if (!m) return null
+  let hh = parseInt(m[1], 10)
+  const mm = parseInt(m[2], 10)
+  const ap = m[3].toUpperCase()
+  if (ap === 'AM') {
+    if (hh === 12) hh = 0
+  } else if (hh !== 12) {
+    hh += 12
+  }
+  return new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), hh, mm, 0, 0)
+}
+
+/** Si la reserva es para hoy, excluye horarios cuyo inicio ya pasó. */
+function filterPastSlotsForSameDay(selectedDate, slots) {
+  if (!selectedDate || !slots?.length) return slots || []
+  const todayStart = startOfCalendarDayLocal(new Date())
+  const selStart = startOfCalendarDayLocal(selectedDate)
+  if (selStart.getTime() < todayStart.getTime()) return []
+  if (selStart.getTime() !== todayStart.getTime()) return slots
+  const now = Date.now()
+  return slots.filter(h => {
+    const sd = slotStartOnCalendarDay(selectedDate, h)
+    return sd && sd.getTime() > now
+  })
+}
+
 const CONDICIONES = [
   'Debes estar en la bolera como mínimo 20 minutos antes de la hora programada.',
   'Ten en cuenta que la hora del juego empieza a correr a la hora programada.',
@@ -340,6 +373,13 @@ export default function ReservasPage() {
   const [paying, setPaying] = useState(false)
   const [paymentResult, setPaymentResult] = useState(null)
   const [searchParams, setSearchParams] = useSearchParams()
+  /** Recalcula horarios disponibles cuando la fecha es “hoy” y pasa la hora. */
+  const [bookingClockTick, setBookingClockTick] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setBookingClockTick(t => t + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   const isMobile = useMemo(() => {
     if (typeof window === 'undefined') return false
@@ -455,9 +495,30 @@ export default function ReservasPage() {
   )
 
   const horarios = useMemo(
-    () => getHorariosForDate(selectedDate, config.horarios, holidaysSet),
-    [selectedDate, config.horarios, holidaysSet]
+    () => filterPastSlotsForSameDay(selectedDate, getHorariosForDate(selectedDate, config.horarios, holidaysSet)),
+    [selectedDate, config.horarios, holidaysSet, bookingClockTick]
   )
+
+  useEffect(() => {
+    if (!selectedHoraStep1) return
+    if (!horarios.includes(selectedHoraStep1)) {
+      setSelectedHoraStep1('')
+      setPistaSelection([])
+      setCurrentStep(s => (s > 1 ? 1 : s))
+    }
+  }, [selectedHoraStep1, horarios])
+
+  useEffect(() => {
+    if (!selectedDate) return
+    const sodSel = startOfCalendarDayLocal(selectedDate).getTime()
+    const sodNow = startOfCalendarDayLocal(new Date()).getTime()
+    if (sodSel < sodNow) {
+      setSelectedDate(null)
+      setSelectedHoraStep1('')
+      setPistaSelection([])
+      setCurrentStep(0)
+    }
+  }, [selectedDate, bookingClockTick])
 
   const fechaStr = selectedDate ? toDateStr(selectedDate) : ''
   const activePromo = selectedDate ? getActivePromo(fechaStr, selectedDate.getDay()) : null
@@ -520,7 +581,15 @@ export default function ReservasPage() {
     }))
   }
 
+  const calendarCanGoPrevMonth = useMemo(() => {
+    const firstOfView = new Date(viewYear, viewMonth, 1)
+    const d = new Date()
+    const firstOfThisMonth = new Date(d.getFullYear(), d.getMonth(), 1)
+    return firstOfView.getTime() > firstOfThisMonth.getTime()
+  }, [viewYear, viewMonth, bookingClockTick])
+
   const prevMonth = () => {
+    if (!calendarCanGoPrevMonth) return
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) }
     else setViewMonth(m => m - 1)
   }
@@ -533,7 +602,7 @@ export default function ReservasPage() {
   const handleDayClick = (day) => {
     if (!day.currentMonth) return
     const d = new Date(viewYear, viewMonth, day.day)
-    if (d < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return
+    if (startOfCalendarDayLocal(d).getTime() < startOfCalendarDayLocal(new Date()).getTime()) return
     setSelectedDate(d)
     setPistaSelection([])
     setSelectedHoraStep1('')
@@ -558,7 +627,8 @@ export default function ReservasPage() {
 
   const isPast = (day) => {
     if (!day.currentMonth) return false
-    return new Date(viewYear, viewMonth, day.day) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const d = new Date(viewYear, viewMonth, day.day)
+    return startOfCalendarDayLocal(d).getTime() < startOfCalendarDayLocal(new Date()).getTime()
   }
 
   const totalPersonas = personas + (addJugadorExtra ? 1 : 0)
@@ -916,7 +986,13 @@ export default function ReservasPage() {
                     {MONTHS[viewMonth].toUpperCase()} {viewYear}
                   </h2>
                   <div className="calendar-nav">
-                    <button className="calendar-nav-btn" onClick={prevMonth} aria-label="Mes anterior">
+                    <button
+                      type="button"
+                      className="calendar-nav-btn"
+                      onClick={prevMonth}
+                      aria-label="Mes anterior"
+                      disabled={!calendarCanGoPrevMonth}
+                    >
                       <i className="fas fa-chevron-left" />
                     </button>
                     <button className="calendar-nav-btn" onClick={nextMonth} aria-label="Mes siguiente">

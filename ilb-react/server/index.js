@@ -5,6 +5,7 @@ import { createHash, randomUUID } from 'crypto'
 import { MongoClient } from 'mongodb'
 import { createSession, querySession } from './placetopay.js'
 import { ROLES, hashPassword, verifyPassword, requireAuth } from '../netlify/functions/lib/admin-auth.js'
+import { validateFechaHorariosReservaColombia } from '../netlify/functions/lib/booking-datetime-colombia.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -389,6 +390,21 @@ app.post('/api/payment/create', async (req, res) => {
       return res.status(400).json({ error: 'El nombre solo puede contener letras, tildes, ñ, espacios y guiones' })
     }
 
+    if (!fecha || !hora) {
+      return res.status(400).json({ error: 'fecha y hora son requeridos' })
+    }
+
+    const slotsForDate = parseSlots(fecha, hora)
+    if (slotsForDate.length === 0) {
+      return res.status(400).json({ error: 'Datos de pista / horario inválidos' })
+    }
+
+    const fechaHoraErr = validateFechaHorariosReservaColombia(
+      fecha,
+      slotsForDate.map(s => s.hora)
+    )
+    if (fechaHoraErr) return res.status(400).json({ error: fechaHoraErr })
+
     // ── Anti-duplicado: verificar si ya existe una sesión pendiente reciente para esta reserva ──
     const reservas = await getReservasCollection()
     const recentDuplicate = await reservas.findOne({
@@ -406,7 +422,7 @@ app.post('/api/payment/create', async (req, res) => {
     }
 
     // Validar disponibilidad (bloqueos + reservas existentes) antes de crear sesión de pago
-    const slotsToCheck = parseSlots(fecha, hora)
+    const slotsToCheck = slotsForDate
     for (const s of slotsToCheck) {
       // eslint-disable-next-line no-await-in-loop
       const taken = await isSlotBlockedOrReserved(s)

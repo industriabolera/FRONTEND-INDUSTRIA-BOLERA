@@ -1,5 +1,6 @@
 import { getReservasCollection, getBloqueosCollection } from './lib/db.js'
 import { createSession } from './lib/placetopay.js'
+import { validateFechaHorariosReservaColombia } from './lib/booking-datetime-colombia.js'
 
 function parseSlots(fecha, horasStr) {
   const slots = []
@@ -71,6 +72,35 @@ export async function handler(event) {
       return { statusCode: 400, body: JSON.stringify({ error: 'Datos personales son requeridos (nombre, teléfono, correo, documento)' }) }
     }
 
+    if (!fecha || !hora) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'fecha y hora son requeridos' }),
+      }
+    }
+
+    const slotsForDate = parseSlots(fecha, hora)
+    if (slotsForDate.length === 0) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Datos de pista / horario inválidos' }),
+      }
+    }
+
+    const fechaHoraErr = validateFechaHorariosReservaColombia(
+      fecha,
+      slotsForDate.map(s => s.hora)
+    )
+    if (fechaHoraErr) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: fechaHoraErr }),
+      }
+    }
+
     // Validar nombre: solo letras, tildes, ñ, espacios, guiones
     const namePattern = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/
     if (!namePattern.test(datosPersonales.nombre.trim())) {
@@ -98,7 +128,7 @@ export async function handler(event) {
     }
 
     // Validar disponibilidad (bloqueos + reservas existentes) ANTES de crear sesión de pago
-    const slotsToCheck = parseSlots(fecha, hora)
+    const slotsToCheck = slotsForDate
     const bloqueos = await getBloqueosCollection()
     for (const s of slotsToCheck) {
       // eslint-disable-next-line no-await-in-loop
