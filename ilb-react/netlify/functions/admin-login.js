@@ -1,0 +1,55 @@
+import { getAdminUsersCollection } from './lib/db.js'
+import { ROLES, hashPassword, verifyPassword, signAdminToken } from './lib/admin-auth.js'
+
+const json = (statusCode, body) => ({
+  statusCode,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+})
+
+async function ensureDefaultUsers() {
+  const col = await getAdminUsersCollection()
+  const count = await col.countDocuments({})
+  if (count > 0) return
+
+  const defaultPass = 'bolera2026'
+  const passwordHash = await hashPassword(defaultPass)
+
+  await col.insertMany([
+    { username: 'admin', role: 'admin', passwordHash, createdAt: new Date() },
+    { username: 'operaciones', role: 'operaciones', passwordHash, createdAt: new Date() },
+    { username: 'comercial', role: 'comercial', passwordHash, createdAt: new Date() },
+  ])
+}
+
+export async function handler(event) {
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: { 'Content-Type': 'application/json' } }
+  if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' })
+
+  try {
+    await ensureDefaultUsers()
+    const body = JSON.parse(event.body || '{}')
+    const username = String(body.username || '').trim().toLowerCase()
+    const password = String(body.password || '')
+    if (!username || !password) return json(400, { error: 'username y password son requeridos' })
+
+    const col = await getAdminUsersCollection()
+    const user = await col.findOne({ username })
+    if (!user) return json(401, { error: 'Credenciales inválidas' })
+
+    const ok = await verifyPassword(password, user.passwordHash)
+    if (!ok) return json(401, { error: 'Credenciales inválidas' })
+
+    const roleInfo = ROLES[user.role]
+    const token = signAdminToken({ username: user.username, role: user.role })
+
+    return json(200, {
+      token,
+      user: { username: user.username, role: user.role, roleLabel: roleInfo?.label || user.role, permissions: roleInfo?.permissions || [] },
+    })
+  } catch (err) {
+    console.error('[AdminLogin]', err.message)
+    return json(500, { error: err.message })
+  }
+}
+

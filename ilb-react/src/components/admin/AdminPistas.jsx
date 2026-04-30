@@ -36,6 +36,22 @@ function bloqueoPasaFiltros(b, { filtroFecha, filtroHora, filtroPista }) {
 
 const PISTA_OPTIONS = Array.from({ length: 11 }, (_, i) => i + 1)
 
+const METODOS_PAGO = [
+  { value: '', label: '—' },
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'tarjeta', label: 'Tarjeta' },
+  { value: 'transferencia', label: 'Transferencia' },
+  { value: 'bono_regalo', label: 'Bono de regalo' },
+  { value: 'otro', label: 'Otro' },
+]
+
+function metodoPagoLabel(value) {
+  if (!value) return ''
+  // compat: datos viejos guardados como "transaccion"
+  const normalized = value === 'transaccion' ? 'transferencia' : value
+  return METODOS_PAGO.find(m => m.value === normalized)?.label || value
+}
+
 export default function AdminPistas() {
   const { config, addBloqueo, deleteBloqueo } = useBolera()
   const [saving, setSaving] = useState(false)
@@ -50,6 +66,9 @@ export default function AdminPistas() {
     fechaFin: '',
     horas: [],
     motivo: '',
+    metodoPago: '',
+    comentarios: '',
+    personas: 2,
     todoElDia: true,
   })
 
@@ -117,9 +136,16 @@ export default function AdminPistas() {
           fechaFin: form.fechaFin,
           horas: form.todoElDia ? [] : form.horas,
           motivo: form.motivo,
+          metodoPago: form.metodoPago,
+          comentarios: form.comentarios,
+          personas: form.personas,
         })
       }
-      setForm({ pistas: [], fechaInicio: '', fechaFin: '', horas: [], motivo: '', todoElDia: true })
+      setForm({
+        pistas: [], fechaInicio: '', fechaFin: '', horas: [],
+        motivo: '', metodoPago: '', comentarios: '', personas: 2,
+        todoElDia: true,
+      })
       setPreviewDate('')
       setShowForm(false)
     } catch (err) {
@@ -269,6 +295,38 @@ export default function AdminPistas() {
             <input className="admin-input" value={form.motivo} onChange={e => handleChange('motivo', e.target.value)} placeholder="Ej: Mantenimiento, Evento privado..." />
           </div>
 
+          <div className="admin-form-row admin-form-row-2">
+            <div className="admin-field">
+              <label className="admin-field-label">Método de pago (opcional)</label>
+              <select className="admin-input" value={form.metodoPago} onChange={e => handleChange('metodoPago', e.target.value)}>
+                {METODOS_PAGO.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="admin-field">
+              <label className="admin-field-label">Personas (opcional)</label>
+              <input
+                className="admin-input"
+                type="number"
+                min="1"
+                max="60"
+                value={form.personas}
+                onChange={e => handleChange('personas', Number(e.target.value) || 1)}
+              />
+            </div>
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-field-label">Comentarios (opcional)</label>
+            <input
+              className="admin-input"
+              value={form.comentarios}
+              onChange={e => handleChange('comentarios', e.target.value)}
+              placeholder="Ej: Reservado por WhatsApp / evento / abono..."
+            />
+          </div>
+
           {form.pistas.length > 0 && dayCount > 0 && (
             <div className="admin-bloqueo-summary">
               <i className="fas fa-info-circle" />
@@ -358,8 +416,15 @@ export default function AdminPistas() {
                   {b.horas.length > 0 && (
                     <span><i className="far fa-clock" /> {b.horas.join(', ')}</span>
                   )}
+                  {b.personas ? (
+                    <span><i className="fas fa-users" /> {b.personas} persona(s)</span>
+                  ) : null}
+                  {b.metodoPago ? (
+                    <span><i className="fas fa-credit-card" /> {metodoPagoLabel(b.metodoPago)}</span>
+                  ) : null}
                 </div>
                 {b.motivo && <p className="admin-card-desc"><i className="fas fa-info-circle" /> {b.motivo}</p>}
+                {b.comentarios && <p className="admin-card-desc"><i className="fas fa-comment" /> {b.comentarios}</p>}
               </div>
               <div className="admin-card-actions">
                 <button

@@ -47,6 +47,31 @@
   status = 200
 
 [[redirects]]
+  from = "/api/admin/login"
+  to = "/.netlify/functions/admin-login"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/config"
+  to = "/.netlify/functions/admin-config"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/reservas"
+  to = "/.netlify/functions/admin-reservas"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/users"
+  to = "/.netlify/functions/admin-users"
+  status = 200
+
+[[redirects]]
+  from = "/api/config"
+  to = "/.netlify/functions/public-config"
+  status = 200
+
+[[redirects]]
   from = "/api/payment/resolve-pending"
   to = "/.netlify/functions/payment-resolve-pending"
   status = 200

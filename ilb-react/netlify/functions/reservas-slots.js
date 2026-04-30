@@ -26,8 +26,14 @@ export async function handler(event) {
 
   try {
     const reservas = await getReservasCollection()
+    const holdSince = new Date(Date.now() - 30 * 60 * 1000)
     const confirmed = await reservas
-      .find({ estado: 'exitosa' })
+      .find({
+        $or: [
+          { estado: 'exitosa' },
+          { estado: 'pendiente', actualizadaEn: { $gte: holdSince } },
+        ],
+      })
       .project({ fecha: 1, pistas: 1, horas: 1 })
       .toArray()
 

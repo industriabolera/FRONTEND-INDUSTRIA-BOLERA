@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useBolera } from '../context/BoleraContext'
 import FloorPlan, { LANE_PAIRS } from './FloorPlan'
@@ -339,6 +339,43 @@ export default function ReservasPage() {
   const [paying, setPaying] = useState(false)
   const [paymentResult, setPaymentResult] = useState(null)
   const [searchParams, setSearchParams] = useSearchParams()
+
+  const isMobile = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(max-width: 767px)').matches
+  }, [])
+
+  const prefersReducedMotion = useMemo(() => {
+    if (typeof window === 'undefined') return true
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }, [])
+
+  const scrollToEl = useCallback((el) => {
+    if (!el || !isMobile) return
+    el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' })
+  }, [isMobile, prefersReducedMotion])
+
+  const completedFieldsRef = useRef(new Set())
+  const dpNombreRef = useRef(null)
+  const dpTelRef = useRef(null)
+  const dpEmailRef = useRef(null)
+  const dpDocRef = useRef(null)
+  const dpMayorRef = useRef(null)
+  const sidebarActionsRef = useRef(null)
+
+  const maybeAdvanceScroll = useCallback((key, isComplete, nextRef) => {
+    if (!isMobile) return
+    const done = completedFieldsRef.current
+    if (!isComplete) return
+    if (done.has(key)) return
+    done.add(key)
+    const next = nextRef?.current
+    if (next) {
+      scrollToEl(next)
+      const focusable = next.querySelector?.('input, select, textarea, button')
+      focusable?.focus?.({ preventScroll: true })
+    }
+  }, [isMobile, scrollToEl])
 
   useEffect(() => {
     if (personas !== 6 && addJugadorExtra) {
@@ -1099,7 +1136,7 @@ export default function ReservasPage() {
                 <p className="selection-subtitle">Ingresa tus datos para la reserva. Debes ser mayor de edad.</p>
 
                 <div className="datos-form">
-                  <div className="datos-field">
+                  <div className="datos-field" ref={dpNombreRef}>
                     <label htmlFor="dp-nombre">Nombre completo *</label>
                     <input
                       id="dp-nombre"
@@ -1109,6 +1146,7 @@ export default function ReservasPage() {
                         // Filtrar caracteres no permitidos en tiempo real (solo letras, tildes, ñ, espacios, guiones, apóstrofos)
                         const filtered = e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]/g, '')
                         updateDatos('nombre', filtered)
+                        maybeAdvanceScroll('dp_nombre', !validateNombre(filtered), dpTelRef)
                       }}
                       placeholder="Tu nombre completo"
                       autoComplete="name"
@@ -1121,7 +1159,7 @@ export default function ReservasPage() {
                     )}
                   </div>
 
-                  <div className="datos-field">
+                  <div className="datos-field" ref={dpTelRef}>
                     <label htmlFor="dp-tel">Teléfono *</label>
                     <div className="datos-phone-row">
                       <select
@@ -1145,6 +1183,8 @@ export default function ReservasPage() {
                           const rule = getPhoneRule(datosPersonales.codigoPais)
                           const digits = e.target.value.replace(/\D/g, '').slice(0, rule.maxLen)
                           updateDatos('telefono', digits)
+                          const isValid = !validateTelefono(datosPersonales.codigoPais, digits) && digits.length === rule.maxLen
+                          maybeAdvanceScroll('dp_tel', isValid, dpEmailRef)
                         }}
                         placeholder={getPhoneRule(datosPersonales.codigoPais).placeholder}
                         autoComplete="tel"
@@ -1158,13 +1198,18 @@ export default function ReservasPage() {
                     )}
                   </div>
 
-                  <div className="datos-field">
+                  <div className="datos-field" ref={dpEmailRef}>
                     <label htmlFor="dp-email">Correo electrónico *</label>
                     <input
                       id="dp-email"
                       type="email"
                       value={datosPersonales.correo}
-                      onChange={e => updateDatos('correo', e.target.value)}
+                      onChange={e => {
+                        const v = e.target.value
+                        updateDatos('correo', v)
+                        const isValid = v.includes('@') && v.includes('.')
+                        maybeAdvanceScroll('dp_email', isValid, dpDocRef)
+                      }}
                       placeholder="tu@correo.com"
                       autoComplete="email"
                     />
@@ -1181,7 +1226,7 @@ export default function ReservasPage() {
                     />
                   </div>
 
-                  <div className="datos-field-row">
+                  <div className="datos-field-row" ref={dpDocRef}>
                     <div className="datos-field datos-field-tipo">
                       <label htmlFor="dp-tipodoc">Tipo de documento *</label>
                       <select
@@ -1209,7 +1254,10 @@ export default function ReservasPage() {
                           else if (onlyDigits) val = e.target.value.replace(/\D/g, '')
                           else val = e.target.value.replace(/[^a-zA-Z0-9_]/g, '')
                           const maxLen = DOC_TYPES.find(t => t.value === tipo)?.maxLen ?? 16
-                          updateDatos('documento', val.slice(0, maxLen))
+                          const trimmed = val.slice(0, maxLen)
+                          updateDatos('documento', trimmed)
+                          const isValid = trimmed.trim().length > 0 && !validateDocumento(tipo, trimmed)
+                          maybeAdvanceScroll('dp_doc', isValid, dpMayorRef)
                         }}
                         placeholder={DOC_TYPES.find(t => t.value === datosPersonales.tipoDocumento)?.hint || 'Número de documento'}
                         autoComplete="off"
@@ -1223,7 +1271,15 @@ export default function ReservasPage() {
                     </div>
                   </div>
 
-                  <label className="datos-mayor-label" onClick={() => updateDatos('esMayorDeEdad', !datosPersonales.esMayorDeEdad)}>
+                  <label
+                    className="datos-mayor-label"
+                    ref={dpMayorRef}
+                    onClick={() => {
+                      const next = !datosPersonales.esMayorDeEdad
+                      updateDatos('esMayorDeEdad', next)
+                      maybeAdvanceScroll('dp_mayor', next, sidebarActionsRef)
+                    }}
+                  >
                     <div className={`datos-checkbox ${datosPersonales.esMayorDeEdad ? 'checked' : ''}`}>
                       <i className={datosPersonales.esMayorDeEdad ? 'fas fa-check-square' : 'far fa-square'} />
                     </div>
@@ -1391,6 +1447,15 @@ export default function ReservasPage() {
             <div className="sidebar-card">
               <h3 className="sidebar-title">Resumen de Reserva</h3>
 
+              {/* Mobile: continuar antes del resumen */}
+              {isMobile && currentStep < STEPS.length - 1 && (
+                <div className="sidebar-actions sidebar-actions-top">
+                  <button className="sidebar-btn sidebar-btn-next" onClick={goNext} disabled={!canContinue()}>
+                    Continuar
+                  </button>
+                </div>
+              )}
+
               <div className="sidebar-section">
                 <div className="sidebar-date-badge">
                   <i className="far fa-calendar-alt" />
@@ -1470,7 +1535,7 @@ export default function ReservasPage() {
                 </>
               )}
 
-              <div className="sidebar-actions">
+              <div className="sidebar-actions" ref={sidebarActionsRef}>
                 {currentStep > 0 && (
                   <button className="sidebar-btn sidebar-btn-back" onClick={goBack}>
                     Volver

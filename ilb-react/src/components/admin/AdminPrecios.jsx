@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 
 function formatPrice(v) {
@@ -24,6 +24,14 @@ export default function AdminPrecios() {
   const [horarioForm, setHorarioForm] = useState({ ...config.horarios })
   const [savedPrecios, setSavedPrecios] = useState(false)
   const [savedHorarios, setSavedHorarios] = useState(false)
+
+  useEffect(() => {
+    setForm({ ...config.precios })
+  }, [config.precios])
+
+  useEffect(() => {
+    setHorarioForm({ ...config.horarios })
+  }, [config.horarios])
 
   const handlePriceChange = (key, value) => {
     const num = parseInt(value.replace(/\D/g, ''), 10) || 0

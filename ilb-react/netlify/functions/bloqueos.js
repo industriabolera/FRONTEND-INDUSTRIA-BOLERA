@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import { getBloqueosCollection } from './lib/db.js'
+import { requireAuth } from './lib/admin-auth.js'
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -16,6 +17,9 @@ function mapDoc(d) {
     fechaFin: d.fechaFin,
     horas: Array.isArray(d.horas) ? d.horas : [],
     motivo: d.motivo || '',
+    metodoPago: d.metodoPago || '',
+    comentarios: d.comentarios || '',
+    personas: typeof d.personas === 'number' ? d.personas : (d.personas ? Number(d.personas) : undefined),
     fecha: d.fecha || undefined,
     creadaEn: d.creadaEn,
   }
@@ -35,6 +39,9 @@ export async function handler(event) {
     }
 
     if (event.httpMethod === 'POST') {
+      const auth = requireAuth(event, ['pistas:write'])
+      if (!auth.ok) return json(auth.statusCode, { error: auth.error })
+
       let body
       try {
         body = JSON.parse(event.body || '{}')
@@ -45,9 +52,17 @@ export async function handler(event) {
       const pista = Number(body.pista)
       const { fechaInicio, fechaFin, motivo = '' } = body
       const horas = Array.isArray(body.horas) ? body.horas : []
+      const metodoPago = body.metodoPago ? String(body.metodoPago) : ''
+      const comentarios = body.comentarios ? String(body.comentarios) : ''
+      const personas = body.personas !== undefined && body.personas !== null && body.personas !== ''
+        ? Number(body.personas)
+        : undefined
 
       if (!Number.isInteger(pista) || pista < 1 || !fechaInicio || !fechaFin) {
         return json(400, { error: 'pista, fechaInicio y fechaFin son requeridos' })
+      }
+      if (personas !== undefined && (!Number.isFinite(personas) || personas < 1 || personas > 60)) {
+        return json(400, { error: 'personas debe ser un número entre 1 y 60' })
       }
 
       const id = typeof body.id === 'string' && body.id ? body.id : randomUUID()
@@ -58,6 +73,9 @@ export async function handler(event) {
         fechaFin,
         horas,
         motivo: String(motivo),
+        metodoPago,
+        comentarios,
+        ...(personas !== undefined ? { personas } : {}),
         creadaEn: new Date(),
       }
       if (body.fecha) doc.fecha = body.fecha
@@ -67,6 +85,9 @@ export async function handler(event) {
     }
 
     if (event.httpMethod === 'DELETE') {
+      const auth = requireAuth(event, ['pistas:write'])
+      if (!auth.ok) return json(auth.statusCode, { error: auth.error })
+
       let body
       try {
         body = JSON.parse(event.body || '{}')

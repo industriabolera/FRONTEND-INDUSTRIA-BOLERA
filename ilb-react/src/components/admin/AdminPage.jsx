@@ -1,13 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 import AdminPrecios from './AdminPrecios'
 import AdminPromociones from './AdminPromociones'
 import AdminPistas from './AdminPistas'
 import AdminReservas from './AdminReservas'
 import AdminDashboard from './AdminDashboard'
+import AdminUsuarios from './AdminUsuarios'
 import './AdminPage.css'
-
-const ADMIN_PASS = 'bolera2026'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-bar' },
@@ -15,22 +14,58 @@ const TABS = [
   { id: 'promociones', label: 'Promociones', icon: 'fas fa-percent' },
   { id: 'pistas', label: 'Pistas', icon: 'fas fa-bowling-ball' },
   { id: 'reservas', label: 'Reservas', icon: 'fas fa-calendar-check' },
+  { id: 'usuarios', label: 'Usuarios', icon: 'fas fa-users-cog' },
 ]
 
 export default function AdminPage() {
-  const [authenticated, setAuthenticated] = useState(false)
+  const { config, auth, setAuth } = useBolera()
+  const [authenticated, setAuthenticated] = useState(Boolean(auth?.token))
+  const [username, setUsername] = useState(auth?.user?.username || '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('dashboard')
-  const { config } = useBolera()
 
-  const handleLogin = (e) => {
+  useEffect(() => {
+    setAuthenticated(Boolean(auth?.token))
+  }, [auth?.token])
+
+  const permissions = auth?.user?.permissions || []
+  const allowedTabs = useMemo(() => {
+    const can = (perm) => permissions.includes(perm)
+    // Admin full
+    const tabs = []
+    if (can('reservas:read') || can('config:read') || can('pistas:read')) tabs.push('dashboard')
+    if (can('config:write')) tabs.push('precios', 'promociones')
+    if (can('pistas:write') || can('pistas:read')) tabs.push('pistas')
+    if (can('reservas:read') || can('reservas:write')) tabs.push('reservas')
+    if (can('users:write')) tabs.push('usuarios')
+    // unique
+    return Array.from(new Set(tabs))
+  }, [permissions])
+
+  useEffect(() => {
+    if (allowedTabs.length > 0 && !allowedTabs.includes(activeTab)) {
+      setActiveTab(allowedTabs[0])
+    }
+  }, [allowedTabs, activeTab])
+
+  const handleLogin = async (e) => {
     e.preventDefault()
-    if (password === ADMIN_PASS) {
+    setError('')
+    try {
+      const r = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(data.error || 'Error de autenticación')
+      setAuth({ token: data.token, user: data.user })
       setAuthenticated(true)
-      setError('')
-    } else {
-      setError('Contraseña incorrecta')
+      setPassword('')
+    } catch (err) {
+      setAuthenticated(false)
+      setError(err.message || 'No se pudo iniciar sesión')
     }
   }
 
@@ -50,13 +85,24 @@ export default function AdminPage() {
             </div>
             <form onSubmit={handleLogin} className="admin-login-form">
               <div className="admin-input-group">
+                <i className="fas fa-user" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  placeholder="Usuario"
+                  autoComplete="username"
+                  autoFocus
+                />
+              </div>
+              <div className="admin-input-group">
                 <i className="fas fa-lock" />
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Contraseña"
-                  autoFocus
+                  autoComplete="current-password"
                 />
               </div>
               {error && <p className="admin-login-error"><i className="fas fa-exclamation-circle" /> {error}</p>}
@@ -82,7 +128,7 @@ export default function AdminPage() {
             <span className="admin-sidebar-title">Admin Panel</span>
           </div>
           <nav className="admin-nav">
-            {TABS.map(tab => (
+            {TABS.filter(t => allowedTabs.includes(t.id)).map(tab => (
               <button
                 key={tab.id}
                 className={`admin-nav-item ${activeTab === tab.id ? 'active' : ''}`}
@@ -102,7 +148,7 @@ export default function AdminPage() {
               </button>
             ))}
           </nav>
-          <button className="admin-logout-btn" onClick={() => setAuthenticated(false)}>
+          <button className="admin-logout-btn" onClick={() => { setAuthenticated(false); setAuth({ token: '', user: null }) }}>
             <i className="fas fa-sign-out-alt" /> Cerrar sesión
           </button>
         </aside>
@@ -117,10 +163,11 @@ export default function AdminPage() {
           </div>
           <div className="admin-content">
             {activeTab === 'dashboard' && <AdminDashboard />}
-            {activeTab === 'precios' && <AdminPrecios />}
-            {activeTab === 'promociones' && <AdminPromociones />}
-            {activeTab === 'pistas' && <AdminPistas />}
-            {activeTab === 'reservas' && <AdminReservas />}
+            {activeTab === 'precios' && allowedTabs.includes('precios') && <AdminPrecios />}
+            {activeTab === 'promociones' && allowedTabs.includes('promociones') && <AdminPromociones />}
+            {activeTab === 'pistas' && allowedTabs.includes('pistas') && <AdminPistas />}
+            {activeTab === 'reservas' && allowedTabs.includes('reservas') && <AdminReservas />}
+            {activeTab === 'usuarios' && allowedTabs.includes('usuarios') && <AdminUsuarios />}
           </div>
         </main>
       </div>

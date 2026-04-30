@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 
 const STORAGE_KEY = 'ilb_admin_config'
+const STORAGE_AUTH_KEY = 'ilb_admin_auth'
 
 const DEFAULT_CONFIG = {
   precios: {
@@ -80,13 +81,66 @@ function saveConfig(config) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(persist))
 }
 
+function loadAuth() {
+  try {
+    const raw = localStorage.getItem(STORAGE_AUTH_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return { token: '', user: null }
+}
+
+function saveAuth(auth) {
+  try {
+    localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify(auth))
+  } catch { /* ignore */ }
+}
+
 const BoleraContext = createContext(null)
 
 export function BoleraProvider({ children }) {
   const [config, setConfig] = useState(loadConfig)
   const [onlineSlots, setOnlineSlots] = useState([])
+  const [auth, setAuth] = useState(loadAuth)
+
+  const authHeaders = useMemo(() => (auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}), [auth?.token])
 
   useEffect(() => { saveConfig(config) }, [config])
+  useEffect(() => { saveAuth(auth) }, [auth])
+
+  // Cargar config pública (precios/horarios/promos) desde BD
+  useEffect(() => {
+    fetch('/api/config')
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+      .then(data => {
+        if (data?.config) {
+          setConfig(prev => ({
+            ...prev,
+            precios: { ...prev.precios, ...data.config.precios },
+            horarios: { ...prev.horarios, ...data.config.horarios },
+            promociones: Array.isArray(data.config.promociones) ? data.config.promociones : prev.promociones,
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // Cargar precios/horarios/promos desde DB (si hay sesión admin)
+  useEffect(() => {
+    if (!auth?.token) return
+    fetch('/api/admin/config', { headers: { ...authHeaders } })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
+      .then(data => {
+        if (data?.config) {
+          setConfig(prev => ({
+            ...prev,
+            precios: { ...prev.precios, ...data.config.precios },
+            horarios: { ...prev.horarios, ...data.config.horarios },
+            promociones: Array.isArray(data.config.promociones) ? data.config.promociones : prev.promociones,
+          }))
+        }
+      })
+      .catch(() => {})
+  }, [auth?.token, authHeaders])
 
   useEffect(() => {
     let cancelled = false
@@ -113,6 +167,9 @@ export function BoleraProvider({ children }) {
             ...b,
             horas: Array.isArray(b.horas) ? b.horas : [],
             motivo: b.motivo ?? '',
+            metodoPago: b.metodoPago ?? '',
+            comentarios: b.comentarios ?? '',
+            personas: b.personas ?? null,
           }))
           setConfig(prev => ({ ...prev, bloqueos }))
         }
@@ -126,41 +183,82 @@ export function BoleraProvider({ children }) {
     return () => clearInterval(interval)
   }, [fetchBloqueos])
 
-  const updatePrecios = useCallback((precios) => {
+  const updatePrecios = useCallback(async (precios) => {
     setConfig(prev => ({ ...prev, precios: { ...prev.precios, ...precios } }))
-  }, [])
+    if (!auth?.token) return
+    await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ precios }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data?.config?.precios) setConfig(prev => ({ ...prev, precios: { ...prev.precios, ...data.config.precios } })) })
+      .catch(() => {})
+  }, [auth?.token, authHeaders])
 
-  const updateHorarios = useCallback((horarios) => {
+  const updateHorarios = useCallback(async (horarios) => {
     setConfig(prev => ({ ...prev, horarios: { ...prev.horarios, ...horarios } }))
-  }, [])
+    if (!auth?.token) return
+    await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ horarios }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data?.config?.horarios) setConfig(prev => ({ ...prev, horarios: { ...prev.horarios, ...data.config.horarios } })) })
+      .catch(() => {})
+  }, [auth?.token, authHeaders])
 
-  const addPromocion = useCallback((promo) => {
-    setConfig(prev => ({
-      ...prev,
-      promociones: [...prev.promociones, { ...promo, id: crypto.randomUUID() }]
-    }))
-  }, [])
+  const addPromocion = useCallback(async (promo) => {
+    let nextPromos = null
+    setConfig(prev => {
+      const p = { ...promo, id: crypto.randomUUID() }
+      nextPromos = [...prev.promociones, p]
+      return { ...prev, promociones: nextPromos }
+    })
+    if (!auth?.token) return
+    // nextPromos se llena en el setConfig anterior
+    await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ promociones: nextPromos || [] }),
+    }).catch(() => {})
+  }, [auth?.token, authHeaders])
 
-  const updatePromocion = useCallback((id, updates) => {
-    setConfig(prev => ({
-      ...prev,
-      promociones: prev.promociones.map(p => p.id === id ? { ...p, ...updates } : p)
-    }))
-  }, [])
+  const updatePromocion = useCallback(async (id, updates) => {
+    let nextPromos = null
+    setConfig(prev => {
+      nextPromos = prev.promociones.map(p => p.id === id ? { ...p, ...updates } : p)
+      return { ...prev, promociones: nextPromos }
+    })
+    if (!auth?.token) return
+    await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ promociones: nextPromos || [] }),
+    }).catch(() => {})
+  }, [auth?.token, authHeaders])
 
-  const deletePromocion = useCallback((id) => {
-    setConfig(prev => ({
-      ...prev,
-      promociones: prev.promociones.filter(p => p.id !== id)
-    }))
-  }, [])
+  const deletePromocion = useCallback(async (id) => {
+    let nextPromos = null
+    setConfig(prev => {
+      nextPromos = prev.promociones.filter(p => p.id !== id)
+      return { ...prev, promociones: nextPromos }
+    })
+    if (!auth?.token) return
+    await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ promociones: nextPromos || [] }),
+    }).catch(() => {})
+  }, [auth?.token, authHeaders])
 
   const addBloqueo = useCallback(async (bloqueo) => {
     const id = crypto.randomUUID()
     const payload = { ...bloqueo, id }
     const r = await fetch('/api/bloqueos', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify(payload),
     })
     if (!r.ok) {
@@ -169,12 +267,12 @@ export function BoleraProvider({ children }) {
     }
     await r.json().catch(() => ({}))
     await fetchBloqueos()
-  }, [fetchBloqueos])
+  }, [fetchBloqueos, authHeaders])
 
   const deleteBloqueo = useCallback(async (id) => {
     const r = await fetch('/api/bloqueos', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({ id }),
     })
     if (!r.ok) {
@@ -182,7 +280,7 @@ export function BoleraProvider({ children }) {
       throw new Error(err.error || `Error ${r.status}`)
     }
     await fetchBloqueos()
-  }, [fetchBloqueos])
+  }, [fetchBloqueos, authHeaders])
 
   const addReservaAdmin = useCallback((reserva) => {
     setConfig(prev => ({
@@ -242,6 +340,8 @@ export function BoleraProvider({ children }) {
 
   const value = {
     config,
+    auth,
+    setAuth,
     updatePrecios, updateHorarios,
     addPromocion, updatePromocion, deletePromocion,
     addBloqueo, deleteBloqueo,

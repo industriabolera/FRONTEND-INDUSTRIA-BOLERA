@@ -4,13 +4,24 @@ import cors from 'cors'
 import { createHash, randomUUID } from 'crypto'
 import { MongoClient } from 'mongodb'
 import { createSession, querySession } from './placetopay.js'
+import { ROLES, hashPassword, verifyPassword, requireAuth } from '../netlify/functions/lib/admin-auth.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, cb) => {
+    const allowed = new Set([
+      process.env.FRONTEND_URL,
+      'http://localhost:5173',
+      'http://localhost:5174',
+    ].filter(Boolean))
+    // Permitir requests sin Origin (curl, server-to-server)
+    if (!origin) return cb(null, true)
+    return cb(null, allowed.has(origin))
+  },
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json())
 
@@ -18,6 +29,8 @@ app.use(express.json())
 let cachedClient = null
 let indexesEnsured = false
 let bloqueosIndexesEnsured = false
+let adminUsersIndexesEnsured = false
+let adminConfigIndexesEnsured = false
 
 async function getReservasCollection() {
   if (!cachedClient) {
@@ -50,6 +63,29 @@ async function getBloqueosCollection() {
   return col
 }
 
+async function getAdminUsersCollection() {
+  await getReservasCollection()
+  const col = cachedClient.db('administracion').collection('admin_users')
+  if (!adminUsersIndexesEnsured) {
+    await Promise.all([
+      col.createIndex({ username: 1 }, { unique: true }),
+      col.createIndex({ role: 1 }),
+    ])
+    adminUsersIndexesEnsured = true
+  }
+  return col
+}
+
+async function getAdminConfigCollection() {
+  await getReservasCollection()
+  const col = cachedClient.db('administracion').collection('admin_config')
+  if (!adminConfigIndexesEnsured) {
+    await col.createIndex({ key: 1 }, { unique: true })
+    adminConfigIndexesEnsured = true
+  }
+  return col
+}
+
 function mapStatus(s) {
   if (s === 'APPROVED') return 'exitosa'
   if (s === 'REJECTED') return 'rechazada'
@@ -57,9 +93,220 @@ function mapStatus(s) {
   return 'pendiente'
 }
 
+const DEFAULT_ADMIN_CONFIG = {
+  precios: {
+    pistaLJ: 120000,
+    pistaVD: 132000,
+    zapatos: 7500,
+    jugadorAdicional: 31000,
+  },
+  horarios: {
+    lunMie: { apertura: '12:00 PM', cierre: '10:00 PM' },
+    jueSab: { apertura: '12:00 PM', cierre: '11:00 PM' },
+    domFest: { apertura: '12:00 PM', cierre: '9:00 PM' },
+  },
+  promociones: [],
+}
+
+async function ensureDefaultUsers() {
+  const col = await getAdminUsersCollection()
+  const count = await col.countDocuments({})
+  if (count > 0) return
+  const passwordHash = await hashPassword('bolera2026')
+  await col.insertMany([
+    { username: 'admin', role: 'admin', passwordHash, createdAt: new Date() },
+    { username: 'operaciones', role: 'operaciones', passwordHash, createdAt: new Date() },
+    { username: 'comercial', role: 'comercial', passwordHash, createdAt: new Date() },
+  ])
+}
+
+async function getOrInitAdminConfig() {
+  const col = await getAdminConfigCollection()
+  const existing = await col.findOne({ key: 'main' })
+  if (existing?.value) return existing.value
+  await col.updateOne(
+    { key: 'main' },
+    { $set: { key: 'main', value: DEFAULT_ADMIN_CONFIG, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
+    { upsert: true }
+  )
+  return DEFAULT_ADMIN_CONFIG
+}
+
 // ─── Health check ────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
+})
+
+// ─── Admin auth/config (dev server parity with Netlify) ───────
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    await ensureDefaultUsers()
+    const username = String(req.body?.username || '').trim().toLowerCase()
+    const password = String(req.body?.password || '')
+    if (!username || !password) return res.status(400).json({ error: 'username y password son requeridos' })
+
+    const col = await getAdminUsersCollection()
+    const user = await col.findOne({ username })
+    if (!user) return res.status(401).json({ error: 'Credenciales inválidas' })
+    const ok = await verifyPassword(password, user.passwordHash)
+    if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' })
+
+    // firmar token usando helper (mismo que functions)
+    const { signAdminToken } = await import('../netlify/functions/lib/admin-auth.js')
+    const token = signAdminToken({ username: user.username, role: user.role })
+    const roleInfo = ROLES[user.role]
+
+    res.json({ token, user: { username: user.username, role: user.role, roleLabel: roleInfo?.label || user.role, permissions: roleInfo?.permissions || [] } })
+  } catch (err) {
+    console.error('[AdminLogin]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.get('/api/admin/config', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['config:read'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+  try {
+    const value = await getOrInitAdminConfig()
+    res.json({ config: value })
+  } catch (err) {
+    console.error('[AdminConfig]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─── Public config (precios/horarios/promos) ─────────────────
+app.get('/api/config', async (req, res) => {
+  try {
+    const value = await getOrInitAdminConfig()
+    res.json({ config: value })
+  } catch (err) {
+    console.error('[PublicConfig]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/api/admin/config', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['config:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+  try {
+    const current = await getOrInitAdminConfig()
+    const next = {
+      ...current,
+      ...(req.body?.precios ? { precios: { ...current.precios, ...req.body.precios } } : {}),
+      ...(req.body?.horarios ? { horarios: { ...current.horarios, ...req.body.horarios } } : {}),
+      ...(req.body?.promociones ? { promociones: Array.isArray(req.body.promociones) ? req.body.promociones : current.promociones } : {}),
+    }
+    const col = await getAdminConfigCollection()
+    await col.updateOne({ key: 'main' }, { $set: { value: next, updatedAt: new Date() } }, { upsert: true })
+    res.json({ config: next })
+  } catch (err) {
+    console.error('[AdminConfig]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─── Admin: inactivar/borrar reservas online ──────────────────
+app.patch('/api/admin/reservas', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['reservas:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+  try {
+    const reference = String(req.body?.reference || '').trim()
+    const action = String(req.body?.action || '').trim()
+    if (!reference) return res.status(400).json({ error: 'reference es requerido' })
+
+    const reservas = await getReservasCollection()
+    if (action === 'inactivar') {
+      const result = await reservas.findOneAndUpdate(
+        { reference },
+        {
+          $set: {
+            estado: 'cancelada',
+            adminOverride: true,
+            adminOverrideReason: req.body?.reason ? String(req.body.reason) : 'Inactivada por admin',
+            actualizadaEn: new Date(),
+          },
+        },
+        { returnDocument: 'after' }
+      )
+      return res.json({ reserva: result })
+    }
+
+    return res.status(400).json({ error: 'action inválida' })
+  } catch (err) {
+    console.error('[AdminReservas]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.delete('/api/admin/reservas', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['reservas:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+  try {
+    const reference = String(req.body?.reference || '').trim()
+    if (!reference) return res.status(400).json({ error: 'reference es requerido' })
+    const reservas = await getReservasCollection()
+    const result = await reservas.deleteOne({ reference })
+    res.json({ deleted: result.deletedCount })
+  } catch (err) {
+    console.error('[AdminReservas]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─── Admin: usuarios (cambiar contraseña) ─────────────────────
+app.get('/api/admin/users', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['users:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+  try {
+    const col = await getAdminUsersCollection()
+    const users = await col.find({}).project({ username: 1, role: 1, createdAt: 1, updatedAt: 1 }).sort({ username: 1 }).toArray()
+    res.json({
+      users: users.map(u => ({
+        username: u.username,
+        role: u.role,
+        roleLabel: ROLES[u.role]?.label || u.role,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      })),
+    })
+  } catch (err) {
+    console.error('[AdminUsers]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.patch('/api/admin/users', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['users:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+  try {
+    const username = String(req.body?.username || '').trim().toLowerCase()
+    const newPassword = String(req.body?.newPassword || '')
+    if (!username || !newPassword) return res.status(400).json({ error: 'username y newPassword son requeridos' })
+    if (newPassword.length < 6) return res.status(400).json({ error: 'La contraseña debe tener mínimo 6 caracteres' })
+
+    const passwordHash = await hashPassword(newPassword)
+    const col = await getAdminUsersCollection()
+    const result = await col.findOneAndUpdate(
+      { username },
+      { $set: { passwordHash, updatedAt: new Date(), updatedBy: auth.user.username } },
+      { returnDocument: 'after' }
+    )
+    if (!result) return res.status(404).json({ error: 'Usuario no encontrado' })
+
+    res.json({
+      user: {
+        username: result.username,
+        role: result.role,
+        roleLabel: ROLES[result.role]?.label || result.role,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      },
+    })
+  } catch (err) {
+    console.error('[AdminUsers]', err.message)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ─── Create payment session ──────────────────────────────────
@@ -360,6 +607,9 @@ app.get('/api/bloqueos', async (req, res) => {
       fechaFin: d.fechaFin,
       horas: Array.isArray(d.horas) ? d.horas : [],
       motivo: d.motivo || '',
+      metodoPago: d.metodoPago || '',
+      comentarios: d.comentarios || '',
+      personas: typeof d.personas === 'number' ? d.personas : (d.personas ? Number(d.personas) : undefined),
       fecha: d.fecha,
       creadaEn: d.creadaEn,
     }))
@@ -370,13 +620,23 @@ app.get('/api/bloqueos', async (req, res) => {
 })
 
 app.post('/api/bloqueos', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['pistas:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
   try {
     const { fechaInicio, fechaFin, motivo = '' } = req.body
     const pista = Number(req.body.pista)
     const horas = Array.isArray(req.body.horas) ? req.body.horas : []
+    const metodoPago = req.body.metodoPago ? String(req.body.metodoPago) : ''
+    const comentarios = req.body.comentarios ? String(req.body.comentarios) : ''
+    const personas = req.body.personas !== undefined && req.body.personas !== null && req.body.personas !== ''
+      ? Number(req.body.personas)
+      : undefined
 
     if (!Number.isInteger(pista) || pista < 1 || !fechaInicio || !fechaFin) {
       return res.status(400).json({ error: 'pista, fechaInicio y fechaFin son requeridos' })
+    }
+    if (personas !== undefined && (!Number.isFinite(personas) || personas < 1 || personas > 60)) {
+      return res.status(400).json({ error: 'personas debe ser un número entre 1 y 60' })
     }
 
     const id = (typeof req.body.id === 'string' && req.body.id) ? req.body.id : randomUUID()
@@ -387,6 +647,9 @@ app.post('/api/bloqueos', async (req, res) => {
       fechaFin,
       horas,
       motivo: String(motivo),
+      metodoPago,
+      comentarios,
+      ...(personas !== undefined ? { personas } : {}),
       creadaEn: new Date(),
     }
     if (req.body.fecha) doc.fecha = req.body.fecha
@@ -400,6 +663,8 @@ app.post('/api/bloqueos', async (req, res) => {
 })
 
 app.delete('/api/bloqueos', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['pistas:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
   try {
     const id = req.body?.id
     if (!id || typeof id !== 'string') {
@@ -422,6 +687,7 @@ app.get('/api/reservas', async (req, res) => {
       reference: d.reference, estado: d.estado, fecha: d.fecha,
       pistas: d.pistas, horas: d.horas, personas: d.personas,
       extras: d.extras, total: d.total, description: d.description,
+      motivoPendiente: d.estado === 'pendiente' ? (d.placetopay?.statusMessage || '') : '',
       datosPersonales: d.datosPersonales, creadaEn: d.creadaEn, actualizadaEn: d.actualizadaEn,
     }))
     res.json({ reservas: list })
@@ -434,7 +700,13 @@ app.get('/api/reservas', async (req, res) => {
 app.get('/api/reservas/slots', async (req, res) => {
   try {
     const reservas = await getReservasCollection()
-    const confirmed = await reservas.find({ estado: 'exitosa' }).project({ fecha: 1, pistas: 1, horas: 1 }).toArray()
+    const holdSince = new Date(Date.now() - 30 * 60 * 1000)
+    const confirmed = await reservas.find({
+      $or: [
+        { estado: 'exitosa' },
+        { estado: 'pendiente', actualizadaEn: { $gte: holdSince } },
+      ],
+    }).project({ fecha: 1, pistas: 1, horas: 1 }).toArray()
     const slots = confirmed.flatMap(r => {
       const result = []
       ;(r.horas || '').split('|').forEach(block => {

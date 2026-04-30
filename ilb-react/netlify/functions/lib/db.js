@@ -6,6 +6,8 @@ const DB_NAME = 'administracion'
 let cachedClient = null
 let indexesEnsured = false
 let bloqueosIndexesEnsured = false
+let adminUsersIndexesEnsured = false
+let adminConfigIndexesEnsured = false
 
 export async function getDb() {
   if (cachedClient) {
@@ -54,6 +56,33 @@ export async function getBloqueosCollection() {
   if (!bloqueosIndexesEnsured) {
     await collection.createIndex({ id: 1 }, { unique: true })
     bloqueosIndexesEnsured = true
+  }
+
+  return collection
+}
+
+export async function getAdminUsersCollection() {
+  const db = await getDb()
+  const collection = db.collection('admin_users')
+
+  if (!adminUsersIndexesEnsured) {
+    await Promise.all([
+      collection.createIndex({ username: 1 }, { unique: true }),
+      collection.createIndex({ role: 1 }),
+    ])
+    adminUsersIndexesEnsured = true
+  }
+
+  return collection
+}
+
+export async function getAdminConfigCollection() {
+  const db = await getDb()
+  const collection = db.collection('admin_config')
+
+  if (!adminConfigIndexesEnsured) {
+    await collection.createIndex({ key: 1 }, { unique: true })
+    adminConfigIndexesEnsured = true
   }
 
   return collection

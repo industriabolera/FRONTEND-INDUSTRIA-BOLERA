@@ -13,9 +13,24 @@ const EMPTY_FORM = {
   fecha: '',
   hora: '',
   personas: 2,
+  metodoPago: '',
   nombre: '',
   telefono: '',
   notas: '',
+}
+
+const METODOS_PAGO = [
+  { value: '', label: 'Seleccionar...' },
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'tarjeta', label: 'Tarjeta' },
+  { value: 'transferencia', label: 'Transferencia' },
+  { value: 'bono_regalo', label: 'Bono de regalo' },
+  { value: 'otro', label: 'Otro' },
+]
+
+function metodoPagoLabel(value) {
+  if (!value) return ''
+  return METODOS_PAGO.find(m => m.value === value)?.label || value
 }
 
 const ESTADO_CONFIG = {
@@ -66,7 +81,7 @@ function horasResumen(slots) {
 }
 
 export default function AdminReservas() {
-  const { config, addReservaAdmin, deleteReservaAdmin, isLaneBlocked } = useBolera()
+  const { config, addReservaAdmin, deleteReservaAdmin, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline, auth } = useBolera()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(EMPTY_FORM)
   const [onlineReservas, setOnlineReservas] = useState([])
@@ -87,6 +102,34 @@ export default function AdminReservas() {
       .finally(() => setLoadingOnline(false))
   }
 
+  const authHeaders = auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}
+
+  const inactivarOnline = async (reference) => {
+    const ok = window.confirm(`¿Inactivar la reserva ${reference}? Esto la marcará como cancelada.`)
+    if (!ok) return
+    const r = await fetch('/api/admin/reservas', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ reference, action: 'inactivar', reason: 'Inactivada por admin' }),
+    })
+    const data = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
+    fetchOnline()
+  }
+
+  const borrarOnline = async (reference) => {
+    const ok = window.confirm(`¿Borrar definitivamente la reserva ${reference}? Esta acción no se puede deshacer.`)
+    if (!ok) return
+    const r = await fetch('/api/admin/reservas', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({ reference }),
+    })
+    const data = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
+    fetchOnline()
+  }
+
   useEffect(() => {
     fetchOnline()
     const interval = setInterval(fetchOnline, 20000)
@@ -98,15 +141,43 @@ export default function AdminReservas() {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.fecha || !form.hora || !form.nombre) return
+    if (form.fecha && form.hora && isSlotTaken(form.pista, form.fecha, form.hora)) {
+      window.alert('Esa pista ya no está disponible para la fecha/hora seleccionadas.')
+      return
+    }
     addReservaAdmin(form)
     setForm(EMPTY_FORM)
     setShowForm(false)
   }
 
-  const availableHoras = ALL_HORAS.filter(h => {
-    if (!form.fecha) return true
-    return !isLaneBlocked(form.pista, form.fecha, h)
-  })
+  const isSlotTaken = (pista, fecha, hora) => {
+    if (!fecha || !hora) return false
+    return isLaneBlocked(pista, fecha, hora) || isLaneReservedAdmin(pista, fecha, hora) || isLaneReservedOnline(pista, fecha, hora)
+  }
+
+  const availablePistas = useMemo(() => {
+    if (!form.fecha || !form.hora) return PISTAS
+    return PISTAS.filter(p => !isSlotTaken(p, form.fecha, form.hora))
+  }, [form.fecha, form.hora, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline])
+
+  const availableHoras = useMemo(() => {
+    // Si no hay fecha, permitir todas.
+    if (!form.fecha) return ALL_HORAS
+
+    // Si hay fecha pero no hora: mostrar horas que tengan al menos 1 pista libre.
+    return ALL_HORAS.filter(h => {
+      const anyAvailable = PISTAS.some(p => !isSlotTaken(p, form.fecha, h))
+      return anyAvailable
+    })
+  }, [form.fecha, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline])
+
+  // Si el admin cambia fecha/hora y la pista ya no está disponible, mover a una disponible.
+  useEffect(() => {
+    if (!form.fecha || !form.hora) return
+    if (availablePistas.includes(form.pista)) return
+    const next = availablePistas[0]
+    if (next) setForm(prev => ({ ...prev, pista: next }))
+  }, [form.fecha, form.hora, form.pista, availablePistas])
 
   // ── Construir lista unificada (online + manual) ─────────────
   const unified = useMemo(() => {
@@ -146,6 +217,7 @@ export default function AdminReservas() {
       pistasResumen: `P${r.pista}`,
       horasResumen: r.hora,
       personas: r.personas,
+      metodoPago: r.metodoPago || '',
       valor: null,
       estado: 'manual',
       cliente: r.nombre || '—',
@@ -229,8 +301,15 @@ export default function AdminReservas() {
           <div className="admin-form-row admin-form-row-3">
             <div className="admin-field">
               <label className="admin-field-label">Pista</label>
-              <select className="admin-input" value={form.pista} onChange={e => handleChange('pista', parseInt(e.target.value))}>
-                {PISTAS.map(p => <option key={p} value={p}>Pista {p}</option>)}
+              <select
+                className="admin-input"
+                value={form.pista}
+                onChange={e => handleChange('pista', parseInt(e.target.value))}
+                disabled={form.fecha && form.hora && availablePistas.length === 0}
+              >
+                {(form.fecha && form.hora ? availablePistas : PISTAS).map(p => (
+                  <option key={p} value={p}>Pista {p}</option>
+                ))}
               </select>
             </div>
             <div className="admin-field">
@@ -249,12 +328,28 @@ export default function AdminReservas() {
           <div className="admin-form-row admin-form-row-2">
             <div className="admin-field">
               <label className="admin-field-label">Personas</label>
-              <input className="admin-input" type="number" min="1" max="7" value={form.personas} onChange={e => handleChange('personas', parseInt(e.target.value) || 1)} />
+              <input
+                className="admin-input"
+                type="number"
+                min="1"
+                max="6"
+                value={form.personas}
+                onChange={e => handleChange('personas', Math.min(6, Math.max(1, parseInt(e.target.value) || 1)))}
+              />
             </div>
             <div className="admin-field">
-              <label className="admin-field-label">Notas (opcional)</label>
-              <input className="admin-input" value={form.notas} onChange={e => handleChange('notas', e.target.value)} placeholder="Cumpleaños, evento especial..." />
+              <label className="admin-field-label">Método de pago (opcional)</label>
+              <select className="admin-input" value={form.metodoPago} onChange={e => handleChange('metodoPago', e.target.value)}>
+                {METODOS_PAGO.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
             </div>
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-field-label">Notas / Comentarios (opcional)</label>
+            <input className="admin-input" value={form.notas} onChange={e => handleChange('notas', e.target.value)} placeholder="Cumpleaños, evento especial..." />
           </div>
 
           <div className="admin-form-actions">
@@ -346,6 +441,9 @@ export default function AdminReservas() {
                           <span><i className="fas fa-bowling-ball" /> <strong>Pista:</strong> {r.pistasResumen}</span>
                           <span><i className="far fa-clock" /> <strong>Hora:</strong> {r.horasResumen}</span>
                           <span><i className="fas fa-users" /> <strong>Personas:</strong> {r.personas ?? '—'}</span>
+                          {r.metodoPago ? (
+                            <span><i className="fas fa-credit-card" /> <strong>Pago:</strong> {metodoPagoLabel(r.metodoPago)}</span>
+                          ) : null}
                           <span className="admin-reserva-valor">
                             <i className="fas fa-dollar-sign" /> <strong>Valor:</strong> {formatPrice(r.valor)}
                           </span>
@@ -369,6 +467,7 @@ export default function AdminReservas() {
                             <div className="dash-detail-row"><span>Pistas</span><strong>{r.pistasResumen}</strong></div>
                             <div className="dash-detail-row"><span>Horarios</span><strong>{r.horasResumen}</strong></div>
                             <div className="dash-detail-row"><span>Personas</span><strong>{r.personas ?? '—'}</strong></div>
+                            {r.metodoPago && <div className="dash-detail-row"><span>Método de pago</span><strong>{metodoPagoLabel(r.metodoPago)}</strong></div>}
                             {r.extras && <div className="dash-detail-row"><span>Extras</span><strong>{r.extras}</strong></div>}
                             {r.descripcion && <div className="dash-detail-row"><span>Descripción</span><strong>{r.descripcion}</strong></div>}
                             {r.notas && <div className="dash-detail-row"><span>Notas</span><strong>{r.notas}</strong></div>}
@@ -401,6 +500,27 @@ export default function AdminReservas() {
                             )}
                           </div>
                         </div>
+
+                        {r.origen === 'online' && (
+                          <div className="admin-reserva-detail-actions">
+                            {r.estado !== 'cancelada' && (
+                              <button
+                                className="admin-btn-icon admin-btn-danger"
+                                title="Inactivar (marcar como cancelada)"
+                                onClick={() => inactivarOnline(r.numero).catch(err => window.alert(err.message || err))}
+                              >
+                                <i className="fas fa-ban" /> Inactivar
+                              </button>
+                            )}
+                            <button
+                              className="admin-btn-icon admin-btn-danger"
+                              title="Borrar reserva online"
+                              onClick={() => borrarOnline(r.numero).catch(err => window.alert(err.message || err))}
+                            >
+                              <i className="fas fa-trash" /> Borrar
+                            </button>
+                          </div>
+                        )}
 
                         {r.origen === 'manual' && (
                           <div className="admin-reserva-detail-actions">

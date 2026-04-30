@@ -24,6 +24,7 @@ export async function handler(event) {
       total: d.total,
       description: d.description,
       datosPersonales: d.datosPersonales,
+      motivoPendiente: d.estado === 'pendiente' ? (d.placetopay?.statusMessage || '') : '',
       creadaEn: d.creadaEn,
       actualizadaEn: d.actualizadaEn,
     }))

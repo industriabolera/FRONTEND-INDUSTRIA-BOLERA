@@ -1249,6 +1249,11 @@
   margin-top: 24px;
 }
 
+.sidebar-actions-top {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
 .sidebar-btn {
   width: 100%;
   padding: 14px 20px;
@@ -1297,9 +1302,13 @@
     grid-template-columns: 1fr;
   }
 
+  .reservas-main {
+    order: 1;
+  }
+
   .reservas-sidebar {
     position: static;
-    order: -1;
+    order: 2;
   }
 }
 
