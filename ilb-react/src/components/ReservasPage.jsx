@@ -326,6 +326,7 @@ export default function ReservasPage() {
   const [selectedDate, setSelectedDate] = useState(null)
   // Each entry: { pista: number, horas: string[] }
   const [pistaSelection, setPistaSelection] = useState([])
+  const [selectedHoraStep1, setSelectedHoraStep1] = useState('')
   const [personas, setPersonas] = useState(2)
   const [addZapatos, setAddZapatos] = useState(false)
   const [zapatosTodasLasHoras, setZapatosTodasLasHoras] = useState(true)
@@ -474,6 +475,24 @@ export default function ReservasPage() {
     return horarios.filter(h => !isLaneBlocked(pistaNum, fechaStr, h) && !isLaneReservedAdmin(pistaNum, fechaStr, h) && !isLaneReservedOnline(pistaNum, fechaStr, h))
   }
 
+  const allLanes = useMemo(() => Array.from({ length: 11 }, (_, i) => i + 1), [])
+
+  const blockedLanesForStep1 = useMemo(() => {
+    if (!fechaStr) return []
+    if (!selectedHoraStep1) return allLanes
+    return allLanes.filter(p => (
+      isLaneFullDayBlocked(p, fechaStr) ||
+      isLaneBlocked(p, fechaStr, selectedHoraStep1) ||
+      isLaneReservedAdmin(p, fechaStr, selectedHoraStep1) ||
+      isLaneReservedOnline(p, fechaStr, selectedHoraStep1)
+    ))
+  }, [allLanes, fechaStr, selectedHoraStep1, isLaneFullDayBlocked, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline])
+
+  const selectHoraStep1 = (h) => {
+    setSelectedHoraStep1(h)
+    setPistaSelection(prev => prev.map(p => ({ ...p, horas: [h] })))
+  }
+
   const blockedLanesForDate = useMemo(() => {
     if (!fechaStr) return []
     const lanes = Array.from({ length: 11 }, (_, i) => i + 1)
@@ -489,7 +508,7 @@ export default function ReservasPage() {
     setPistaSelection(prev => {
       const exists = prev.find(p => p.pista === pistaNum)
       if (exists) return prev.filter(p => p.pista !== pistaNum)
-      return [...prev, { pista: pistaNum, horas: [] }]
+      return [...prev, { pista: pistaNum, horas: selectedHoraStep1 ? [selectedHoraStep1] : [] }]
     })
   }
 
@@ -517,6 +536,7 @@ export default function ReservasPage() {
     if (d < new Date(today.getFullYear(), today.getMonth(), today.getDate())) return
     setSelectedDate(d)
     setPistaSelection([])
+    setSelectedHoraStep1('')
     // UX: al seleccionar fecha, avanzar automáticamente a "Pista y Hora"
     setCurrentStep(1)
     // En móvil, mantener el flujo sin que el usuario tenga que buscar el siguiente paso
@@ -996,12 +1016,36 @@ export default function ReservasPage() {
                 )}
 
                 <div className="pista-selection">
+                  <h3 className="selection-title">Selecciona la Hora</h3>
+                  <p className="selection-subtitle">
+                    <i className="far fa-clock" /> {getHorarioLabel(selectedDate, config.horarios, holidaysSet)}
+                    <span className="hora-multi-hint"> — primero elige la hora, luego la pista</span>
+                  </p>
+                  <div className="hora-grid">
+                    {horarios.map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        className={`hora-chip ${selectedHoraStep1 === h ? 'selected' : ''}`}
+                        onClick={() => selectHoraStep1(h)}
+                      >
+                        <i className="far fa-clock" />
+                        <span>{h}</span>
+                      </button>
+                    ))}
+                    {horarios.length === 0 && (
+                      <p className="no-hours-msg">No hay horarios disponibles para esta fecha.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pista-selection">
                   <h3 className="selection-title">Selecciona tus Pistas</h3>
                   <p className="selection-subtitle">Puedes elegir varias pistas — Máximo {MAX_PERSONAS} personas por pista</p>
                   <FloorPlan
                     selectedPistas={selectedPistaNums}
                     onTogglePista={togglePista}
-                    blockedLanes={blockedLanesForDate}
+                    blockedLanes={blockedLanesForStep1}
                   />
 
                   <div className="accessibility-notice">
@@ -1017,49 +1061,13 @@ export default function ReservasPage() {
                   )}
                 </div>
 
-                {pistaSelection.length > 0 && (
+                {selectedHoraStep1 && pistaSelection.length > 0 && (
                   <div className="multi-hora-selection">
-                    <h3 className="selection-title">Selecciona los Horarios por Pista</h3>
+                    <h3 className="selection-title">Resumen</h3>
                     <p className="selection-subtitle">
-                      <i className="far fa-clock" /> {getHorarioLabel(selectedDate, config.horarios, holidaysSet)}
-                      <span className="hora-multi-hint"> — Puedes elegir varios horarios por pista</span>
+                      <i className="far fa-clock" /> Hora seleccionada: <strong>{selectedHoraStep1}</strong>
+                      <span className="hora-multi-hint"> — {pistaSelection.length} pista(s) seleccionada(s)</span>
                     </p>
-
-                    {pistaSelection.map(({ pista, horas }) => {
-                      const available = getFilteredHorasForPista(pista)
-                      return (
-                        <div key={pista} className="pista-hora-card">
-                          <div className="pista-hora-card-header">
-                            <span className="pista-hora-card-badge">Pista {pista}</span>
-                            <span className="pista-hora-card-count">
-                              {horas.length > 0 ? `${horas.length} hora${horas.length > 1 ? 's' : ''}` : 'Sin horario'}
-                            </span>
-                            <button
-                              className="pista-hora-card-remove"
-                              onClick={() => togglePista(pista)}
-                              title="Quitar pista"
-                            >
-                              <i className="fas fa-times" />
-                            </button>
-                          </div>
-                          <div className="hora-grid">
-                            {available.map(hora => (
-                              <button
-                                key={hora}
-                                className={`hora-chip ${horas.includes(hora) ? 'selected' : ''}`}
-                                onClick={() => toggleHora(pista, hora)}
-                              >
-                                <i className="far fa-clock" />
-                                <span>{hora}</span>
-                              </button>
-                            ))}
-                            {available.length === 0 && (
-                              <p className="no-hours-msg">No hay horarios disponibles para esta pista.</p>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
                   </div>
                 )}
 
