@@ -1,5 +1,54 @@
-import { getReservasCollection } from './lib/db.js'
+import { getReservasCollection, getBloqueosCollection } from './lib/db.js'
 import { createSession } from './lib/placetopay.js'
+
+function parseSlots(fecha, horasStr) {
+  const slots = []
+  if (!fecha || !horasStr) return slots
+  horasStr.split('|').forEach(block => {
+    const m = block.match(/^P(\d+):(.+)$/)
+    if (!m) return
+    const pista = parseInt(m[1], 10)
+    m[2].split(',').forEach(h => {
+      const hora = h.trim()
+      if (hora) slots.push({ pista, fecha, hora })
+    })
+  })
+  return slots
+}
+
+async function isSlotBlockedOrReserved({ pista, fecha, hora }, { reservasCol, bloqueosCol }) {
+  // Bloqueos (todo el día o por hora)
+  const bloqueo = await bloqueosCol.findOne({
+    pista: Number(pista),
+    $or: [
+      // rango
+      { fechaInicio: { $lte: fecha }, fechaFin: { $gte: fecha } },
+      // legacy single day
+      { fecha },
+    ],
+  })
+  if (bloqueo) {
+    const horas = Array.isArray(bloqueo.horas) ? bloqueo.horas : []
+    if (horas.length === 0 || horas.includes(hora)) return true
+  }
+
+  // Reservas online confirmadas o pendientes recientes
+  const holdSince = new Date(Date.now() - 30 * 60 * 1000)
+  const candidates = await reservasCol.find({
+    fecha,
+    $or: [
+      { estado: 'exitosa' },
+      { estado: 'pendiente', actualizadaEn: { $gte: holdSince } },
+    ],
+  }).project({ horas: 1 }).toArray()
+
+  for (const r of candidates) {
+    const slots = parseSlots(fecha, r.horas || '')
+    if (slots.some(s => s.pista === Number(pista) && s.hora === hora)) return true
+  }
+
+  return false
+}
 
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
@@ -45,6 +94,21 @@ export async function handler(event) {
           processUrl: recentDuplicate.placetopay?.processUrl,
           status: { status: 'OK', message: 'Session already exists' },
         }),
+      }
+    }
+
+    // Validar disponibilidad (bloqueos + reservas existentes) ANTES de crear sesión de pago
+    const slotsToCheck = parseSlots(fecha, hora)
+    const bloqueos = await getBloqueosCollection()
+    for (const s of slotsToCheck) {
+      // eslint-disable-next-line no-await-in-loop
+      const taken = await isSlotBlockedOrReserved(s, { reservasCol: reservas, bloqueosCol: bloqueos })
+      if (taken) {
+        return {
+          statusCode: 409,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ error: `La pista ${s.pista} a las ${s.hora} ya no está disponible.` }),
+        }
       }
     }
 

@@ -316,7 +316,7 @@ const CONDICIONES = [
 ]
 
 export default function ReservasPage() {
-  const { config, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline, getActivePromo } = useBolera()
+  const { config, isLaneBlocked, isLaneFullDayBlocked, isLaneReservedAdmin, isLaneReservedOnline, getActivePromo } = useBolera()
   const { precios } = config
 
   const today = new Date()
@@ -990,13 +990,9 @@ export default function ReservasPage() {
                   <FloorPlan
                     selectedPistas={selectedPistaNums}
                     onTogglePista={togglePista}
-                    blockedLanes={fechaStr ? Array.from({ length: 11 }, (_, i) => i + 1).filter(p =>
-                      config.bloqueos.some(b => {
-                        if (b.pista !== p || b.horas.length !== 0) return false
-                        if (b.fechaInicio && b.fechaFin) return fechaStr >= b.fechaInicio && fechaStr <= b.fechaFin
-                        return b.fecha === fechaStr
-                      })
-                    ) : []}
+                    blockedLanes={fechaStr
+                      ? Array.from({ length: 11 }, (_, i) => i + 1).filter(p => isLaneFullDayBlocked(p, fechaStr))
+                      : []}
                   />
 
                   <div className="accessibility-notice">

@@ -63,6 +63,53 @@ async function getBloqueosCollection() {
   return col
 }
 
+function parseSlots(fecha, horasStr) {
+  const slots = []
+  if (!fecha || !horasStr) return slots
+  horasStr.split('|').forEach(block => {
+    const m = block.match(/^P(\d+):(.+)$/)
+    if (!m) return
+    const pista = parseInt(m[1], 10)
+    m[2].split(',').forEach(h => {
+      const hora = h.trim()
+      if (hora) slots.push({ pista, fecha, hora })
+    })
+  })
+  return slots
+}
+
+async function isSlotBlockedOrReserved({ pista, fecha, hora }) {
+  const bloqueosCol = await getBloqueosCollection()
+  const bloqueo = await bloqueosCol.findOne({
+    pista: Number(pista),
+    $or: [
+      { fechaInicio: { $lte: fecha }, fechaFin: { $gte: fecha } },
+      { fecha },
+    ],
+  })
+  if (bloqueo) {
+    const horas = Array.isArray(bloqueo.horas) ? bloqueo.horas : []
+    if (horas.length === 0 || horas.includes(hora)) return true
+  }
+
+  const reservasCol = await getReservasCollection()
+  const holdSince = new Date(Date.now() - 30 * 60 * 1000)
+  const candidates = await reservasCol.find({
+    fecha,
+    $or: [
+      { estado: 'exitosa' },
+      { estado: 'pendiente', actualizadaEn: { $gte: holdSince } },
+    ],
+  }).project({ horas: 1 }).toArray()
+
+  for (const r of candidates) {
+    const slots = parseSlots(fecha, r.horas || '')
+    if (slots.some(s => s.pista === Number(pista) && s.hora === hora)) return true
+  }
+
+  return false
+}
+
 async function getAdminUsersCollection() {
   await getReservasCollection()
   const col = cachedClient.db('administracion').collection('admin_users')
@@ -356,6 +403,16 @@ app.post('/api/payment/create', async (req, res) => {
         processUrl: recentDuplicate.placetopay?.processUrl,
         status: { status: 'OK', message: 'Session already exists' },
       })
+    }
+
+    // Validar disponibilidad (bloqueos + reservas existentes) antes de crear sesión de pago
+    const slotsToCheck = parseSlots(fecha, hora)
+    for (const s of slotsToCheck) {
+      // eslint-disable-next-line no-await-in-loop
+      const taken = await isSlotBlockedOrReserved(s)
+      if (taken) {
+        return res.status(409).json({ error: `La pista ${s.pista} a las ${s.hora} ya no está disponible.` })
+      }
     }
 
     const baseUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`
