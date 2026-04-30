@@ -19,6 +19,7 @@ export default function AdminUsuarios() {
   const [error, setError] = useState('')
   const [selected, setSelected] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -114,14 +115,25 @@ export default function AdminUsuarios() {
 
           <div className="admin-field">
             <label className="admin-field-label">Nueva contraseña</label>
-            <input
-              className="admin-input"
-              type="password"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              autoComplete="new-password"
-            />
+            <div className="admin-input-group">
+              <i className="fas fa-key" />
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                autoComplete="new-password"
+              />
+              <button
+                type="button"
+                className="admin-password-toggle"
+                onClick={() => setShowNewPassword(v => !v)}
+                aria-label={showNewPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                title={showNewPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+              >
+                <i className={showNewPassword ? 'fas fa-eye-slash' : 'fas fa-eye'} />
+              </button>
+            </div>
             <span className="admin-field-current">
               Recomendación: comparte la clave por un canal seguro.
             </span>

@@ -22,6 +22,7 @@ export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(Boolean(auth?.token))
   const [username, setUsername] = useState(auth?.user?.username || '')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('dashboard')
 
@@ -98,12 +99,21 @@ export default function AdminPage() {
               <div className="admin-input-group">
                 <i className="fas fa-lock" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="Contraseña"
                   autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  className="admin-password-toggle"
+                  onClick={() => setShowPassword(v => !v)}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                  title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                >
+                  <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'} />
+                </button>
               </div>
               {error && <p className="admin-login-error"><i className="fas fa-exclamation-circle" /> {error}</p>}
               <button type="submit" className="admin-login-btn">Ingresar</button>

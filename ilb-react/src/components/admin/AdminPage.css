@@ -87,6 +87,24 @@
   color: rgba(255,255,255,0.25);
 }
 
+.admin-password-toggle {
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.admin-password-toggle:hover {
+  background: rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.75);
+}
+
 .admin-login-error {
   color: #d83f36;
   font-size: 13px;
