@@ -377,6 +377,15 @@ export default function ReservasPage() {
     }
   }, [isMobile, scrollToEl])
 
+  // UX móvil: al cambiar de paso, volver arriba del flujo
+  useEffect(() => {
+    if (!isMobile) return
+    setTimeout(() => {
+      const el = document.getElementById('reservar')
+      if (el) scrollToEl(el)
+    }, 0)
+  }, [currentStep, isMobile, scrollToEl])
+
   useEffect(() => {
     if (personas !== 6 && addJugadorExtra) {
       setAddJugadorExtra(false)
