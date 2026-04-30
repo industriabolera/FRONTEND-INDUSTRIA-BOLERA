@@ -24,6 +24,10 @@ function mapStatus(paymentStatus) {
 async function resolvePendingPayments() {
   const reservas = await getReservasCollection()
 
+  const timeoutMinutes = Number(process.env.PENDING_TIMEOUT_MINUTES || 30)
+  const timeoutMs = Math.max(5, timeoutMinutes) * 60 * 1000
+  const expiredBefore = new Date(Date.now() - timeoutMs)
+
   // Buscar todas las reservas en estado pendiente
   const pendientes = await reservas
     .find({ estado: 'pendiente' })
@@ -38,6 +42,26 @@ async function resolvePendingPayments() {
 
   for (const reserva of pendientes) {
     try {
+      // Si la sesión está pendiente demasiado tiempo, marcar como cancelada/expirada
+      if (reserva.creadaEn && new Date(reserva.creadaEn) < expiredBefore) {
+        await reservas.updateOne(
+          { requestId: String(reserva.requestId) },
+          {
+            $set: {
+              estado: 'cancelada',
+              'placetopay.status': 'CANCELLED',
+              'placetopay.statusMessage': `Expirada por tiempo (${timeoutMinutes} min)`,
+              actualizadaEn: new Date(),
+              resolvedByCronTimeout: true,
+            },
+          }
+        )
+        resolved++
+        results.push({ ref: reserva.reference, requestId: reserva.requestId, from: 'pendiente', to: 'cancelada', reason: 'timeout' })
+        console.log(`[CronJob] Expired: ref=${reserva.reference} requestId=${reserva.requestId} → cancelada`)
+        continue
+      }
+
       const result = await querySession(reserva.requestId)
       const paymentStatus = result.status?.status
       const estado = mapStatus(paymentStatus)

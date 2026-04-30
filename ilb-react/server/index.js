@@ -541,6 +541,35 @@ app.post('/api/payment/notify', async (req, res) => {
   }
 })
 
+// ─── Cancel payment (user aborted flow) ───────────────────────
+app.post('/api/payment/cancel', async (req, res) => {
+  try {
+    const reference = String(req.body?.reference || '').trim()
+    const requestId = req.body?.requestId ? String(req.body.requestId).trim() : ''
+    if (!reference && !requestId) return res.status(400).json({ error: 'reference o requestId es requerido' })
+
+    const reservas = await getReservasCollection()
+    const filter = reference ? { reference } : { requestId }
+    const result = await reservas.updateOne(
+      { ...filter, estado: { $in: ['pendiente'] } },
+      {
+        $set: {
+          estado: 'cancelada',
+          'placetopay.status': 'CANCELLED',
+          'placetopay.statusMessage': req.body?.reason ? String(req.body.reason) : 'Cancelada por el usuario',
+          canceladaPorUsuario: true,
+          actualizadaEn: new Date(),
+        },
+      }
+    )
+
+    res.json({ updated: result.modifiedCount })
+  } catch (err) {
+    console.error('[PaymentCancel]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ─── Cron/Sonda: Resolve pending payments ────────────────────
 // Frecuencia: Cada 24 horas
 // Hora: 3:00 AM (hora Colombia, UTC-5) = 8:00 AM UTC
@@ -560,8 +589,31 @@ app.post('/api/payment/resolve-pending', async (req, res) => {
     let errors = 0
     const results = []
 
+    const timeoutMinutes = Number(process.env.PENDING_TIMEOUT_MINUTES || 30)
+    const timeoutMs = Math.max(5, timeoutMinutes) * 60 * 1000
+    const expiredBefore = new Date(Date.now() - timeoutMs)
+
     for (const reserva of pendientes) {
       try {
+        if (reserva.creadaEn && new Date(reserva.creadaEn) < expiredBefore) {
+          await reservas.updateOne(
+            { requestId: String(reserva.requestId) },
+            {
+              $set: {
+                estado: 'cancelada',
+                'placetopay.status': 'CANCELLED',
+                'placetopay.statusMessage': `Expirada por tiempo (${timeoutMinutes} min)`,
+                actualizadaEn: new Date(),
+                resolvedByCronTimeout: true,
+              },
+            }
+          )
+          resolved++
+          results.push({ ref: reserva.reference, requestId: reserva.requestId, from: 'pendiente', to: 'cancelada', reason: 'timeout' })
+          console.log(`[CronJob] Expired: ref=${reserva.reference} → cancelada`)
+          continue
+        }
+
         const result = await querySession(reserva.requestId)
         const paymentStatus = result.status?.status
         const estado = mapStatus(paymentStatus)

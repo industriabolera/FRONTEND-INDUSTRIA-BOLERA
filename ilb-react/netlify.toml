@@ -32,6 +32,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/payment/cancel"
+  to = "/.netlify/functions/payment-cancel"
+  status = 200
+
+[[redirects]]
   from = "/api/reservas/slots"
   to = "/.netlify/functions/reservas-slots"
   status = 200

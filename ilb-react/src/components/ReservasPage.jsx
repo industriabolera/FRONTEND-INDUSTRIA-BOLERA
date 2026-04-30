@@ -391,6 +391,12 @@ export default function ReservasPage() {
 
     if (status === 'cancelled') {
       setPaymentResult({ status: 'CANCELLED', reference: ref })
+      // Persistir cancelación en BD para que no quede "pendiente"
+      fetch('/api/payment/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: ref, reason: 'Cancelada por el usuario' }),
+      }).catch(() => {})
       localStorage.removeItem('ilb_requestId')
       localStorage.removeItem('ilb_reference')
       setSearchParams({}, { replace: true })
