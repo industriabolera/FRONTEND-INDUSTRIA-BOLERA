@@ -396,6 +396,14 @@ export default function ReservasPage() {
     el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' })
   }, [isMobile, prefersReducedMotion])
 
+  /** Al pasar de Fecha → Pista y hora: sube el viewport (móvil y escritorio); respeta `#reservar` scroll-margin-top. */
+  const scrollReservaSectionTop = useCallback(() => {
+    if (typeof window === 'undefined') return
+    const el = document.getElementById('reservar')
+    if (!el) return
+    el.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' })
+  }, [prefersReducedMotion])
+
   const completedFieldsRef = useRef(new Set())
   const dpNombreRef = useRef(null)
   const dpTelRef = useRef(null)
@@ -608,11 +616,12 @@ export default function ReservasPage() {
     setSelectedHoraStep1('')
     // UX: al seleccionar fecha, avanzar automáticamente a "Pista y Hora"
     setCurrentStep(1)
-    // En móvil, mantener el flujo sin que el usuario tenga que buscar el siguiente paso
-    setTimeout(() => {
-      const el = document.getElementById('reservar')
-      if (el) scrollToEl(el)
-    }, 0)
+    // Tras el commit de React, llevar arriba la sección de reserva (evita quedar abajo del calendario)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scrollReservaSectionTop()
+      })
+    })
   }
 
   const isToday = (day) =>
