@@ -6,6 +6,11 @@ import { MongoClient } from 'mongodb'
 import { createSession, querySession } from './placetopay.js'
 import { ROLES, hashPassword, verifyPassword, requireAuth } from '../netlify/functions/lib/admin-auth.js'
 import { validateFechaHorariosReservaColombia } from '../netlify/functions/lib/booking-datetime-colombia.js'
+import {
+  parseSlots,
+  isSlotBlockedOrReserved as isSlotBlockedOrReservedDb,
+  bloqueoConflictoConReservas,
+} from '../netlify/functions/lib/reserva-availability.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -64,51 +69,10 @@ async function getBloqueosCollection() {
   return col
 }
 
-function parseSlots(fecha, horasStr) {
-  const slots = []
-  if (!fecha || !horasStr) return slots
-  horasStr.split('|').forEach(block => {
-    const m = block.match(/^P(\d+):(.+)$/)
-    if (!m) return
-    const pista = parseInt(m[1], 10)
-    m[2].split(',').forEach(h => {
-      const hora = h.trim()
-      if (hora) slots.push({ pista, fecha, hora })
-    })
-  })
-  return slots
-}
-
 async function isSlotBlockedOrReserved({ pista, fecha, hora }) {
-  const bloqueosCol = await getBloqueosCollection()
-  const bloqueo = await bloqueosCol.findOne({
-    pista: Number(pista),
-    $or: [
-      { fechaInicio: { $lte: fecha }, fechaFin: { $gte: fecha } },
-      { fecha },
-    ],
-  })
-  if (bloqueo) {
-    const horas = Array.isArray(bloqueo.horas) ? bloqueo.horas : []
-    if (horas.length === 0 || horas.includes(hora)) return true
-  }
-
   const reservasCol = await getReservasCollection()
-  const holdSince = new Date(Date.now() - 30 * 60 * 1000)
-  const candidates = await reservasCol.find({
-    fecha,
-    $or: [
-      { estado: 'exitosa' },
-      { estado: 'pendiente', actualizadaEn: { $gte: holdSince } },
-    ],
-  }).project({ horas: 1 }).toArray()
-
-  for (const r of candidates) {
-    const slots = parseSlots(fecha, r.horas || '')
-    if (slots.some(s => s.pista === Number(pista) && s.hora === hora)) return true
-  }
-
-  return false
+  const bloqueosCol = await getBloqueosCollection()
+  return isSlotBlockedOrReservedDb({ pista, fecha, hora }, { reservasCol, bloqueosCol })
 }
 
 async function getAdminUsersCollection() {
@@ -308,6 +272,87 @@ app.delete('/api/admin/reservas', async (req, res) => {
     res.json({ deleted: result.deletedCount })
   } catch (err) {
     console.error('[AdminReservas]', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// ─── Admin: reserva manual (persiste en BD como exitosa) ─────
+app.post('/api/admin/reserva-manual', async (req, res) => {
+  const auth = requireAuth({ headers: req.headers }, ['reservas:write'])
+  if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+  try {
+    const body = req.body || {}
+    const pista = Number(body.pista)
+    const fecha = String(body.fecha || '').trim()
+    const hora = String(body.hora || '').trim()
+    const nombre = String(body.nombre || '').trim()
+    const telefono = String(body.telefono || '').trim()
+    const notas = body.notas != null ? String(body.notas) : ''
+    const metodoPago = body.metodoPago != null ? String(body.metodoPago) : ''
+    const personas = body.personas !== undefined && body.personas !== null && body.personas !== ''
+      ? Number(body.personas)
+      : 2
+
+    if (!Number.isInteger(pista) || pista < 1 || pista > 11) {
+      return res.status(400).json({ error: 'pista debe ser un número entre 1 y 11' })
+    }
+    if (!fecha || !hora) return res.status(400).json({ error: 'fecha y hora son requeridos' })
+    if (!nombre) return res.status(400).json({ error: 'nombre es requerido' })
+    if (!Number.isFinite(personas) || personas < 1 || personas > 6) {
+      return res.status(400).json({ error: 'personas debe ser un número entre 1 y 6' })
+    }
+
+    const fechaHoraErr = validateFechaHorariosReservaColombia(fecha, [hora])
+    if (fechaHoraErr) return res.status(400).json({ error: fechaHoraErr })
+
+    const reservasCol = await getReservasCollection()
+    const bloqueosCol = await getBloqueosCollection()
+    const taken = await isSlotBlockedOrReservedDb({ pista, fecha, hora }, { reservasCol, bloqueosCol })
+    if (taken) {
+      return res.status(409).json({ error: 'Esa pista no está disponible en esa fecha y hora (reservada o bloqueada).' })
+    }
+
+    const reference = `MANUAL-${randomUUID()}`
+    const horasStr = `P${pista}:${hora}`
+    const doc = {
+      reference,
+      estado: 'exitosa',
+      origen: 'manual',
+      fecha,
+      pistas: pista,
+      horas: horasStr,
+      personas,
+      total: 0,
+      extras: '',
+      description: 'Reserva manual (portal admin)',
+      datosPersonales: {
+        nombre,
+        telefono,
+        correo: '',
+        tipoDocumento: '',
+        documento: '',
+      },
+      metodoPago,
+      notas,
+      requestId: `manual-${reference}`,
+      creadaEn: new Date(),
+      actualizadaEn: new Date(),
+      creadaPor: auth.user?.username || 'admin',
+    }
+    await reservasCol.insertOne(doc)
+    res.status(201).json({
+      reserva: {
+        reference,
+        estado: doc.estado,
+        origen: doc.origen,
+        fecha,
+        pistas: pista,
+        horas: horasStr,
+        personas,
+      },
+    })
+  } catch (err) {
+    console.error('[AdminReservaManual]', err.message)
     res.status(500).json({ error: err.message })
   }
 })
@@ -774,6 +819,10 @@ app.post('/api/bloqueos', async (req, res) => {
       return res.status(400).json({ error: 'personas debe ser un número entre 1 y 60' })
     }
 
+    const reservasCol = await getReservasCollection()
+    const conflicto = await bloqueoConflictoConReservas({ pista, fechaInicio, fechaFin, horas }, reservasCol)
+    if (conflicto) return res.status(409).json({ error: conflicto })
+
     const id = (typeof req.body.id === 'string' && req.body.id) ? req.body.id : randomUUID()
     const doc = {
       id,
@@ -819,11 +868,22 @@ app.get('/api/reservas', async (req, res) => {
     const reservas = await getReservasCollection()
     const docs = await reservas.find({}).sort({ creadaEn: -1 }).limit(200).toArray()
     const list = docs.map(d => ({
-      reference: d.reference, estado: d.estado, fecha: d.fecha,
-      pistas: d.pistas, horas: d.horas, personas: d.personas,
-      extras: d.extras, total: d.total, description: d.description,
+      reference: d.reference,
+      estado: d.estado,
+      origen: d.origen || (String(d.reference || '').startsWith('MANUAL-') ? 'manual' : null),
+      fecha: d.fecha,
+      pistas: d.pistas,
+      horas: d.horas,
+      personas: d.personas,
+      extras: d.extras,
+      total: d.total,
+      description: d.description,
+      metodoPago: d.metodoPago || '',
+      notas: d.notas || '',
       motivoPendiente: d.estado === 'pendiente' ? (d.placetopay?.statusMessage || '') : '',
-      datosPersonales: d.datosPersonales, creadaEn: d.creadaEn, actualizadaEn: d.actualizadaEn,
+      datosPersonales: d.datosPersonales,
+      creadaEn: d.creadaEn,
+      actualizadaEn: d.actualizadaEn,
     }))
     res.json({ reservas: list })
   } catch (err) {

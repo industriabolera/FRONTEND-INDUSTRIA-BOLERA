@@ -70,6 +70,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/admin/reserva-manual"
+  to = "/.netlify/functions/admin-reserva-manual"
+  status = 200
+
+[[redirects]]
   from = "/api/config"
   to = "/.netlify/functions/public-config"
   status = 200

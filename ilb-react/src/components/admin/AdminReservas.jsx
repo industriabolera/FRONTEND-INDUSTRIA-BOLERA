@@ -138,16 +138,21 @@ export default function AdminReservas() {
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.fecha || !form.hora || !form.nombre) return
     if (form.fecha && form.hora && isSlotTaken(form.pista, form.fecha, form.hora)) {
       window.alert('Esa pista ya no está disponible para la fecha/hora seleccionadas.')
       return
     }
-    addReservaAdmin(form)
-    setForm(EMPTY_FORM)
-    setShowForm(false)
+    try {
+      await addReservaAdmin(form)
+      setForm(EMPTY_FORM)
+      setShowForm(false)
+      fetchOnline()
+    } catch (err) {
+      window.alert(err.message || String(err))
+    }
   }
 
   const isSlotTaken = (pista, fecha, hora) => {
@@ -183,15 +188,17 @@ export default function AdminReservas() {
   const unified = useMemo(() => {
     const onlineList = onlineReservas.map(r => {
       const slots = parseHorasFromString(r.horas)
+      const isManual = r.origen === 'manual' || String(r.reference || '').startsWith('MANUAL-')
       return {
-        key: `online-${r.reference}`,
-        origen: 'online',
+        key: isManual ? `manual-${r.reference}` : `online-${r.reference}`,
+        origen: isManual ? 'manual' : 'online',
         numero: r.reference,
         fecha: r.fecha,
         slots,
         pistasResumen: pistasResumen(slots) || (r.pistas ? `P${r.pistas}` : '—'),
         horasResumen: horasResumen(slots) || '—',
         personas: r.personas,
+        metodoPago: r.metodoPago || '',
         valor: r.total,
         estado: r.estado,
         cliente: r.datosPersonales?.nombre || '—',
@@ -201,7 +208,7 @@ export default function AdminReservas() {
         fechaNacimiento: r.datosPersonales?.fechaNacimiento || '',
         extras: r.extras || '',
         descripcion: r.description || '',
-        notas: '',
+        notas: r.notas || '',
         creadaEn: r.creadaEn,
         actualizadaEn: r.actualizadaEn,
         raw: r,
@@ -238,7 +245,10 @@ export default function AdminReservas() {
 
   const filtered = useMemo(() => {
     let list = unified
-    if (filtro !== 'todas') list = list.filter(r => r.estado === filtro)
+    if (filtro !== 'todas') {
+      if (filtro === 'manual') list = list.filter(r => r.origen === 'manual')
+      else list = list.filter(r => r.estado === filtro)
+    }
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase()
       list = list.filter(r =>
@@ -270,7 +280,7 @@ export default function AdminReservas() {
     pendiente: unified.filter(r => r.estado === 'pendiente').length,
     rechazada: unified.filter(r => r.estado === 'rechazada').length,
     cancelada: unified.filter(r => r.estado === 'cancelada').length,
-    manual: unified.filter(r => r.estado === 'manual').length,
+    manual: unified.filter(r => r.origen === 'manual').length,
   }), [unified])
 
   return (
@@ -416,7 +426,9 @@ export default function AdminReservas() {
               </h4>
               {grouped[fecha].slice().sort((a, b) => (a.horasResumen || '').localeCompare(b.horasResumen || '')).map(r => {
                 const isOpen = expanded === r.key
-                const estadoCfg = ESTADO_CONFIG[r.estado] || { label: r.estado, icon: 'fas fa-question', cls: 'pending' }
+                const estadoCfg = (r.origen === 'manual'
+                  ? ESTADO_CONFIG.manual
+                  : (ESTADO_CONFIG[r.estado] || { label: r.estado, icon: 'fas fa-question', cls: 'pending' }))
                 return (
                   <div key={r.key} className={`admin-card admin-reserva-full ${isOpen ? 'is-open' : ''}`}>
                     <button
@@ -515,19 +527,40 @@ export default function AdminReservas() {
                             <button
                               className="admin-btn-icon admin-btn-danger"
                               title="Borrar reserva online"
-                              onClick={() => borrarOnline(r.numero).catch(err => window.alert(err.message || err))}
+                              onClick={() => borrarOnline(r.numero).then(() => fetchOnline()).catch(err => window.alert(err.message || err))}
                             >
                               <i className="fas fa-trash" /> Borrar
                             </button>
                           </div>
                         )}
 
-                        {r.origen === 'manual' && (
+                        {r.origen === 'manual' && r.raw?.reference && (
+                          <div className="admin-reserva-detail-actions">
+                            {r.estado !== 'cancelada' && (
+                              <button
+                                className="admin-btn-icon admin-btn-danger"
+                                title="Inactivar (marcar como cancelada)"
+                                onClick={() => inactivarOnline(r.numero).then(() => fetchOnline()).catch(err => window.alert(err.message || err))}
+                              >
+                                <i className="fas fa-ban" /> Inactivar
+                              </button>
+                            )}
+                            <button
+                              className="admin-btn-icon admin-btn-danger"
+                              title="Eliminar reserva manual de la base de datos"
+                              onClick={() => borrarOnline(r.numero).then(() => fetchOnline()).catch(err => window.alert(err.message || err))}
+                            >
+                              <i className="fas fa-trash" /> Eliminar
+                            </button>
+                          </div>
+                        )}
+
+                        {r.origen === 'manual' && !r.raw?.reference && r.raw?.id && (
                           <div className="admin-reserva-detail-actions">
                             <button
                               className="admin-btn-icon admin-btn-danger"
-                              title="Eliminar reserva manual"
-                              onClick={() => deleteReservaAdmin(r.raw.id)}
+                              title="Eliminar reserva manual (solo local, legado)"
+                              onClick={() => { deleteReservaAdmin(r.raw.id); fetchOnline() }}
                             >
                               <i className="fas fa-trash" /> Eliminar
                             </button>

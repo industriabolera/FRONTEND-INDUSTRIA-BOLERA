@@ -16,6 +16,7 @@ export async function handler(event) {
     const list = docs.map(d => ({
       reference: d.reference,
       estado: d.estado,
+      origen: d.origen || (String(d.reference || '').startsWith('MANUAL-') ? 'manual' : null),
       fecha: d.fecha,
       pistas: d.pistas,
       horas: d.horas,
@@ -24,6 +25,8 @@ export async function handler(event) {
       total: d.total,
       description: d.description,
       datosPersonales: d.datosPersonales,
+      metodoPago: d.metodoPago || '',
+      notas: d.notas || '',
       motivoPendiente: d.estado === 'pendiente' ? (d.placetopay?.statusMessage || '') : '',
       creadaEn: d.creadaEn,
       actualizadaEn: d.actualizadaEn,

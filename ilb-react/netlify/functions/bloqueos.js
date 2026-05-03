@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
-import { getBloqueosCollection } from './lib/db.js'
+import { getBloqueosCollection, getReservasCollection } from './lib/db.js'
 import { requireAuth } from './lib/admin-auth.js'
+import { bloqueoConflictoConReservas } from './lib/reserva-availability.js'
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -64,6 +65,13 @@ export async function handler(event) {
       if (personas !== undefined && (!Number.isFinite(personas) || personas < 1 || personas > 60)) {
         return json(400, { error: 'personas debe ser un número entre 1 y 60' })
       }
+
+      const reservasCol = await getReservasCollection()
+      const conflicto = await bloqueoConflictoConReservas(
+        { pista, fechaInicio, fechaFin, horas },
+        reservasCol
+      )
+      if (conflicto) return json(409, { error: conflicto })
 
       const id = typeof body.id === 'string' && body.id ? body.id : randomUUID()
       const doc = {

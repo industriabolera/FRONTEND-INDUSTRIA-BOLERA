@@ -282,12 +282,28 @@ export function BoleraProvider({ children }) {
     await fetchBloqueos()
   }, [fetchBloqueos, authHeaders])
 
-  const addReservaAdmin = useCallback((reserva) => {
-    setConfig(prev => ({
-      ...prev,
-      reservasAdmin: [...prev.reservasAdmin, { ...reserva, id: crypto.randomUUID(), creadaEn: new Date().toISOString() }]
-    }))
-  }, [])
+  const addReservaAdmin = useCallback(async (reserva) => {
+    if (!auth?.token) throw new Error('Inicia sesión en el panel admin para crear la reserva.')
+    const r = await fetch('/api/admin/reserva-manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({
+        pista: reserva.pista,
+        fecha: reserva.fecha,
+        hora: reserva.hora,
+        personas: reserva.personas,
+        metodoPago: reserva.metodoPago || '',
+        nombre: reserva.nombre,
+        telefono: reserva.telefono || '',
+        notas: reserva.notas || '',
+      }),
+    })
+    const data = await r.json().catch(() => ({}))
+    if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
+    const slotsRes = await fetch('/api/reservas/slots')
+    const sd = await slotsRes.json().catch(() => ({}))
+    if (sd.slots) setOnlineSlots(sd.slots)
+  }, [auth?.token, authHeaders])
 
   const deleteReservaAdmin = useCallback((id) => {
     setConfig(prev => ({

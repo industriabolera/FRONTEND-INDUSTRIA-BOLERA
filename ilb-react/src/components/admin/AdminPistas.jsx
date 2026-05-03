@@ -182,6 +182,7 @@ export default function AdminPistas() {
       <div className="admin-panel-header">
         <p className="admin-panel-desc">
           Bloquea pistas por rango de fechas y horario. Las pistas bloqueadas no aparecerán disponibles en la página de reservas.
+          No se puede bloquear una pista que ya tenga reserva confirmada o pendiente reciente en ese día u horario.
         </p>
         <button className="admin-btn admin-btn-primary" onClick={() => setShowForm(!showForm)}>
           <i className={showForm ? 'fas fa-times' : 'fas fa-ban'} />

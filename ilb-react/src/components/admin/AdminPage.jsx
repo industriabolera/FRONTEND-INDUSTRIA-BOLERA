@@ -152,9 +152,6 @@ export default function AdminPage() {
                 {tab.id === 'pistas' && config.bloqueos.length > 0 && (
                   <span className="admin-nav-badge">{config.bloqueos.length}</span>
                 )}
-                {tab.id === 'reservas' && config.reservasAdmin.length > 0 && (
-                  <span className="admin-nav-badge">{config.reservasAdmin.length}</span>
-                )}
               </button>
             ))}
           </nav>
