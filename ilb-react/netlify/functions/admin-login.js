@@ -7,19 +7,31 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body),
 })
 
-async function ensureDefaultUsers() {
-  const col = await getAdminUsersCollection()
-  const count = await col.countDocuments({})
-  if (count > 0) return
+/** Usuarios iniciales; si falta alguno en BD se crea con la misma contraseña por defecto. */
+const SEED_USERS = [
+  { username: 'admin', role: 'admin' },
+  { username: 'operaciones', role: 'operaciones' },
+  { username: 'comercial', role: 'comercial' },
+  { username: 'adminpruebas', role: 'admin' },
+]
 
+async function ensureSeedUsers() {
+  const col = await getAdminUsersCollection()
   const defaultPass = 'bolera2026'
   const passwordHash = await hashPassword(defaultPass)
 
-  await col.insertMany([
-    { username: 'admin', role: 'admin', passwordHash, createdAt: new Date() },
-    { username: 'operaciones', role: 'operaciones', passwordHash, createdAt: new Date() },
-    { username: 'comercial', role: 'comercial', passwordHash, createdAt: new Date() },
-  ])
+  for (const { username, role } of SEED_USERS) {
+    const exists = await col.findOne({ username })
+    if (!exists) {
+      await col.insertOne({
+        username,
+        role,
+        passwordHash,
+        createdAt: new Date(),
+        seeded: true,
+      })
+    }
+  }
 }
 
 export async function handler(event) {
@@ -27,7 +39,7 @@ export async function handler(event) {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' })
 
   try {
-    await ensureDefaultUsers()
+    await ensureSeedUsers()
     const body = JSON.parse(event.body || '{}')
     const username = String(body.username || '').trim().toLowerCase()
     const password = String(body.password || '')

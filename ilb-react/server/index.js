@@ -120,16 +120,28 @@ const DEFAULT_ADMIN_CONFIG = {
   promociones: [],
 }
 
-async function ensureDefaultUsers() {
+const SEED_USERS = [
+  { username: 'admin', role: 'admin' },
+  { username: 'operaciones', role: 'operaciones' },
+  { username: 'comercial', role: 'comercial' },
+  { username: 'adminpruebas', role: 'admin' },
+]
+
+async function ensureSeedUsers() {
   const col = await getAdminUsersCollection()
-  const count = await col.countDocuments({})
-  if (count > 0) return
   const passwordHash = await hashPassword('bolera2026')
-  await col.insertMany([
-    { username: 'admin', role: 'admin', passwordHash, createdAt: new Date() },
-    { username: 'operaciones', role: 'operaciones', passwordHash, createdAt: new Date() },
-    { username: 'comercial', role: 'comercial', passwordHash, createdAt: new Date() },
-  ])
+  for (const { username, role } of SEED_USERS) {
+    const exists = await col.findOne({ username })
+    if (!exists) {
+      await col.insertOne({
+        username,
+        role,
+        passwordHash,
+        createdAt: new Date(),
+        seeded: true,
+      })
+    }
+  }
 }
 
 async function getOrInitAdminConfig() {
@@ -152,7 +164,7 @@ app.get('/api/health', (req, res) => {
 // ─── Admin auth/config (dev server parity with Netlify) ───────
 app.post('/api/admin/login', async (req, res) => {
   try {
-    await ensureDefaultUsers()
+    await ensureSeedUsers()
     const username = String(req.body?.username || '').trim().toLowerCase()
     const password = String(req.body?.password || '')
     if (!username || !password) return res.status(400).json({ error: 'username y password son requeridos' })
