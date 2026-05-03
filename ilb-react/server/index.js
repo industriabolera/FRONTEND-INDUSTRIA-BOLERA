@@ -171,18 +171,24 @@ app.post('/api/admin/login', async (req, res) => {
 
     const col = await getAdminUsersCollection()
     const user = await col.findOne({ username })
-    if (!user) return res.status(401).json({ error: 'Credenciales inválidas' })
+    if (!user) {
+      return res.status(401).json({ error: 'Usuario no encontrado. Revisa el nombre (sin espacios).' })
+    }
 
     const master = process.env.ADMIN_MASTER_PASSWORD
-    if (master && username === 'admin' && password === String(master)) {
+    const isAdminRole = user.role === 'admin'
+    if (master && isAdminRole && password === String(master)) {
       const passwordHash = await hashPassword(password)
       await col.updateOne(
-        { username: 'admin' },
+        { username: user.username },
         { $set: { passwordHash, updatedAt: new Date(), updatedBy: 'bootstrap' } }
       )
     } else {
+      if (!user.passwordHash) {
+        return res.status(401).json({ error: 'Usuario sin contraseña configurada.' })
+      }
       const ok = await verifyPassword(password, user.passwordHash)
-      if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' })
+      if (!ok) return res.status(401).json({ error: 'Contraseña incorrecta.' })
     }
 
     // firmar token usando helper (mismo que functions)

@@ -47,21 +47,25 @@ export async function handler(event) {
 
     const col = await getAdminUsersCollection()
     const user = await col.findOne({ username })
-    if (!user) return json(401, { error: 'Credenciales inválidas' })
+    if (!user) {
+      return json(401, { error: 'Usuario no encontrado. Revisa el nombre (sin espacios) o espera a que el sitio esté actualizado.' })
+    }
 
-    // Bootstrap: permitir recuperar acceso con contraseña maestra desde variables de entorno
-    // (solo si está configurada y solo para el usuario admin).
+    // Bootstrap: contraseña maestra en env (solo usuarios con rol admin, p. ej. admin y adminpruebas).
     const master = process.env.ADMIN_MASTER_PASSWORD
-    if (master && username === 'admin' && password === String(master)) {
-      // Si se usa la maestra, dejamos al admin con esa misma contraseña (hash) y autenticamos.
+    const isAdminRole = user.role === 'admin'
+    if (master && isAdminRole && password === String(master)) {
       const passwordHash = await hashPassword(password)
       await col.updateOne(
-        { username: 'admin' },
+        { username: user.username },
         { $set: { passwordHash, updatedAt: new Date(), updatedBy: 'bootstrap' } }
       )
     } else {
+      if (!user.passwordHash) {
+        return json(401, { error: 'Usuario sin contraseña configurada. Usa ADMIN_MASTER_PASSWORD en Netlify o restablece desde otro admin.' })
+      }
       const ok = await verifyPassword(password, user.passwordHash)
-      if (!ok) return json(401, { error: 'Credenciales inválidas' })
+      if (!ok) return json(401, { error: 'Contraseña incorrecta.' })
     }
 
     const roleInfo = ROLES[user.role]
