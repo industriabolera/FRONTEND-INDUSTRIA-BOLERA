@@ -67,6 +67,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/admin/reserva-manual"
+  to = "/.netlify/functions/admin-reserva-manual"
+  status = 200
+
+[[redirects]]
   from = "/api/admin/users"
   to = "/.netlify/functions/admin-users"
   status = 200
