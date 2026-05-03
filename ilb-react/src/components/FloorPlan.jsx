@@ -55,12 +55,20 @@ const SVG_W = LANES_START_X + TOTAL_LANE_W + 20
 const SVG_H = LANES_START_Y + TOTAL_LANES_H + 16 + BOTTOM_AREA_H + 10
 const BOTTOM_Y = LANES_START_Y + TOTAL_LANES_H + 16
 
-export default function FloorPlan({ selectedPistas = [], onTogglePista, blockedLanes = [] }) {
+export default function FloorPlan({
+  selectedPistas = [],
+  onTogglePista,
+  blockedLanes = [],
+  reservedLanes = [],
+  footerHint,
+}) {
 
   function renderLane(laneNum) {
     const y = POS[laneNum]
     const isSelected = selectedPistas.includes(laneNum)
     const isBlocked = blockedLanes.includes(laneNum)
+    const isReserved = reservedLanes.includes(laneNum) && !isBlocked
+    const notClickable = isBlocked || isReserved
 
     const approachX = LANES_START_X + MESA_W
     const pistaX = approachX + APPROACH_W
@@ -72,11 +80,11 @@ export default function FloorPlan({ selectedPistas = [], onTogglePista, blockedL
     return (
       <g
         key={laneNum}
-        className={`fp-lane ${isSelected ? 'selected' : ''} ${isBlocked ? 'blocked' : ''}`}
-        onClick={() => !isBlocked && onTogglePista(laneNum)}
+        className={`fp-lane ${isSelected ? 'selected' : ''} ${isBlocked ? 'blocked' : ''} ${isReserved ? 'reserved' : ''}`}
+        onClick={() => !notClickable && onTogglePista(laneNum)}
         role="button"
         tabIndex={0}
-        aria-label={`Pista ${laneNum}${isBlocked ? ' (no disponible)' : ''}`}
+        aria-label={`Pista ${laneNum}${isBlocked ? ' (bloqueada administrativamente)' : isReserved ? ' (reservada por cliente)' : ''}`}
       >
         {/* Approach */}
         <rect x={approachX} y={y} width={APPROACH_W} height={SINGLE_LANE_H} rx="1" className="fp-approach" />
@@ -207,7 +215,13 @@ export default function FloorPlan({ selectedPistas = [], onTogglePista, blockedL
         {blockedLanes.length > 0 && (
           <span className="fp-legend-item">
             <span className="fp-legend-dot fp-legend-blocked" />
-            No disponible
+            Bloqueada (admin)
+          </span>
+        )}
+        {reservedLanes.length > 0 && (
+          <span className="fp-legend-item">
+            <span className="fp-legend-dot fp-legend-reserved" />
+            Reservada (cliente)
           </span>
         )}
       </div>
@@ -343,7 +357,8 @@ export default function FloorPlan({ selectedPistas = [], onTogglePista, blockedL
       </div>
 
       <p className="fp-hint">
-        <i className="fas fa-hand-pointer" /> Haz clic en las pistas para seleccionarlas (puedes elegir varias)
+        <i className="fas fa-hand-pointer" />{' '}
+        {footerHint || 'Haz clic en las pistas para seleccionarlas (puedes elegir varias)'}
       </p>
     </div>
   )

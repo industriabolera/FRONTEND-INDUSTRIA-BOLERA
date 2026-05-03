@@ -1123,6 +1123,23 @@ select.admin-input {
   font-size: .82rem;
 }
 
+.admin-map-date-hint {
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'Montserrat', sans-serif;
+  line-height: 1.45;
+}
+
+.admin-map-date-hint strong {
+  color: #e4d28d;
+}
+
+.admin-map-preview-note {
+  color: rgba(228, 210, 141, 0.75);
+  font-style: italic;
+}
+
 /* ─── FloorPlan inside admin ───────────────────────────────── */
 .admin-floorplan-wrapper {
   background: rgba(0, 0, 0, 0.25);

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 import FloorPlan from '../FloorPlan'
 
@@ -53,7 +53,7 @@ function metodoPagoLabel(value) {
 }
 
 export default function AdminPistas() {
-  const { config, addBloqueo, deleteBloqueo } = useBolera()
+  const { config, addBloqueo, deleteBloqueo, onlineSlots } = useBolera()
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [filtroFecha, setFiltroFecha] = useState('')
@@ -116,6 +116,36 @@ export default function AdminPistas() {
       })
     )
   }, [mapDate, config.bloqueos])
+
+  /** Pistas con reserva de cliente (online / pendiente en hold) o manual local, para la fecha del mapa y horas del formulario. */
+  const clientReservedLanesForMap = useMemo(() => {
+    if (!mapDate) return []
+    const set = new Set()
+    const horasSet = !form.todoElDia && form.horas.length > 0 ? new Set(form.horas) : null
+
+    for (const s of onlineSlots || []) {
+      if (s.fecha !== mapDate) continue
+      if (horasSet && !horasSet.has(s.hora)) continue
+      if (Number.isFinite(s.pista)) set.add(s.pista)
+    }
+
+    for (const r of config.reservasAdmin || []) {
+      if (r.fecha !== mapDate) continue
+      if (horasSet && !horasSet.has(r.hora)) continue
+      if (Number.isFinite(r.pista)) set.add(r.pista)
+    }
+
+    return Array.from(set).sort((a, b) => a - b)
+  }, [mapDate, form.todoElDia, form.horas, onlineSlots, config.reservasAdmin])
+
+  useEffect(() => {
+    if (clientReservedLanesForMap.length === 0) return
+    setForm(prev => {
+      const nextPistas = prev.pistas.filter(p => !clientReservedLanesForMap.includes(p))
+      if (nextPistas.length === prev.pistas.length) return prev
+      return { ...prev, pistas: nextPistas }
+    })
+  }, [clientReservedLanesForMap])
 
   const dayCount = useMemo(() => {
     if (!form.fechaInicio || !form.fechaFin) return 0
@@ -250,11 +280,31 @@ export default function AdminPistas() {
                 <span className="admin-pistas-count"> — {form.pistas.length} seleccionada{form.pistas.length > 1 ? 's' : ''}: {form.pistas.map(p => `P${p}`).join(', ')}</span>
               )}
             </label>
+            {mapDate && (
+              <p className="admin-map-date-hint">
+                <i className="far fa-calendar-alt" /> Mapa para <strong>{mapDate}</strong>
+                {dayCount > 1 && previewDate && previewDate !== form.fechaInicio && (
+                  <span className="admin-map-preview-note"> (previsualización)</span>
+                )}
+                {!form.todoElDia && form.horas.length > 0 && (
+                  <span> — reservas mostradas solo en las horas marcadas abajo</span>
+                )}
+                {!form.todoElDia && form.horas.length === 0 && (
+                  <span> — reservas del día completo (elige horarios para acotar)</span>
+                )}
+              </p>
+            )}
             <div className="admin-floorplan-wrapper">
               <FloorPlan
                 selectedPistas={form.pistas}
                 onTogglePista={togglePista}
                 blockedLanes={blockedForMapDate}
+                reservedLanes={clientReservedLanesForMap}
+                footerHint={
+                  mapDate
+                    ? 'Morado: reserva de cliente en esta fecha (no se puede bloquear). Gris: bloqueo administrativo de día completo. Haz clic solo en pistas disponibles.'
+                    : undefined
+                }
               />
             </div>
           </div>
