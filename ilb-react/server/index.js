@@ -10,6 +10,9 @@ import {
   parseSlots,
   isSlotBlockedOrReserved as isSlotBlockedOrReservedDb,
   bloqueoConflictoConReservas,
+  normalizeAdminManualSlots,
+  buildHorasPipeString,
+  bloqueoConflictoConOtrosAdmin,
 } from '../netlify/functions/lib/reserva-availability.js'
 
 const app = express()
@@ -300,9 +303,7 @@ app.post('/api/admin/reserva-manual', async (req, res) => {
   if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
   try {
     const body = req.body || {}
-    const pista = Number(body.pista)
     const fecha = String(body.fecha || '').trim()
-    const hora = String(body.hora || '').trim()
     const nombre = String(body.nombre || '').trim()
     const telefono = String(body.telefono || '').trim()
     const notas = body.notas != null ? String(body.notas) : ''
@@ -311,38 +312,63 @@ app.post('/api/admin/reserva-manual', async (req, res) => {
       ? Number(body.personas)
       : 2
 
-    if (!Number.isInteger(pista) || pista < 1 || pista > 11) {
-      return res.status(400).json({ error: 'pista debe ser un número entre 1 y 11' })
+    let slotsNormalized = []
+    if (Array.isArray(body.slots) && body.slots.length > 0) {
+      slotsNormalized = normalizeAdminManualSlots(body.slots)
+      if (slotsNormalized.length === 0) {
+        return res.status(400).json({ error: 'No hay slots válidos: incluye pista (1–11) y hora en cada fila.' })
+      }
     }
-    if (!fecha || !hora) return res.status(400).json({ error: 'fecha y hora son requeridos' })
+    else {
+      const pista = Number(body.pista)
+      const hora = String(body.hora || '').trim()
+      if (!Number.isInteger(pista) || pista < 1 || pista > 11) {
+        return res.status(400).json({ error: 'pista debe ser un número entre 1 y 11' })
+      }
+      if (!fecha || !hora) return res.status(400).json({ error: 'fecha y hora son requeridos' })
+      slotsNormalized = normalizeAdminManualSlots([{ pista, hora }])
+    }
+
+    if (!fecha) return res.status(400).json({ error: 'fecha es requerida' })
     if (!nombre) return res.status(400).json({ error: 'nombre es requerido' })
     if (!Number.isFinite(personas) || personas < 1 || personas > 6) {
       return res.status(400).json({ error: 'personas debe ser un número entre 1 y 6' })
     }
 
-    const fechaHoraErr = validateFechaHorariosReservaColombia(fecha, [hora])
+    const horasUnicas = [...new Set(slotsNormalized.map(s => s.hora))]
+    const fechaHoraErr = validateFechaHorariosReservaColombia(fecha, horasUnicas)
     if (fechaHoraErr) return res.status(400).json({ error: fechaHoraErr })
 
     const reservasCol = await getReservasCollection()
     const bloqueosCol = await getBloqueosCollection()
-    const taken = await isSlotBlockedOrReservedDb({ pista, fecha, hora }, { reservasCol, bloqueosCol })
-    if (taken) {
-      return res.status(409).json({ error: 'Esa pista no está disponible en esa fecha y hora (reservada o bloqueada).' })
+    for (const s of slotsNormalized) {
+      const taken = await isSlotBlockedOrReservedDb(
+        { pista: s.pista, fecha, hora: s.hora },
+        { reservasCol, bloqueosCol }
+      )
+      if (taken) {
+        return res.status(409).json({
+          error: `La pista ${s.pista} no está disponible el ${fecha} a las ${s.hora} (reservada o bloqueada).`,
+        })
+      }
     }
 
     const reference = `MANUAL-${randomUUID()}`
-    const horasStr = `P${pista}:${hora}`
+    const horasStr = buildHorasPipeString(slotsNormalized)
+    const pistasNums = [...new Set(slotsNormalized.map(s => s.pista))].sort((a, b) => a - b)
+    const pistasCampo = pistasNums.join(', ')
+
     const doc = {
       reference,
       estado: 'exitosa',
       origen: 'manual',
       fecha,
-      pistas: pista,
+      pistas: pistasCampo,
       horas: horasStr,
       personas,
       total: 0,
       extras: '',
-      description: 'Reserva manual (portal admin)',
+      description: slotsNormalized.length > 1 ? `Reserva manual (${slotsNormalized.length} slots)` : 'Reserva manual (portal admin)',
       datosPersonales: {
         nombre,
         telefono,
@@ -364,7 +390,7 @@ app.post('/api/admin/reserva-manual', async (req, res) => {
         estado: doc.estado,
         origen: doc.origen,
         fecha,
-        pistas: pista,
+        pistas: pistasCampo,
         horas: horasStr,
         personas,
       },
@@ -841,6 +867,15 @@ app.post('/api/bloqueos', async (req, res) => {
     const conflicto = await bloqueoConflictoConReservas({ pista, fechaInicio, fechaFin, horas }, reservasCol)
     if (conflicto) return res.status(409).json({ error: conflicto })
 
+    const bloqueosCol = await getBloqueosCollection()
+    const conflictoOtros = await bloqueoConflictoConOtrosAdmin(bloqueosCol, {
+      pista,
+      fechaInicio,
+      fechaFin,
+      horas,
+    })
+    if (conflictoOtros) return res.status(409).json({ error: conflictoOtros })
+
     const id = (typeof req.body.id === 'string' && req.body.id) ? req.body.id : randomUUID()
     const doc = {
       id,
@@ -856,8 +891,7 @@ app.post('/api/bloqueos', async (req, res) => {
     }
     if (req.body.fecha) doc.fecha = req.body.fecha
 
-    const col = await getBloqueosCollection()
-    await col.insertOne(doc)
+    await bloqueosCol.insertOne(doc)
     res.status(201).json({ bloqueo: { ...doc, creadaEn: doc.creadaEn } })
   } catch (err) {
     res.status(500).json({ error: err.message })

@@ -1,5 +1,11 @@
 import { useState, useEffect, useMemo, Fragment } from 'react'
+import { parseHorasFromString } from '../../utils/bookingSlots'
 import './AdminDashboard.css'
+
+const ALL_HORAS_SORT = [
+  '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
+  '5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM', '11:00 PM',
+]
 
 const ESTADO_CONFIG = {
   exitosa:   { label: 'Confirmada', icon: 'fas fa-check-circle', cls: 'success' },
@@ -18,9 +24,65 @@ function formatDate(iso) {
   return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-function parseHorasDisplay(horas) {
+function sortHorasList(horas) {
+  return [...horas].sort((a, b) => {
+    const ia = ALL_HORAS_SORT.indexOf(a)
+    const ib = ALL_HORAS_SORT.indexOf(b)
+    if (ia >= 0 && ib >= 0) return ia - ib
+    return String(a).localeCompare(String(b), 'es')
+  })
+}
+
+/** Pistas legibles: prioriza el string `horas` (P3:12 PM|…); si no, campo `pistas` (número o lista). */
+function dashboardPistasLabel(horasStr, pistasFallback) {
+  const slots = parseHorasFromString(horasStr)
+  if (slots.length > 0) {
+    const nums = [...new Set(slots.map(s => s.pista))].sort((a, b) => a - b)
+    return nums.map(n => `P${n}`).join(', ')
+  }
+  if (pistasFallback == null || String(pistasFallback).trim() === '') return '—'
+  const raw = String(pistasFallback).trim()
+  if (raw.includes(',') || raw.includes(';'))
+    return raw.split(/[,;]/).map(s => String(s).trim()).filter(Boolean).map(x => (/^\d+$/.test(x) ? `P${x}` : x)).join(', ')
+  return /^\d+$/.test(raw) ? `P${raw}` : raw
+}
+
+/** Texto compacto de horas cubiertos por la reserva (ordenados). */
+function dashboardHorariosResumen(horasStr) {
+  const slots = parseHorasFromString(horasStr)
+  if (slots.length === 0) return null
+  return sortHorasList([...new Set(slots.map(s => s.hora))]).join(' · ')
+}
+
+function parseHorasDisplayDetalle(horas) {
   if (!horas) return '—'
-  return horas.replace(/\|/g, ' · ').replace(/P(\d+):/g, 'P$1: ')
+  const slots = parseHorasFromString(horas)
+  if (slots.length === 0) return horas.replace(/\|/g, ' · ').replace(/P(\d+):/g, 'P$1: ')
+  const byLane = new Map()
+  slots.forEach(({ pista, hora }) => {
+    if (!byLane.has(pista)) byLane.set(pista, new Set())
+    byLane.get(pista).add(hora)
+  })
+  const parts = []
+  for (const p of [...byLane.keys()].sort((a, b) => a - b)) {
+    const hh = sortHorasList([...byLane.get(p)])
+    parts.push(`P${p}: ${hh.join(', ')}`)
+  }
+  return parts.join(' | ')
+}
+
+function textoBusquedaReserva(r) {
+  const parts = [
+    r.reference,
+    r.fecha,
+    r.horas,
+    r.datosPersonales?.nombre,
+    r.datosPersonales?.documento,
+    r.datosPersonales?.correo,
+    dashboardPistasLabel(r.horas, r.pistas),
+    dashboardHorariosResumen(r.horas),
+  ].filter(Boolean)
+  return parts.join(' ').toLowerCase()
 }
 
 function ReservaDetailPanel({ r }) {
@@ -31,8 +93,8 @@ function ReservaDetailPanel({ r }) {
           <h4><i className="fas fa-bowling-ball" /> Reserva</h4>
           <div className="dash-detail-row"><span>Referencia</span><strong>{r.reference}</strong></div>
           <div className="dash-detail-row"><span>Fecha</span><strong>{r.fecha}</strong></div>
-          <div className="dash-detail-row"><span>Pistas</span><strong>{r.pistas}</strong></div>
-          <div className="dash-detail-row"><span>Horarios</span><strong>{parseHorasDisplay(r.horas)}</strong></div>
+          <div className="dash-detail-row"><span>Pistas</span><strong>{dashboardPistasLabel(r.horas, r.pistas)}</strong></div>
+          <div className="dash-detail-row"><span>Horarios</span><strong>{parseHorasDisplayDetalle(r.horas)}</strong></div>
           <div className="dash-detail-row"><span>Personas</span><strong>{r.personas}</strong></div>
           {r.extras && <div className="dash-detail-row"><span>Extras</span><strong>{r.extras}</strong></div>}
           <div className="dash-detail-row"><span>Total</span><strong className="dash-detail-total">{formatPrice(r.total || 0)}</strong></div>
@@ -88,13 +150,7 @@ export default function AdminDashboard() {
     if (filtro !== 'todas') list = list.filter(r => r.estado === filtro)
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase()
-      list = list.filter(r =>
-        (r.reference || '').toLowerCase().includes(q) ||
-        (r.datosPersonales?.nombre || '').toLowerCase().includes(q) ||
-        (r.datosPersonales?.documento || '').includes(q) ||
-        (r.datosPersonales?.correo || '').toLowerCase().includes(q) ||
-        (r.fecha || '').includes(q)
-      )
+      list = list.filter(r => textoBusquedaReserva(r).includes(q))
     }
     return list
   }, [reservas, filtro, busqueda])
@@ -158,7 +214,7 @@ export default function AdminDashboard() {
           <i className="fas fa-search" />
           <input
             type="text"
-            placeholder="Buscar por nombre, referencia, documento..."
+            placeholder="Buscar por nombre, referencia, fecha, pista, horario..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
           />
@@ -189,11 +245,22 @@ export default function AdminDashboard() {
       ) : (
         <div className="dash-table-wrapper">
           <table className="dash-table">
+            <colgroup>
+              {/* Ref   Fecha+hora  Responsable  Pistas  Total   Estado  Creada  Btn */}
+              <col style={{ width: '26%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '9%'  }} />
+              <col style={{ width: '9%'  }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '4%'  }} />
+            </colgroup>
             <thead>
               <tr>
                 <th>Referencia</th>
-                <th>Fecha Reserva</th>
-                <th>Responsable</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
                 <th>Pistas</th>
                 <th>Total</th>
                 <th>Estado</th>
@@ -202,13 +269,27 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => (
+              {filtered.map(r => {
+                const lineaHorarios = dashboardHorariosResumen(r.horas)
+                const lineaPistas = dashboardPistasLabel(r.horas, r.pistas)
+                const isManual = r.origen === 'manual' || String(r.reference || '').startsWith('MANUAL-')
+                return (
                 <Fragment key={r.reference}>
                   <tr className={expanded === r.reference ? 'expanded' : ''}>
-                    <td className="dash-cell-ref">{r.reference}</td>
-                    <td>{r.fecha}</td>
+                    <td className="dash-cell-ref">
+                      <span className="dash-ref-text">{r.reference}</span>
+                      {isManual && <span className="dash-ref-tag">Manual</span>}
+                    </td>
+                    <td className="dash-cell-fecha-slot">
+                      <span className="dash-cell-date-main">{r.fecha || '—'}</span>
+                      {lineaHorarios ? (
+                        <span className="dash-cell-date-sub">
+                          <i className="far fa-clock" /> {lineaHorarios}
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="dash-cell-name">{r.datosPersonales?.nombre || '—'}</td>
-                    <td>{r.pistas || '—'}</td>
+                    <td className="dash-cell-pistas-slot">{lineaPistas}</td>
                     <td className="dash-cell-total">{formatPrice(r.total || 0)}</td>
                     <td>
                       <span className={`dash-badge dash-badge-${ESTADO_CONFIG[r.estado]?.cls || 'pending'}`}>
@@ -217,7 +298,7 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="dash-cell-date">{formatDate(r.creadaEn)}</td>
-                    <td>
+                    <td className="dash-cell-action">
                       <button
                         type="button"
                         className="dash-expand-btn"
@@ -235,7 +316,8 @@ export default function AdminDashboard() {
                     </tr>
                   )}
                 </Fragment>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

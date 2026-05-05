@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { getBloqueosCollection, getReservasCollection } from './lib/db.js'
 import { requireAuth } from './lib/admin-auth.js'
-import { bloqueoConflictoConReservas } from './lib/reserva-availability.js'
+import { bloqueoConflictoConReservas, bloqueoConflictoConOtrosAdmin } from './lib/reserva-availability.js'
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -72,6 +72,14 @@ export async function handler(event) {
         reservasCol
       )
       if (conflicto) return json(409, { error: conflicto })
+
+      const conflictoOtros = await bloqueoConflictoConOtrosAdmin(col, {
+        pista,
+        fechaInicio,
+        fechaFin,
+        horas,
+      })
+      if (conflictoOtros) return json(409, { error: conflictoOtros })
 
       const id = typeof body.id === 'string' && body.id ? body.id : randomUUID()
       const doc = {

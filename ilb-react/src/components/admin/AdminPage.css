@@ -2,10 +2,12 @@
    ADMIN PAGE
    ============================================ */
 
+/* Sin Header del sitio en /admin: no duplicar offset del nav público */
 .admin-page {
   background: #111;
   min-height: 100vh;
-  padding-top: 100px;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* ============================================
@@ -16,7 +18,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: calc(100vh - 200px);
+  min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 40px);
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 40px);
   padding: 20px;
 }
 
@@ -139,7 +142,8 @@
 .admin-container {
   display: grid;
   grid-template-columns: 260px 1fr;
-  min-height: calc(100vh - 100px);
+  min-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -152,8 +156,11 @@
   display: flex;
   flex-direction: column;
   position: sticky;
-  top: 100px;
-  height: calc(100vh - 100px);
+  top: env(safe-area-inset-top, 0px);
+  height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
 }
 
 .admin-sidebar-header {
@@ -434,6 +441,95 @@ select.admin-input {
 .admin-btn-primary:hover {
   background: #c23530;
   box-shadow: 0 4px 16px rgba(216,63,54,0.3);
+}
+
+.admin-btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.admin-btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.admin-btn-secondary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.admin-plano-dia-card {
+  margin-bottom: 24px;
+}
+
+.admin-plano-dia-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-plano-dia-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.admin-plano-dia-stats {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.admin-manual-slot-row {
+  margin-bottom: 10px;
+}
+
+.admin-map-hora-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.admin-field-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.45;
+}
+
+.admin-field-hint strong {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-bloqueos-hora-resumen {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-bloqueos-hora-resumen-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-bloqueos-hora-list {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.55;
+}
+
+.admin-bloqueos-hora-list li {
+  margin-bottom: 4px;
 }
 
 .admin-btn-icon {
@@ -840,10 +936,6 @@ select.admin-input {
 }
 
 @media (max-width: 544px) {
-  .admin-page {
-    padding-top: 80px;
-  }
-
   .admin-horas-grid {
     grid-template-columns: repeat(2, 1fr);
   }

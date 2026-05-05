@@ -9,6 +9,14 @@
   gap: 14px;
 }
 
+.fp-wrapper-readonly .fp-lane {
+  cursor: default;
+}
+
+.fp-wrapper-readonly .fp-hint {
+  opacity: 0.72;
+}
+
 /* Legend */
 .fp-legend {
   display: flex;

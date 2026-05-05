@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useBolera } from '../../context/BoleraContext'
+import AdminPlanoDia from './AdminPlanoDia'
+import { parseHorasFromString } from '../../utils/bookingSlots'
 
 const ALL_HORAS = [
   '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
@@ -9,14 +11,13 @@ const ALL_HORAS = [
 const PISTAS = Array.from({ length: 11 }, (_, i) => i + 1)
 
 const EMPTY_FORM = {
-  pista: 1,
   fecha: '',
-  hora: '',
-  personas: 2,
-  metodoPago: '',
   nombre: '',
   telefono: '',
+  personas: 2,
+  metodoPago: '',
   notas: '',
+  slots: [{ pista: 1, hora: '' }],
 }
 
 const METODOS_PAGO = [
@@ -55,19 +56,6 @@ function formatDateTime(iso) {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-}
-
-function parseHorasFromString(horas) {
-  if (!horas) return []
-  const result = []
-  horas.split('|').forEach(block => {
-    const m = block.match(/^P(\d+):(.+)$/)
-    if (m) {
-      const pista = parseInt(m[1], 10)
-      m[2].split(',').forEach(h => result.push({ pista, hora: h.trim() }))
-    }
-  })
-  return result
 }
 
 function pistasResumen(slots) {
@@ -138,15 +126,66 @@ export default function AdminReservas() {
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
 
+  const changeSlot = (idx, key, raw) => {
+    setForm(prev => {
+      const slots = [...prev.slots]
+      const cur = {
+        ...slots[idx],
+        [key]: key === 'pista' ? parseInt(raw, 10) || 1 : raw,
+      }
+      slots[idx] = cur
+      return { ...prev, slots }
+    })
+  }
+
+  const addSlotRow = () => {
+    setForm(prev => ({
+      ...prev,
+      slots: [...prev.slots, { pista: 1, hora: '' }],
+    }))
+  }
+
+  const removeSlotRow = (idx) => {
+    setForm(prev => {
+      if (prev.slots.length < 2) return prev
+      return { ...prev, slots: prev.slots.filter((_, i) => i !== idx) }
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.fecha || !form.hora || !form.nombre) return
-    if (form.fecha && form.hora && isSlotTaken(form.pista, form.fecha, form.hora)) {
-      window.alert('Esa pista ya no está disponible para la fecha/hora seleccionadas.')
+    if (!form.fecha || !form.nombre) return
+    const slotsFilled = form.slots
+      .map(s => ({ pista: Number(s.pista), hora: String(s.hora || '').trim() }))
+      .filter(s => s.hora.length > 0)
+    if (slotsFilled.length === 0) {
+      window.alert('Agrega al menos una pista con hora seleccionada.')
       return
     }
+    const seen = new Set()
+    const deduped = []
+    for (const s of slotsFilled) {
+      const k = `${s.pista}|${s.hora}`
+      if (seen.has(k)) continue
+      seen.add(k)
+      deduped.push(s)
+    }
+    for (const s of deduped) {
+      if (isSlotTaken(s.pista, form.fecha, s.hora)) {
+        window.alert(`Pista ${s.pista} (${s.hora}) ya no está disponible para esa fecha.`)
+        return
+      }
+    }
     try {
-      await addReservaAdmin(form)
+      await addReservaAdmin({
+        fecha: form.fecha,
+        nombre: form.nombre,
+        telefono: form.telefono,
+        personas: form.personas,
+        metodoPago: form.metodoPago,
+        notas: form.notas,
+        slots: deduped,
+      })
       setForm(EMPTY_FORM)
       setShowForm(false)
       fetchOnline()
@@ -159,30 +198,6 @@ export default function AdminReservas() {
     if (!fecha || !hora) return false
     return isLaneBlocked(pista, fecha, hora) || isLaneReservedAdmin(pista, fecha, hora) || isLaneReservedOnline(pista, fecha, hora)
   }
-
-  const availablePistas = useMemo(() => {
-    if (!form.fecha || !form.hora) return PISTAS
-    return PISTAS.filter(p => !isSlotTaken(p, form.fecha, form.hora))
-  }, [form.fecha, form.hora, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline])
-
-  const availableHoras = useMemo(() => {
-    // Si no hay fecha, permitir todas.
-    if (!form.fecha) return ALL_HORAS
-
-    // Si hay fecha pero no hora: mostrar horas que tengan al menos 1 pista libre.
-    return ALL_HORAS.filter(h => {
-      const anyAvailable = PISTAS.some(p => !isSlotTaken(p, form.fecha, h))
-      return anyAvailable
-    })
-  }, [form.fecha, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline])
-
-  // Si el admin cambia fecha/hora y la pista ya no está disponible, mover a una disponible.
-  useEffect(() => {
-    if (!form.fecha || !form.hora) return
-    if (availablePistas.includes(form.pista)) return
-    const next = availablePistas[0]
-    if (next) setForm(prev => ({ ...prev, pista: next }))
-  }, [form.fecha, form.hora, form.pista, availablePistas])
 
   // ── Construir lista unificada (online + manual) ─────────────
   const unified = useMemo(() => {
@@ -308,31 +323,65 @@ export default function AdminReservas() {
             </div>
           </div>
 
-          <div className="admin-form-row admin-form-row-3">
-            <div className="admin-field">
-              <label className="admin-field-label">Pista</label>
-              <select
-                className="admin-input"
-                value={form.pista}
-                onChange={e => handleChange('pista', parseInt(e.target.value))}
-                disabled={form.fecha && form.hora && availablePistas.length === 0}
-              >
-                {(form.fecha && form.hora ? availablePistas : PISTAS).map(p => (
-                  <option key={p} value={p}>Pista {p}</option>
-                ))}
-              </select>
-            </div>
+          <div className="admin-form-row admin-form-row-2">
             <div className="admin-field">
               <label className="admin-field-label">Fecha</label>
               <input className="admin-input" type="date" value={form.fecha} onChange={e => handleChange('fecha', e.target.value)} required />
             </div>
-            <div className="admin-field">
-              <label className="admin-field-label">Hora</label>
-              <select className="admin-input" value={form.hora} onChange={e => handleChange('hora', e.target.value)} required>
-                <option value="">Seleccionar...</option>
-                {availableHoras.map(h => <option key={h} value={h}>{h}</option>)}
-              </select>
-            </div>
+            <p className="admin-panel-desc" style={{ margin: '8px 0 0', flex: '1 1 200px' }}>
+              Una sola reserva puede incluir varias pistas y varios horarios para el mismo cliente (mismo día).
+            </p>
+          </div>
+
+          <div className="admin-field">
+            <label className="admin-field-label">Pistas y horarios</label>
+            {form.slots.map((row, idx) => (
+              <div key={idx} className="admin-form-row admin-form-row-3 admin-manual-slot-row">
+                <div className="admin-field" style={{ marginBottom: 0 }}>
+                  <label className="admin-field-label">Pista</label>
+                  <select
+                    className="admin-input"
+                    value={row.pista}
+                    onChange={e => changeSlot(idx, 'pista', e.target.value)}
+                  >
+                    {PISTAS.map(p => (
+                      <option key={p} value={p}>Pista {p}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="admin-field" style={{ marginBottom: 0 }}>
+                  <label className="admin-field-label">Hora</label>
+                  <select
+                    className="admin-input"
+                    value={row.hora}
+                    onChange={e => changeSlot(idx, 'hora', e.target.value)}
+                  >
+                    <option value="">Seleccionar…</option>
+                    {(form.fecha
+                      ? ALL_HORAS.filter(h => !isSlotTaken(row.pista, form.fecha, h))
+                      : ALL_HORAS
+                    ).map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="admin-field" style={{ marginBottom: 0, display: 'flex', alignItems: 'flex-end' }}>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn-secondary"
+                    style={{ width: '100%' }}
+                    disabled={form.slots.length < 2}
+                    onClick={() => removeSlotRow(idx)}
+                    title="Quitar esta fila"
+                  >
+                    <i className="fas fa-minus" /> Quitar
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button type="button" className="admin-btn admin-btn-secondary" style={{ marginTop: 10 }} onClick={addSlotRow}>
+              <i className="fas fa-plus" /> Agregar pista u horario
+            </button>
           </div>
 
           <div className="admin-form-row admin-form-row-2">
@@ -370,7 +419,7 @@ export default function AdminReservas() {
         </form>
       )}
 
-      {/* ── Toolbar (search + filters) ──────────────────────── */}
+      <AdminPlanoDia reservas={onlineReservas} />
       <div className="dash-toolbar">
         <div className="dash-search">
           <i className="fas fa-search" />

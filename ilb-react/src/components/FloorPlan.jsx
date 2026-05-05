@@ -61,6 +61,7 @@ export default function FloorPlan({
   blockedLanes = [],
   reservedLanes = [],
   footerHint,
+  readOnly = false,
 }) {
 
   function renderLane(laneNum) {
@@ -68,7 +69,7 @@ export default function FloorPlan({
     const isSelected = selectedPistas.includes(laneNum)
     const isBlocked = blockedLanes.includes(laneNum)
     const isReserved = reservedLanes.includes(laneNum) && !isBlocked
-    const notClickable = isBlocked || isReserved
+    const notClickable = readOnly || isBlocked || isReserved
 
     const approachX = LANES_START_X + MESA_W
     const pistaX = approachX + APPROACH_W
@@ -81,9 +82,10 @@ export default function FloorPlan({
       <g
         key={laneNum}
         className={`fp-lane ${isSelected ? 'selected' : ''} ${isBlocked ? 'blocked' : ''} ${isReserved ? 'reserved' : ''}`}
-        onClick={() => !notClickable && onTogglePista(laneNum)}
+        onClick={() => { if (!readOnly && !isBlocked && !isReserved) onTogglePista?.(laneNum) }}
         role="button"
         tabIndex={0}
+        aria-disabled={notClickable}
         aria-label={`Pista ${laneNum}${isBlocked ? ' (bloqueada administrativamente)' : isReserved ? ' (reservada por cliente)' : ''}`}
       >
         {/* Approach */}
@@ -202,26 +204,28 @@ export default function FloorPlan({
   const sep2Y = (GROUP_RANGES[1].bottom + GROUP_RANGES[2].top) / 2
 
   return (
-    <div className="fp-wrapper">
+    <div className={`fp-wrapper${readOnly ? ' fp-wrapper-readonly' : ''}`}>
       <div className="fp-legend">
         <span className="fp-legend-item">
           <span className="fp-legend-dot fp-legend-available" />
           Disponible
         </span>
-        <span className="fp-legend-item">
-          <span className="fp-legend-dot fp-legend-selected" />
-          Seleccionada
-        </span>
-        {blockedLanes.length > 0 && (
+        {!readOnly && (
+          <span className="fp-legend-item">
+            <span className="fp-legend-dot fp-legend-selected" />
+            Seleccionada
+          </span>
+        )}
+        {(blockedLanes.length > 0 || readOnly) && (
           <span className="fp-legend-item">
             <span className="fp-legend-dot fp-legend-blocked" />
             Bloqueada (admin)
           </span>
         )}
-        {reservedLanes.length > 0 && (
+        {(reservedLanes.length > 0 || readOnly) && (
           <span className="fp-legend-item">
             <span className="fp-legend-dot fp-legend-reserved" />
-            Reservada (cliente)
+            Reservada / apartada
           </span>
         )}
       </div>

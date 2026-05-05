@@ -20,6 +20,36 @@ function bloqueoSortKey(b) {
   return b.fechaInicio || b.fecha || ''
 }
 
+/** Texto con horas admin bloqueadas para una pista y fecha (o null). */
+function resumenBloqueosAdminPistaParaFecha(pista, fechaStr, bloqueos) {
+  const relevant = []
+  for (const b of bloqueos || []) {
+    if (Number(b.pista) !== Number(pista)) continue
+    if (b.fechaInicio && b.fechaFin) {
+      if (fechaStr < b.fechaInicio || fechaStr > b.fechaFin) continue
+    }
+    else if (b.fecha) {
+      if (b.fecha !== fechaStr) continue
+    }
+    else continue
+    relevant.push(b)
+  }
+  if (relevant.length === 0) return null
+  let full = false
+  const hs = new Set()
+  for (const b of relevant) {
+    const arr = Array.isArray(b.horas) ? b.horas : []
+    if (arr.length === 0) {
+      full = true
+      break
+    }
+    arr.forEach(h => hs.add(h))
+  }
+  if (full) return 'Todo el día'
+  if (hs.size === 0) return null
+  return [...hs].sort((a, b) => ALL_HORAS.indexOf(a) - ALL_HORAS.indexOf(b)).join(', ')
+}
+
 function bloqueoPasaFiltros(b, { filtroFecha, filtroHora, filtroPista }) {
   if (filtroPista && String(b.pista) !== String(filtroPista)) return false
   if (filtroFecha) {
@@ -53,13 +83,21 @@ function metodoPagoLabel(value) {
 }
 
 export default function AdminPistas() {
-  const { config, addBloqueo, deleteBloqueo, onlineSlots } = useBolera()
+  const {
+    config,
+    addBloqueo,
+    deleteBloqueo,
+    isLaneBlocked,
+    isLaneReservedAdmin,
+    isLaneReservedOnline,
+  } = useBolera()
   const [saving, setSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [filtroFecha, setFiltroFecha] = useState('')
   const [filtroHora, setFiltroHora] = useState('')
   const [filtroPista, setFiltroPista] = useState('')
   const [previewDate, setPreviewDate] = useState('')
+  const [mapPreviewHora, setMapPreviewHora] = useState(ALL_HORAS[0])
   const [form, setForm] = useState({
     pistas: [],
     fechaInicio: '',
@@ -102,50 +140,44 @@ export default function AdminPistas() {
 
   const mapDate = previewDate || form.fechaInicio
 
-  const blockedForMapDate = useMemo(() => {
-    if (!mapDate) return []
-    return Array.from({ length: 11 }, (_, i) => i + 1).filter(p =>
-      config.bloqueos.some(b => {
-        if (b.pista !== p) return false
-        if (b.fechaInicio && b.fechaFin) {
-          if (mapDate < b.fechaInicio || mapDate > b.fechaFin) return false
-        } else if (b.fecha) {
-          if (b.fecha !== mapDate) return false
-        }
-        return b.horas.length === 0
-      })
+  /** Bloqueos de admin efectivos para la hora elegida en el selector del plano. */
+  const adminBlockedLanesAtPreview = useMemo(() => {
+    if (!mapDate || !mapPreviewHora) return []
+    return PISTA_OPTIONS.filter(p => isLaneBlocked(p, mapDate, mapPreviewHora))
+  }, [mapDate, mapPreviewHora, isLaneBlocked])
+
+  /** Reservas de clientes/manual (API + contexto local) a esa fecha y hora del plano. */
+  const clientReservedLanesForMap = useMemo(() => {
+    if (!mapDate || !mapPreviewHora) return []
+    return PISTA_OPTIONS.filter(
+      p =>
+        isLaneReservedOnline(p, mapDate, mapPreviewHora) ||
+        isLaneReservedAdmin(p, mapDate, mapPreviewHora)
     )
+  }, [mapDate, mapPreviewHora, isLaneReservedOnline, isLaneReservedAdmin])
+
+  /** Resumen: qué horas tiene bloqueadas cada pista (admin) en la fecha del mapa. */
+  const resumenHorasAdminMapa = useMemo(() => {
+    if (!mapDate) return []
+    return PISTA_OPTIONS.map(p => ({
+      pista: p,
+      texto: resumenBloqueosAdminPistaParaFecha(p, mapDate, config.bloqueos),
+    })).filter(x => x.texto)
   }, [mapDate, config.bloqueos])
 
-  /** Pistas con reserva de cliente (online / pendiente en hold) o manual local, para la fecha del mapa y horas del formulario. */
-  const clientReservedLanesForMap = useMemo(() => {
-    if (!mapDate) return []
-    const set = new Set()
-    const horasSet = !form.todoElDia && form.horas.length > 0 ? new Set(form.horas) : null
-
-    for (const s of onlineSlots || []) {
-      if (s.fecha !== mapDate) continue
-      if (horasSet && !horasSet.has(s.hora)) continue
-      if (Number.isFinite(s.pista)) set.add(s.pista)
-    }
-
-    for (const r of config.reservasAdmin || []) {
-      if (r.fecha !== mapDate) continue
-      if (horasSet && !horasSet.has(r.hora)) continue
-      if (Number.isFinite(r.pista)) set.add(r.pista)
-    }
-
-    return Array.from(set).sort((a, b) => a - b)
-  }, [mapDate, form.todoElDia, form.horas, onlineSlots, config.reservasAdmin])
+  const pistasNoSeleccionablesMapa = useMemo(() => {
+    const merged = [...new Set([...adminBlockedLanesAtPreview, ...clientReservedLanesForMap])].sort((a, b) => a - b)
+    return merged
+  }, [adminBlockedLanesAtPreview, clientReservedLanesForMap])
 
   useEffect(() => {
-    if (clientReservedLanesForMap.length === 0) return
+    if (pistasNoSeleccionablesMapa.length === 0) return
     setForm(prev => {
-      const nextPistas = prev.pistas.filter(p => !clientReservedLanesForMap.includes(p))
+      const nextPistas = prev.pistas.filter(p => !pistasNoSeleccionablesMapa.includes(p))
       if (nextPistas.length === prev.pistas.length) return prev
       return { ...prev, pistas: nextPistas }
     })
-  }, [clientReservedLanesForMap])
+  }, [pistasNoSeleccionablesMapa])
 
   const dayCount = useMemo(() => {
     if (!form.fechaInicio || !form.fechaFin) return 0
@@ -157,6 +189,10 @@ export default function AdminPistas() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.fechaInicio || !form.fechaFin || form.pistas.length === 0) return
+    if (!form.todoElDia && form.horas.length === 0) {
+      window.alert('Si eliges “Horarios específicos”, marca al menos una hora.')
+      return
+    }
     setSaving(true)
     try {
       for (const pista of form.pistas) {
@@ -258,6 +294,41 @@ export default function AdminPistas() {
             </div>
           )}
 
+          {mapDate && (
+            <div className="admin-map-hora-fields">
+              <div className="admin-field">
+                <label className="admin-field-label">Hora del plano</label>
+                <select
+                  className="admin-input"
+                  value={mapPreviewHora}
+                  onChange={e => setMapPreviewHora(e.target.value)}
+                >
+                  {ALL_HORAS.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <p className="admin-field-hint">
+                  El mapa muestra estado a las <strong>{mapPreviewHora}</strong> el <strong>{mapDate}</strong>
+                  {' '}(bloqueos por hora o día completo, y reservas de clientes).
+                </p>
+              </div>
+              {resumenHorasAdminMapa.length > 0 && (
+                <div className="admin-bloqueos-hora-resumen">
+                  <span className="admin-bloqueos-hora-resumen-title">
+                    <i className="far fa-clock" /> Bloqueos admin ese día por pista:
+                  </span>
+                  <ul className="admin-bloqueos-hora-list">
+                    {resumenHorasAdminMapa.map(({ pista, texto }) => (
+                      <li key={pista}>
+                        <strong>P{pista}</strong>: {texto}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           {dayCount > 1 && (
             <div className="admin-field">
               <label className="admin-field-label">Previsualizar mapa para fecha específica (opcional)</label>
@@ -283,14 +354,10 @@ export default function AdminPistas() {
             {mapDate && (
               <p className="admin-map-date-hint">
                 <i className="far fa-calendar-alt" /> Mapa para <strong>{mapDate}</strong>
+                {' · '}
+                <strong>{mapPreviewHora}</strong>
                 {dayCount > 1 && previewDate && previewDate !== form.fechaInicio && (
-                  <span className="admin-map-preview-note"> (previsualización)</span>
-                )}
-                {!form.todoElDia && form.horas.length > 0 && (
-                  <span> — reservas mostradas solo en las horas marcadas abajo</span>
-                )}
-                {!form.todoElDia && form.horas.length === 0 && (
-                  <span> — reservas del día completo (elige horarios para acotar)</span>
+                  <span className="admin-map-preview-note"> (previsualización de fecha)</span>
                 )}
               </p>
             )}
@@ -298,11 +365,11 @@ export default function AdminPistas() {
               <FloorPlan
                 selectedPistas={form.pistas}
                 onTogglePista={togglePista}
-                blockedLanes={blockedForMapDate}
+                blockedLanes={adminBlockedLanesAtPreview}
                 reservedLanes={clientReservedLanesForMap}
                 footerHint={
                   mapDate
-                    ? 'Morado: reserva de cliente en esta fecha (no se puede bloquear). Gris: bloqueo administrativo de día completo. Haz clic solo en pistas disponibles.'
+                    ? 'Gris: bloqueado por admin para esta fecha y hora (o día completo). Morado: reserva de cliente. La lista superior resume todas las horas bloqueadas admin ese día.'
                     : undefined
                 }
               />

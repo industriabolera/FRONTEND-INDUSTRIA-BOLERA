@@ -1,7 +1,11 @@
 import { randomUUID } from 'crypto'
 import { getReservasCollection, getBloqueosCollection } from './lib/db.js'
 import { requireAuth } from './lib/admin-auth.js'
-import { isSlotBlockedOrReserved } from './lib/reserva-availability.js'
+import {
+  isSlotBlockedOrReserved,
+  normalizeAdminManualSlots,
+  buildHorasPipeString,
+} from './lib/reserva-availability.js'
 import { validateFechaHorariosReservaColombia } from './lib/booking-datetime-colombia.js'
 
 const json = (statusCode, body) => ({
@@ -29,9 +33,7 @@ export async function handler(event) {
       return json(400, { error: 'JSON inválido' })
     }
 
-    const pista = Number(body.pista)
     const fecha = String(body.fecha || '').trim()
-    const hora = String(body.hora || '').trim()
     const nombre = String(body.nombre || '').trim()
     const telefono = String(body.telefono || '').trim()
     const notas = body.notas != null ? String(body.notas) : ''
@@ -40,38 +42,68 @@ export async function handler(event) {
       ? Number(body.personas)
       : 2
 
-    if (!Number.isInteger(pista) || pista < 1 || pista > 11) {
-      return json(400, { error: 'pista debe ser un número entre 1 y 11' })
+    let slotsNormalized = []
+    if (Array.isArray(body.slots) && body.slots.length > 0) {
+      slotsNormalized = normalizeAdminManualSlots(body.slots)
+      if (slotsNormalized.length === 0) {
+        return json(400, {
+          error: 'No hay slots válidos: incluye pista (1–11) y hora en cada fila.',
+        })
+      }
     }
-    if (!fecha || !hora) return json(400, { error: 'fecha y hora son requeridos' })
+    else {
+      const pista = Number(body.pista)
+      const hora = String(body.hora || '').trim()
+      if (!Number.isInteger(pista) || pista < 1 || pista > 11) {
+        return json(400, { error: 'pista debe ser un número entre 1 y 11' })
+      }
+      if (!fecha || !hora) return json(400, { error: 'fecha y hora son requeridos' })
+      slotsNormalized = normalizeAdminManualSlots([{ pista, hora }])
+    }
+
+    if (!fecha) return json(400, { error: 'fecha es requerida' })
     if (!nombre) return json(400, { error: 'nombre es requerido' })
     if (!Number.isFinite(personas) || personas < 1 || personas > 6) {
       return json(400, { error: 'personas debe ser un número entre 1 y 6' })
     }
 
-    const fechaHoraErr = validateFechaHorariosReservaColombia(fecha, [hora])
+    const horasUnicas = [...new Set(slotsNormalized.map(s => s.hora))]
+    const fechaHoraErr = validateFechaHorariosReservaColombia(fecha, horasUnicas)
     if (fechaHoraErr) return json(400, { error: fechaHoraErr })
 
     const reservas = await getReservasCollection()
     const bloqueos = await getBloqueosCollection()
-    const taken = await isSlotBlockedOrReserved({ pista, fecha, hora }, { reservasCol: reservas, bloqueosCol: bloqueos })
-    if (taken) {
-      return json(409, { error: 'Esa pista no está disponible en esa fecha y hora (reservada o bloqueada).' })
+    for (const s of slotsNormalized) {
+      const taken = await isSlotBlockedOrReserved(
+        { pista: s.pista, fecha, hora: s.hora },
+        { reservasCol: reservas, bloqueosCol: bloqueos }
+      )
+      if (taken) {
+        return json(409, {
+          error: `La pista ${s.pista} no está disponible el ${fecha} a las ${s.hora} (reservada o bloqueada).`,
+        })
+      }
     }
 
     const reference = `MANUAL-${randomUUID()}`
-    const horasStr = `P${pista}:${hora}`
+    const horasStr = buildHorasPipeString(slotsNormalized)
+    const pistasNums = [...new Set(slotsNormalized.map(s => s.pista))].sort((a, b) => a - b)
+    const pistasCampo = pistasNums.join(', ')
+
     const doc = {
       reference,
       estado: 'exitosa',
       origen: 'manual',
       fecha,
-      pistas: pista,
+      pistas: pistasCampo,
       horas: horasStr,
       personas,
       total: 0,
       extras: '',
-      description: 'Reserva manual (portal admin)',
+      description:
+        slotsNormalized.length > 1
+          ? `Reserva manual (${slotsNormalized.length} slots)`
+          : 'Reserva manual (portal admin)',
       datosPersonales: {
         nombre,
         telefono,
@@ -95,7 +127,7 @@ export async function handler(event) {
         estado: doc.estado,
         origen: doc.origen,
         fecha,
-        pistas: pista,
+        pistas: pistasCampo,
         horas: horasStr,
         personas,
       },

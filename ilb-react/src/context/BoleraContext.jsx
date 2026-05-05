@@ -284,19 +284,33 @@ export function BoleraProvider({ children }) {
 
   const addReservaAdmin = useCallback(async (reserva) => {
     if (!auth?.token) throw new Error('Inicia sesión en el panel admin para crear la reserva.')
+    const base = {
+      fecha: reserva.fecha,
+      personas: reserva.personas,
+      metodoPago: reserva.metodoPago || '',
+      nombre: reserva.nombre,
+      telefono: reserva.telefono || '',
+      notas: reserva.notas || '',
+    }
+    const body =
+      Array.isArray(reserva.slots) && reserva.slots.length > 0
+        ? {
+            ...base,
+            slots: reserva.slots.map(s => ({
+              pista: Number(s.pista),
+              hora: String(s.hora || '').trim(),
+            })),
+          }
+        : {
+            ...base,
+            pista: reserva.pista,
+            hora: reserva.hora,
+          }
+
     const r = await fetch('/api/admin/reserva-manual', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders },
-      body: JSON.stringify({
-        pista: reserva.pista,
-        fecha: reserva.fecha,
-        hora: reserva.hora,
-        personas: reserva.personas,
-        metodoPago: reserva.metodoPago || '',
-        nombre: reserva.nombre,
-        telefono: reserva.telefono || '',
-        notas: reserva.notas || '',
-      }),
+      body: JSON.stringify(body),
     })
     const data = await r.json().catch(() => ({}))
     if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
