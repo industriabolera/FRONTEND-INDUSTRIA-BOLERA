@@ -581,6 +581,16 @@ export default function ReservasPage() {
     isLaneReservedOnline,
   ])
 
+  const blockedLanesForDate = useMemo(() => {
+    if (!fechaStr) return []
+    const lanes = Array.from({ length: 11 }, (_, i) => i + 1)
+    return lanes.filter(p => {
+      if (isLaneFullDayBlocked(p, fechaStr)) return true
+      const available = getFilteredHorasForPista(p)
+      return available.length === 0
+    })
+  }, [fechaStr, isLaneFullDayBlocked, horarios, pistaSelection, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline])
+
   /** Plano: sin hora aún, solo pistas agotadas en todo el rango de horas del día. */
   const floorPlanBlockedLanes = selectedHoraStep1 ? adminBlockedLanesForStep1 : blockedLanesForDate
   const floorPlanReservedLanes = selectedHoraStep1 ? reservedLanesForStep1 : []
@@ -589,17 +599,6 @@ export default function ReservasPage() {
     setSelectedHoraStep1(h)
     setPistaSelection(prev => prev.map(p => ({ ...p, horas: [h] })))
   }
-
-  const blockedLanesForDate = useMemo(() => {
-    if (!fechaStr) return []
-    const lanes = Array.from({ length: 11 }, (_, i) => i + 1)
-    return lanes.filter(p => {
-      // Bloqueo de todo el día o sin horarios disponibles (reservada/bloqueada en todas las horas)
-      if (isLaneFullDayBlocked(p, fechaStr)) return true
-      const available = getFilteredHorasForPista(p)
-      return available.length === 0
-    })
-  }, [fechaStr, isLaneFullDayBlocked, horarios, pistaSelection, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline])
 
   const togglePista = (pistaNum) => {
     if (!selectedHoraStep1) return

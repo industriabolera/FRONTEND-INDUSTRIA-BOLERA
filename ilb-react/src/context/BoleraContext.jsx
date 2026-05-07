@@ -128,16 +128,21 @@ export function BoleraProvider({ children }) {
   useEffect(() => {
     if (!auth?.token) return
     fetch('/api/admin/config', { headers: { ...authHeaders } })
-      .then(r => r.ok ? r.json() : Promise.reject(new Error(String(r.status))))
-      .then(data => {
-        if (data?.config) {
-          setConfig(prev => ({
-            ...prev,
-            precios: { ...prev.precios, ...data.config.precios },
-            horarios: { ...prev.horarios, ...data.config.horarios },
-            promociones: Array.isArray(data.config.promociones) ? data.config.promociones : prev.promociones,
-          }))
+      .then(r => {
+        if (r.status === 401) {
+          setAuth({ token: '', user: null })
+          return null
         }
+        return r.ok ? r.json() : null
+      })
+      .then(data => {
+        if (!data?.config) return
+        setConfig(prev => ({
+          ...prev,
+          precios: { ...prev.precios, ...data.config.precios },
+          horarios: { ...prev.horarios, ...data.config.horarios },
+          promociones: Array.isArray(data.config.promociones) ? data.config.promociones : prev.promociones,
+        }))
       })
       .catch(() => {})
   }, [auth?.token, authHeaders])
