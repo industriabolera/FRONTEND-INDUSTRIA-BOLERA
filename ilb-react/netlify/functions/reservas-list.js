@@ -1,4 +1,10 @@
 import { getReservasCollection } from './lib/db.js'
+import {
+  defaultFechaDesdeMesAnterior,
+  FECHA_YMD_QUERY_RE,
+  mapReservaDocToListRow,
+  buildReservaListFilter,
+} from './lib/reservas-list-shared.js'
 
 export async function handler(event) {
   if (event.httpMethod !== 'GET') {
@@ -6,40 +12,51 @@ export async function handler(event) {
   }
 
   try {
-    const requestedLimit = Number.parseInt(String(event.queryStringParameters?.limit || ''), 10)
-    const limit = Number.isFinite(requestedLimit)
-      ? Math.min(Math.max(requestedLimit, 1), 5000)
-      : 1000
+    const q = event.queryStringParameters || {}
+
+    let fechaDesde = q.fechaDesde
+    if (fechaDesde === undefined || fechaDesde === null || fechaDesde === '') {
+      fechaDesde = defaultFechaDesdeMesAnterior()
+    } else if (!FECHA_YMD_QUERY_RE.test(String(fechaDesde))) {
+      return {
+        statusCode: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'fechaDesde debe ser YYYY-MM-DD' }),
+      }
+    } else {
+      fechaDesde = String(fechaDesde)
+    }
+
+    const rawSkip = Number.parseInt(String(q.skip ?? ''), 10)
+    const skip = Number.isFinite(rawSkip) && rawSkip >= 0 ? Math.min(rawSkip, 500000) : 0
+
+    const rawLim = Number.parseInt(String(q.limit ?? ''), 10)
+    const limit = Number.isFinite(rawLim)
+      ? Math.min(Math.max(rawLim, 1), 500)
+      : 250
+
+    const filter = buildReservaListFilter(fechaDesde)
     const reservas = await getReservasCollection()
     const docs = await reservas
-      .find({})
+      .find(filter)
       .sort({ creadaEn: -1 })
+      .skip(skip)
       .limit(limit)
       .toArray()
 
-    const list = docs.map(d => ({
-      reference: d.reference,
-      estado: d.estado,
-      origen: d.origen || (String(d.reference || '').startsWith('MANUAL-') ? 'manual' : null),
-      fecha: d.fecha,
-      pistas: d.pistas,
-      horas: d.horas,
-      personas: d.personas,
-      extras: d.extras,
-      total: d.total,
-      description: d.description,
-      datosPersonales: d.datosPersonales,
-      metodoPago: d.metodoPago || '',
-      notas: d.notas || '',
-      motivoPendiente: d.estado === 'pendiente' ? (d.placetopay?.statusMessage || '') : '',
-      creadaEn: d.creadaEn,
-      actualizadaEn: d.actualizadaEn,
-    }))
+    const list = docs.map(mapReservaDocToListRow)
+    const hasMore = docs.length === limit
 
     return {
       statusCode: 200,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reservas: list }),
+      body: JSON.stringify({
+        reservas: list,
+        hasMore,
+        fechaDesde,
+        skip,
+        limit,
+      }),
     }
   } catch (err) {
     console.error('[Reservas] List error:', err.message)

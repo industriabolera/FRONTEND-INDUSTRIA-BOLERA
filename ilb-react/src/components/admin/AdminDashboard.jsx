@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, Fragment } from 'react'
+import { useState, useEffect, useMemo, Fragment, useCallback } from 'react'
 import { parseHorasFromString } from '../../utils/bookingSlots'
+import { fetchAllReservasForAdminPortal } from '../../utils/adminReservasFetch'
 import './AdminDashboard.css'
 
 const ALL_HORAS_SORT = [
@@ -119,22 +120,27 @@ export default function AdminDashboard() {
   const [busqueda, setBusqueda] = useState('')
   const [expanded, setExpanded] = useState(null)
 
-  const fetchReservas = () => {
-    fetch('/api/reservas?limit=1500')
-      .then(r => r.json())
-      .then(data => {
-        if (data.reservas) setReservas(data.reservas)
-        setError(null)
-      })
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
-  }
+  const fetchReservas = useCallback(async (opts = {}) => {
+    const silent = Boolean(opts.silent)
+    if (!silent)
+      setLoading(true)
+    try {
+      const list = await fetchAllReservasForAdminPortal()
+      setReservas(list)
+      setError(null)
+    } catch (e) {
+      setError(e.message || String(e))
+    } finally {
+      if (!silent)
+        setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    fetchReservas()
-    const interval = setInterval(fetchReservas, 15000)
+    fetchReservas({ silent: false })
+    const interval = setInterval(() => fetchReservas({ silent: true }), 15000)
     return () => clearInterval(interval)
-  }, [])
+  }, [fetchReservas])
 
   const stats = useMemo(() => ({
     total: reservas.length,
@@ -169,7 +175,7 @@ export default function AdminDashboard() {
       <div className="dash-error">
         <i className="fas fa-exclamation-triangle" />
         <span>Error al cargar: {error}</span>
-        <button onClick={fetchReservas}>Reintentar</button>
+        <button onClick={() => fetchReservas({ silent: false })}>Reintentar</button>
       </div>
     )
   }
@@ -231,7 +237,7 @@ export default function AdminDashboard() {
             </button>
           ))}
         </div>
-        <button className="dash-refresh-btn" onClick={fetchReservas} title="Actualizar">
+        <button className="dash-refresh-btn" onClick={() => fetchReservas({ silent: false })} title="Actualizar">
           <i className="fas fa-sync-alt" />
         </button>
       </div>

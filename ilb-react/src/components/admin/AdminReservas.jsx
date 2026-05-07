@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 import AdminPlanoDia from './AdminPlanoDia'
 import { parseHorasFromString } from '../../utils/bookingSlots'
+import { fetchAllReservasForAdminPortal } from '../../utils/adminReservasFetch'
 
 const ALL_HORAS = [
   '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
@@ -79,17 +80,23 @@ export default function AdminReservas() {
   const [filtro, setFiltro] = useState('todas')
   const [busqueda, setBusqueda] = useState('')
 
-  const fetchOnline = () => {
-    fetch('/api/reservas?limit=1500')
-      .then(r => r.json())
-      .then(data => {
-        if (data.reservas) setOnlineReservas(data.reservas)
-        setErrorOnline(null)
-      })
-      .catch(e => setErrorOnline(e.message))
-      .finally(() => setLoadingOnline(false))
-  }
-
+  const fetchOnline = useCallback(async (opts = {}) => {
+    const silent = Boolean(opts.silent)
+    if (!silent) {
+      setLoadingOnline(true)
+      setErrorOnline(null)
+    }
+    try {
+      const list = await fetchAllReservasForAdminPortal()
+      setOnlineReservas(list)
+      setErrorOnline(null)
+    } catch (e) {
+      setErrorOnline(e.message || String(e))
+    } finally {
+      if (!silent)
+        setLoadingOnline(false)
+    }
+  }, [])
   const authHeaders = auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}
 
   const inactivarOnline = async (reference) => {
@@ -119,10 +126,10 @@ export default function AdminReservas() {
   }
 
   useEffect(() => {
-    fetchOnline()
-    const interval = setInterval(fetchOnline, 20000)
+    fetchOnline({ silent: false })
+    const interval = setInterval(() => fetchOnline({ silent: true }), 20000)
     return () => clearInterval(interval)
-  }, [])
+  }, [fetchOnline])
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
 

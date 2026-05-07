@@ -14,6 +14,12 @@ import {
   buildHorasPipeString,
   bloqueoConflictoConOtrosAdmin,
 } from '../netlify/functions/lib/reserva-availability.js'
+import {
+  defaultFechaDesdeMesAnterior,
+  FECHA_YMD_QUERY_RE,
+  mapReservaDocToListRow,
+  buildReservaListFilter,
+} from '../netlify/functions/lib/reservas-list-shared.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -917,31 +923,43 @@ app.delete('/api/bloqueos', async (req, res) => {
 // ─── List reservations (admin dashboard) ─────────────────────
 app.get('/api/reservas', async (req, res) => {
   try {
-    const requestedLimit = Number.parseInt(String(req.query?.limit || ''), 10)
-    const limit = Number.isFinite(requestedLimit)
-      ? Math.min(Math.max(requestedLimit, 1), 5000)
-      : 1000
-    const reservas = await getReservasCollection()
-    const docs = await reservas.find({}).sort({ creadaEn: -1 }).limit(limit).toArray()
-    const list = docs.map(d => ({
-      reference: d.reference,
-      estado: d.estado,
-      origen: d.origen || (String(d.reference || '').startsWith('MANUAL-') ? 'manual' : null),
-      fecha: d.fecha,
-      pistas: d.pistas,
-      horas: d.horas,
-      personas: d.personas,
-      extras: d.extras,
-      total: d.total,
-      description: d.description,
-      metodoPago: d.metodoPago || '',
-      notas: d.notas || '',
-      motivoPendiente: d.estado === 'pendiente' ? (d.placetopay?.statusMessage || '') : '',
-      datosPersonales: d.datosPersonales,
-      creadaEn: d.creadaEn,
-      actualizadaEn: d.actualizadaEn,
-    }))
-    res.json({ reservas: list })
+    let fechaDesde = req.query.fechaDesde
+    if (fechaDesde === undefined || fechaDesde === null || fechaDesde === '') {
+      fechaDesde = defaultFechaDesdeMesAnterior()
+    } else if (!FECHA_YMD_QUERY_RE.test(String(fechaDesde))) {
+      return res.status(400).json({ error: 'fechaDesde debe ser YYYY-MM-DD' })
+    } else {
+      fechaDesde = String(fechaDesde)
+    }
+
+    const rawSkip = Number.parseInt(String(req.query.skip ?? ''), 10)
+    const skip = Number.isFinite(rawSkip) && rawSkip >= 0 ? Math.min(rawSkip, 500000) : 0
+
+    const rawLim = Number.parseInt(String(req.query.limit ?? ''), 10)
+    const limit = Number.isFinite(rawLim)
+      ? Math.min(Math.max(rawLim, 1), 500)
+      : 250
+
+    const filter = buildReservaListFilter(fechaDesde)
+
+    const reservasCol = await getReservasCollection()
+    const docs = await reservasCol
+      .find(filter)
+      .sort({ creadaEn: -1 })
+      .skip(skip)
+      .limit(limit)
+      .toArray()
+
+    const list = docs.map(mapReservaDocToListRow)
+    const hasMore = docs.length === limit
+
+    res.json({
+      reservas: list,
+      hasMore,
+      fechaDesde,
+      skip,
+      limit,
+    })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
