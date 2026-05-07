@@ -6,11 +6,15 @@ export async function handler(event) {
   }
 
   try {
+    const requestedLimit = Number.parseInt(String(event.queryStringParameters?.limit || ''), 10)
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 5000)
+      : 1000
     const reservas = await getReservasCollection()
     const docs = await reservas
       .find({})
       .sort({ creadaEn: -1 })
-      .limit(200)
+      .limit(limit)
       .toArray()
 
     const list = docs.map(d => ({

@@ -120,7 +120,7 @@ export default function AdminDashboard() {
   const [expanded, setExpanded] = useState(null)
 
   const fetchReservas = () => {
-    fetch('/api/reservas')
+    fetch('/api/reservas?limit=1500')
       .then(r => r.json())
       .then(data => {
         if (data.reservas) setReservas(data.reservas)

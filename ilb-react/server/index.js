@@ -917,8 +917,12 @@ app.delete('/api/bloqueos', async (req, res) => {
 // ─── List reservations (admin dashboard) ─────────────────────
 app.get('/api/reservas', async (req, res) => {
   try {
+    const requestedLimit = Number.parseInt(String(req.query?.limit || ''), 10)
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 5000)
+      : 1000
     const reservas = await getReservasCollection()
-    const docs = await reservas.find({}).sort({ creadaEn: -1 }).limit(200).toArray()
+    const docs = await reservas.find({}).sort({ creadaEn: -1 }).limit(limit).toArray()
     const list = docs.map(d => ({
       reference: d.reference,
       estado: d.estado,

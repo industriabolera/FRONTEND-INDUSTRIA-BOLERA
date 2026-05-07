@@ -80,7 +80,7 @@ export default function AdminReservas() {
   const [busqueda, setBusqueda] = useState('')
 
   const fetchOnline = () => {
-    fetch('/api/reservas')
+    fetch('/api/reservas?limit=1500')
       .then(r => r.json())
       .then(data => {
         if (data.reservas) setOnlineReservas(data.reservas)
