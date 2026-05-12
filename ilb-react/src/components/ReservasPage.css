@@ -474,6 +474,32 @@
 .hora-chip i { font-size: 14px; color: #e4d28d; }
 .hora-chip.selected i { color: #d83f36; }
 
+.hora-chip.unavailable {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.hora-chip.unavailable.selected {
+  opacity: 0.55;
+  border-color: rgba(216, 63, 54, 0.45);
+}
+
+.slot-selection-error {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(216, 63, 54, 0.12);
+  border: 1px solid rgba(216, 63, 54, 0.28);
+  color: #ff8a80;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.slot-selection-error i {
+  margin-right: 8px;
+}
+
 /* ─── Multi-lane / Multi-hour selection ─────────────────────── */
 .multi-hora-selection {
   margin-top: 28px;
