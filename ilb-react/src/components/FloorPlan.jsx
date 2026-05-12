@@ -60,11 +60,13 @@ export default function FloorPlan({
   onTogglePista,
   blockedLanes = [],
   reservedLanes = [],
+  hiddenLanes = [],
   footerHint,
   readOnly = false,
 }) {
 
   function renderLane(laneNum) {
+    if (hiddenLanes.includes(laneNum)) return null
     const y = POS[laneNum]
     const isSelected = selectedPistas.includes(laneNum)
     const isBlocked = blockedLanes.includes(laneNum)
