@@ -359,6 +359,8 @@ export default function ReservasPage() {
   const [selectedDate, setSelectedDate] = useState(null)
   // Each entry: { pista: number, horas: string[] }
   const [pistaSelection, setPistaSelection] = useState([])
+  /** Horarios de juego elegidos (varias horas en la misma pista). */
+  const [globalBookingHoras, setGlobalBookingHoras] = useState([])
   /** Hora opcional para colorear el plano; no limita las horas reservables por pista. */
   const [mapPreviewHora, setMapPreviewHora] = useState('')
   const [personas, setPersonas] = useState(2)
@@ -560,6 +562,7 @@ export default function ReservasPage() {
     if (sodSel < sodNow) {
       setSelectedDate(null)
       setMapPreviewHora('')
+      setGlobalBookingHoras([])
       setPistaSelection([])
       setCurrentStep(0)
     }
@@ -643,6 +646,16 @@ export default function ReservasPage() {
     })
   }, [fechaStr, isLaneFullDayBlocked, getFilteredHorasForPista])
 
+  /** Plano: sin hora aún, solo pistas agotadas en todo el rango de horas del día. */
+  const floorPlanBlockedLanes = mapPreviewHora ? adminBlockedLanesForStep1 : blockedLanesForDate
+  const floorPlanReservedLanes = mapPreviewHora ? reservedLanesForStep1 : []
+
+  const isHoraSelectableGlobal = useCallback((hora) => {
+    if (!fechaStr || !hora) return false
+    const pistas = selectedPistaNums.length > 0 ? selectedPistaNums : allLanes
+    return pistas.some(p => isPistaHoraReservable(p, hora))
+  }, [fechaStr, selectedPistaNums, allLanes, isPistaHoraReservable])
+
   useEffect(() => {
     if (!fechaStr) return
     setPistaSelection(prev => {
@@ -654,11 +667,30 @@ export default function ReservasPage() {
       })
       return changed ? next : prev
     })
-  }, [fechaStr, isPistaHoraReservable, config.bloqueos, onlineSlots, bookingClockTick])
+    setGlobalBookingHoras(prev => prev.filter(h => isHoraSelectableGlobal(h)))
+  }, [fechaStr, isPistaHoraReservable, isHoraSelectableGlobal, config.bloqueos, onlineSlots, bookingClockTick])
 
-  /** Plano: sin hora aún, solo pistas agotadas en todo el rango de horas del día. */
-  const floorPlanBlockedLanes = mapPreviewHora ? adminBlockedLanesForStep1 : blockedLanesForDate
-  const floorPlanReservedLanes = mapPreviewHora ? reservedLanesForStep1 : []
+  const toggleGlobalHora = (hora) => {
+    if (!isHoraSelectableGlobal(hora)) return
+
+    const removing = globalBookingHoras.includes(hora)
+    const nextGlobal = removing
+      ? globalBookingHoras.filter(h => h !== hora)
+      : [...globalBookingHoras, hora]
+    setGlobalBookingHoras(nextGlobal)
+
+    if (pistaSelection.length === 0) return
+
+    setPistaSelection(prev => prev.map(p => {
+      if (p.horas.includes(hora)) {
+        return { ...p, horas: p.horas.filter(h => h !== hora) }
+      }
+      if (!isPistaHoraReservable(p.pista, hora)) return p
+      const nextHoras = [...p.horas, hora]
+      if (!pistaTieneHorasSeleccionDisponibles(p.pista, nextHoras)) return p
+      return { ...p, horas: nextHoras }
+    }))
+  }
 
   const togglePista = (pistaNum) => {
     if (!fechaStr) return
@@ -667,25 +699,38 @@ export default function ReservasPage() {
       if (exists) return prev.filter(p => p.pista !== pistaNum)
       if (isLaneFullDayBlocked(pistaNum, fechaStr)) return prev
       if (getFilteredHorasForPista(pistaNum).length === 0) return prev
-      return [...prev, { pista: pistaNum, horas: [] }]
+      const horas = globalBookingHoras.filter(h => isPistaHoraReservable(pistaNum, h))
+      return [...prev, { pista: pistaNum, horas }]
     })
   }
 
   const toggleHora = (pistaNum, hora) => {
-    setPistaSelection(prev => prev.map(p => {
-      if (p.pista !== pistaNum) return p
-      if (p.horas.includes(hora)) {
-        return { ...p, horas: p.horas.filter(h => h !== hora) }
-      }
-      if (!isPistaHoraReservable(pistaNum, hora)) return p
-      const nextHoras = [...p.horas, hora]
-      if (!pistaTieneHorasSeleccionDisponibles(pistaNum, nextHoras)) return p
-      return { ...p, horas: nextHoras }
-    }))
+    setPistaSelection(prev => {
+      const next = prev.map(p => {
+        if (p.pista !== pistaNum) return p
+        if (p.horas.includes(hora)) {
+          return { ...p, horas: p.horas.filter(h => h !== hora) }
+        }
+        if (!isPistaHoraReservable(pistaNum, hora)) return p
+        const nextHoras = [...p.horas, hora]
+        if (!pistaTieneHorasSeleccionDisponibles(pistaNum, nextHoras)) return p
+        return { ...p, horas: nextHoras }
+      })
+
+      const first = next[0]?.horas || []
+      const allSame = next.length > 0 && next.every(p =>
+        p.horas.length === first.length && first.every(h => p.horas.includes(h))
+      )
+      setGlobalBookingHoras(allSame ? first : [])
+      return next
+    })
   }
 
   const slotSelectionError = useMemo(() => {
-    if (!fechaStr || pistaSelection.length === 0) return null
+    if (!fechaStr) return null
+    if (pistaSelection.length === 0) {
+      return globalBookingHoras.length === 0 ? 'Elige al menos un horario de juego.' : null
+    }
     for (const { pista, horas } of pistaSelection) {
       if (horas.length === 0) return `Elige al menos un horario para la pista ${pista}.`
       if (!pistaTieneHorasSeleccionDisponibles(pista, horas)) {
@@ -693,7 +738,7 @@ export default function ReservasPage() {
       }
     }
     return null
-  }, [fechaStr, pistaSelection, pistaTieneHorasSeleccionDisponibles])
+  }, [fechaStr, globalBookingHoras, pistaSelection, pistaTieneHorasSeleccionDisponibles])
 
   const calendarCanGoPrevMonth = useMemo(() => {
     const firstOfView = new Date(viewYear, viewMonth, 1)
@@ -719,6 +764,7 @@ export default function ReservasPage() {
     if (startOfCalendarDayLocal(d).getTime() < startOfCalendarDayLocal(new Date()).getTime()) return
     setSelectedDate(d)
     setPistaSelection([])
+    setGlobalBookingHoras([])
     setMapPreviewHora('')
     // UX: al seleccionar fecha, avanzar automáticamente a "Pista y Hora"
     setCurrentStep(1)
@@ -748,7 +794,9 @@ export default function ReservasPage() {
 
   const totalPersonas = personas + (addJugadorExtra ? 1 : 0)
 
-  const totalHorasReservadas = pistaSelection.reduce((sum, p) => sum + p.horas.length, 0)
+  const totalHorasReservadas = pistaSelection.length > 0
+    ? pistaSelection.reduce((sum, p) => sum + p.horas.length, 0)
+    : globalBookingHoras.length
   const horasCobroZapatos = totalHorasReservadas <= 1 ? 1 : (zapatosTodasLasHoras ? totalHorasReservadas : 1)
   const zapatosCobroQty = totalPersonas * horasCobroZapatos
   const horasSinZapatos = Math.max(0, totalHorasReservadas - horasCobroZapatos)
@@ -799,9 +847,10 @@ export default function ReservasPage() {
     switch (currentStep) {
       case 0: return selectedDate !== null
       case 1:
-        return pistaSelection.length > 0 &&
+        return globalBookingHoras.length > 0 &&
+          pistaSelection.length > 0 &&
           !slotSelectionError &&
-          pistaSelection.every(p => pistaTieneHorasSeleccionDisponibles(p.pista, p.horas))
+          pistaSelection.every(p => p.horas.length > 0 && pistaTieneHorasSeleccionDisponibles(p.pista, p.horas))
       case 2: return true
       case 3: {
         const d = datosPersonales
@@ -1216,12 +1265,47 @@ export default function ReservasPage() {
                 )}
 
                 <div className="pista-selection">
+                  <h3 className="selection-title">Selecciona tus horarios</h3>
+                  <p className="selection-subtitle">
+                    <i className="far fa-clock" /> {getHorarioLabel(selectedDate, config.horarios, holidaysSet)}
+                    <span className="hora-multi-hint"> — puedes elegir varias horas en la misma pista</span>
+                  </p>
+                  <div className="hora-grid">
+                    {horarios.map(h => {
+                      const ocupada = !isHoraSelectableGlobal(h)
+                      const selected = globalBookingHoras.includes(h)
+                      return (
+                        <button
+                          key={h}
+                          type="button"
+                          disabled={ocupada && !selected}
+                          className={`hora-chip ${selected ? 'selected' : ''} ${ocupada ? 'unavailable' : ''}`}
+                          onClick={() => toggleGlobalHora(h)}
+                          title={ocupada ? 'No hay pistas libres en este horario' : undefined}
+                        >
+                          <i className="far fa-clock" />
+                          <span>{h}</span>
+                        </button>
+                      )
+                    })}
+                    {horarios.length === 0 && (
+                      <p className="no-hours-msg">No hay horarios disponibles para esta fecha.</p>
+                    )}
+                  </div>
+                  {slotSelectionError && pistaSelection.length === 0 ? (
+                    <p className="slot-selection-error" role="alert">
+                      <i className="fas fa-exclamation-circle" /> {slotSelectionError}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="pista-selection pista-selection-preview">
                   <h3 className="selection-title">Vista del plano (opcional)</h3>
                   <p className="selection-subtitle">
                     <i className="far fa-clock" /> {getHorarioLabel(selectedDate, config.horarios, holidaysSet)}
-                    <span className="hora-multi-hint"> — elige una hora para ver bloqueos y reservas en el plano; no limita tus horarios de juego</span>
+                    <span className="hora-multi-hint"> — solo para ver bloqueos y reservas en el plano</span>
                   </p>
-                  <div className="hora-grid">
+                  <div className="hora-grid hora-grid-preview">
                     <button
                       type="button"
                       className={`hora-chip ${!mapPreviewHora ? 'selected' : ''}`}
@@ -1232,18 +1316,15 @@ export default function ReservasPage() {
                     </button>
                     {horarios.map(h => (
                       <button
-                        key={h}
+                        key={`preview-${h}`}
                         type="button"
                         className={`hora-chip ${mapPreviewHora === h ? 'selected' : ''}`}
                         onClick={() => setMapPreviewHora(h)}
                       >
-                        <i className="far fa-clock" />
+                        <i className="far fa-eye" />
                         <span>{h}</span>
                       </button>
                     ))}
-                    {horarios.length === 0 && (
-                      <p className="no-hours-msg">No hay horarios disponibles para esta fecha.</p>
-                    )}
                   </div>
                 </div>
 
@@ -1258,7 +1339,7 @@ export default function ReservasPage() {
                     footerHint={
                       mapPreviewHora
                         ? `Plano a las ${mapPreviewHora}: gris = bloqueo admin; morado = reservada.`
-                        : 'En gris: pistas sin ningún hueco libre hoy. Elige horarios abajo por cada pista.'
+                        : 'En gris: pistas sin ningún hueco libre hoy. Elige horarios arriba y luego las pistas.'
                     }
                   />
 
