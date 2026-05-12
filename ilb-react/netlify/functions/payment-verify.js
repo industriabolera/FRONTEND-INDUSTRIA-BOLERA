@@ -1,12 +1,6 @@
 import { getReservasCollection } from './lib/db.js'
 import { querySession } from './lib/placetopay.js'
-
-function mapStatus(paymentStatus) {
-  if (paymentStatus === 'APPROVED') return 'exitosa'
-  if (paymentStatus === 'REJECTED') return 'rechazada'
-  if (paymentStatus === 'CANCELLED') return 'cancelada'
-  return 'pendiente'
-}
+import { resolveSessionEstado } from './lib/placetopay-status.js'
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
@@ -21,13 +15,12 @@ export async function handler(event) {
     }
 
     const result = await querySession(requestId)
-    const paymentStatus = result.status?.status
-    const estado = mapStatus(paymentStatus)
+    const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result)
 
     const reservas = await getReservasCollection()
     const reserva = await reservas.findOneAndUpdate(
       { requestId: String(requestId) },
-      { $set: { estado, 'placetopay.status': paymentStatus, 'placetopay.statusMessage': result.status?.message, actualizadaEn: new Date() } },
+      { $set: { estado, 'placetopay.status': sessionStatus, 'placetopay.statusMessage': statusMessage, actualizadaEn: new Date() } },
       { returnDocument: 'after' }
     )
 
@@ -38,6 +31,7 @@ export async function handler(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         requestId: result.requestId,
+        estado,
         status: result.status,
         payment: result.payment,
         reserva: reserva ? {

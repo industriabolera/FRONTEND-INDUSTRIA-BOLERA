@@ -93,7 +93,7 @@
 
 # ── Scheduled Function: resolver pagos pendientes cada 24h (3:00 AM UTC-5 = 8:00 AM UTC) ──
 [functions."payment-resolve-pending"]
-  schedule = "0 8 * * *"
+  schedule = "*/15 * * * *"
 
 [[redirects]]
   from = "/*"

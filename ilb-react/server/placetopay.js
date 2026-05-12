@@ -49,7 +49,7 @@ async function safeFetch(url, options) {
   return { res, data }
 }
 
-export async function createSession({ reference, description, total, currency = 'COP', returnUrl, cancelUrl, ipAddress, userAgent, buyer, expiration, fields }) {
+export async function createSession({ reference, description, total, currency = 'COP', returnUrl, cancelUrl, notificationUrl, ipAddress, userAgent, buyer, expiration, fields }) {
   const url = `${getBaseUrl()}/api/session`
 
   const body = {
@@ -71,6 +71,7 @@ export async function createSession({ reference, description, total, currency = 
 
   if (buyer) body.buyer = buyer
   if (fields && fields.length > 0) body.fields = fields
+  if (notificationUrl) body.payment.notificationUrl = notificationUrl
 
   const { res, data } = await safeFetch(url, {
     method: 'POST',

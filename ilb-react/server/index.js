@@ -4,6 +4,7 @@ import cors from 'cors'
 import { createHash, randomUUID } from 'crypto'
 import { MongoClient } from 'mongodb'
 import { createSession, querySession } from './placetopay.js'
+import { resolveSessionEstado } from './placetopay-status.js'
 import { ROLES, hashPassword, verifyPassword, requireAuth } from '../netlify/functions/lib/admin-auth.js'
 import { validateFechaHorariosReservaColombia } from '../netlify/functions/lib/booking-datetime-colombia.js'
 import {
@@ -105,13 +106,6 @@ async function getAdminConfigCollection() {
     adminConfigIndexesEnsured = true
   }
   return col
-}
-
-function mapStatus(s) {
-  if (s === 'APPROVED') return 'exitosa'
-  if (s === 'REJECTED') return 'rechazada'
-  if (s === 'CANCELLED') return 'cancelada'
-  return 'pendiente'
 }
 
 const DEFAULT_ADMIN_CONFIG = {
@@ -535,6 +529,7 @@ app.post('/api/payment/create', async (req, res) => {
       currency: 'COP',
       returnUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&requestId={requestId}`,
       cancelUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&status=cancelled`,
+      notificationUrl: `${baseUrl}/api/payment/notify`,
       ipAddress: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1',
       userAgent: req.headers['user-agent'] || 'ILB Reservas',
       buyer: {
@@ -606,13 +601,12 @@ app.post('/api/payment/verify', async (req, res) => {
     }
 
     const result = await querySession(requestId)
-    const paymentStatus = result.status?.status
-    const estado = mapStatus(paymentStatus)
+    const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result)
 
     const reservas = await getReservasCollection()
     const reserva = await reservas.findOneAndUpdate(
       { requestId: String(requestId) },
-      { $set: { estado, 'placetopay.status': paymentStatus, 'placetopay.statusMessage': result.status?.message, actualizadaEn: new Date() } },
+      { $set: { estado, 'placetopay.status': sessionStatus, 'placetopay.statusMessage': statusMessage, actualizadaEn: new Date() } },
       { returnDocument: 'after' }
     )
 
@@ -620,6 +614,7 @@ app.post('/api/payment/verify', async (req, res) => {
 
     res.json({
       requestId: result.requestId,
+      estado,
       status: result.status,
       payment: result.payment,
       reserva: reserva ? {
@@ -654,6 +649,8 @@ app.post('/api/payment/notify', async (req, res) => {
       return res.status(400).json({ error: 'requestId is required' })
     }
 
+    let verifiedNotificationStatus
+
     // ── Validar firma del webhook ──
     if (signature) {
       const secretKey = process.env.PLACETOPAY_TRANKEY
@@ -675,6 +672,7 @@ app.post('/api/payment/notify', async (req, res) => {
         return res.status(401).json({ error: 'Invalid signature' })
       }
 
+      verifiedNotificationStatus = statusValue
       console.log(`[Webhook] Signature verified OK for requestId=${requestId}`)
     } else {
       console.warn(`[Webhook] No signature provided for requestId=${requestId} — proceeding with query verification`)
@@ -682,8 +680,9 @@ app.post('/api/payment/notify', async (req, res) => {
 
     // Consultar estado actualizado en PlaceToPay para confirmar
     const result = await querySession(requestId)
-    const paymentStatus = result.status?.status
-    const estado = mapStatus(paymentStatus)
+    const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result, {
+      notificationStatus: verifiedNotificationStatus,
+    })
 
     const reservas = await getReservasCollection()
     await reservas.updateOne(
@@ -691,8 +690,8 @@ app.post('/api/payment/notify', async (req, res) => {
       {
         $set: {
           estado,
-          'placetopay.status': paymentStatus,
-          'placetopay.statusMessage': result.status?.message,
+          'placetopay.status': sessionStatus,
+          'placetopay.statusMessage': statusMessage,
           actualizadaEn: new Date(),
           notifiedByWebhook: true,
         },
@@ -764,6 +763,28 @@ app.post('/api/payment/resolve-pending', async (req, res) => {
     for (const reserva of pendientes) {
       try {
         if (reserva.creadaEn && new Date(reserva.creadaEn) < expiredBefore) {
+          const result = await querySession(reserva.requestId)
+          const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result)
+
+          if (estado !== 'pendiente') {
+            await reservas.updateOne(
+              { requestId: String(reserva.requestId) },
+              {
+                $set: {
+                  estado,
+                  'placetopay.status': sessionStatus,
+                  'placetopay.statusMessage': statusMessage,
+                  actualizadaEn: new Date(),
+                  resolvedByCron: true,
+                },
+              }
+            )
+            resolved++
+            results.push({ ref: reserva.reference, requestId: reserva.requestId, from: 'pendiente', to: estado, reason: 'late_approval' })
+            console.log(`[CronJob] Late approval: ref=${reserva.reference} → ${estado}`)
+            continue
+          }
+
           await reservas.updateOne(
             { requestId: String(reserva.requestId) },
             {
@@ -783,8 +804,7 @@ app.post('/api/payment/resolve-pending', async (req, res) => {
         }
 
         const result = await querySession(reserva.requestId)
-        const paymentStatus = result.status?.status
-        const estado = mapStatus(paymentStatus)
+        const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result)
 
         if (estado !== 'pendiente') {
           await reservas.updateOne(
@@ -792,8 +812,8 @@ app.post('/api/payment/resolve-pending', async (req, res) => {
             {
               $set: {
                 estado,
-                'placetopay.status': paymentStatus,
-                'placetopay.statusMessage': result.status?.message,
+                'placetopay.status': sessionStatus,
+                'placetopay.statusMessage': statusMessage,
                 actualizadaEn: new Date(),
                 resolvedByCron: true,
               },

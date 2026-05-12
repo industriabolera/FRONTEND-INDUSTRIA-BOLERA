@@ -5,21 +5,13 @@
  * final en PlaceToPay para garantizar el estado final en base de datos.
  * 
  * ─── Configuración de ejecución ───
- * Frecuencia: Cada 24 horas
- * Hora: 3:00 AM (hora Colombia, UTC-5) = 8:00 AM UTC
- * Cron: "0 8 * * *" (configurado en netlify.toml)
+ * Frecuencia: Cada 15 minutos
  * 
  * También puede invocarse manualmente via POST /api/payment/resolve-pending
  */
 import { getReservasCollection } from './lib/db.js'
 import { querySession } from './lib/placetopay.js'
-
-function mapStatus(paymentStatus) {
-  if (paymentStatus === 'APPROVED') return 'exitosa'
-  if (paymentStatus === 'REJECTED') return 'rechazada'
-  if (paymentStatus === 'CANCELLED') return 'cancelada'
-  return 'pendiente'
-}
+import { resolveSessionEstado } from './lib/placetopay-status.js'
 
 async function resolvePendingPayments() {
   const reservas = await getReservasCollection()
@@ -60,6 +52,28 @@ async function resolvePendingPayments() {
 
       // Si la sesión está pendiente demasiado tiempo, marcar como cancelada/expirada
       if (reserva.creadaEn && new Date(reserva.creadaEn) < expiredBefore) {
+        const result = await querySession(reserva.requestId)
+        const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result)
+
+        if (estado !== 'pendiente') {
+          await reservas.updateOne(
+            { requestId: String(reserva.requestId) },
+            {
+              $set: {
+                estado,
+                'placetopay.status': sessionStatus,
+                'placetopay.statusMessage': statusMessage,
+                actualizadaEn: new Date(),
+                resolvedByCron: true,
+              },
+            }
+          )
+          resolved++
+          results.push({ ref: reserva.reference, requestId: reserva.requestId, from: 'pendiente', to: estado, reason: 'late_approval' })
+          console.log(`[CronJob] Late approval: ref=${reserva.reference} requestId=${reserva.requestId} → ${estado}`)
+          continue
+        }
+
         await reservas.updateOne(
           { requestId: String(reserva.requestId) },
           {
@@ -79,8 +93,7 @@ async function resolvePendingPayments() {
       }
 
       const result = await querySession(reserva.requestId)
-      const paymentStatus = result.status?.status
-      const estado = mapStatus(paymentStatus)
+      const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result)
 
       if (estado !== 'pendiente') {
         await reservas.updateOne(
@@ -88,8 +101,8 @@ async function resolvePendingPayments() {
           {
             $set: {
               estado,
-              'placetopay.status': paymentStatus,
-              'placetopay.statusMessage': result.status?.message,
+              'placetopay.status': sessionStatus,
+              'placetopay.statusMessage': statusMessage,
               actualizadaEn: new Date(),
               resolvedByCron: true,
             },

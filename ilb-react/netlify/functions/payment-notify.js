@@ -1,13 +1,7 @@
 import { createHash } from 'crypto'
 import { getReservasCollection } from './lib/db.js'
 import { querySession } from './lib/placetopay.js'
-
-function mapStatus(paymentStatus) {
-  if (paymentStatus === 'APPROVED') return 'exitosa'
-  if (paymentStatus === 'REJECTED') return 'rechazada'
-  if (paymentStatus === 'CANCELLED') return 'cancelada'
-  return 'pendiente'
-}
+import { resolveSessionEstado } from './lib/placetopay-status.js'
 
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
@@ -24,6 +18,8 @@ export async function handler(event) {
     if (!requestId) {
       return { statusCode: 400, body: JSON.stringify({ error: 'requestId is required' }) }
     }
+
+    let verifiedNotificationStatus
 
     // ── Validar firma del webhook ──
     // Firma: SHA-256(requestId + status.status + status.date + secretKey)
@@ -50,6 +46,7 @@ export async function handler(event) {
         }
       }
 
+      verifiedNotificationStatus = statusValue
       console.log(`[Webhook] Signature verified OK for requestId=${requestId}`)
     } else {
       console.warn(`[Webhook] No signature provided for requestId=${requestId} — proceeding with query verification`)
@@ -57,8 +54,9 @@ export async function handler(event) {
 
     // Consultar estado actualizado en PlaceToPay para confirmar
     const result = await querySession(requestId)
-    const paymentStatus = result.status?.status
-    const estado = mapStatus(paymentStatus)
+    const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result, {
+      notificationStatus: verifiedNotificationStatus,
+    })
 
     const reservas = await getReservasCollection()
     await reservas.updateOne(
@@ -66,8 +64,8 @@ export async function handler(event) {
       {
         $set: {
           estado,
-          'placetopay.status': paymentStatus,
-          'placetopay.statusMessage': result.status?.message,
+          'placetopay.status': sessionStatus,
+          'placetopay.statusMessage': statusMessage,
           actualizadaEn: new Date(),
           notifiedByWebhook: true,
         },

@@ -102,6 +102,7 @@ export async function handler(event) {
       currency: 'COP',
       returnUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&requestId={requestId}`,
       cancelUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&status=cancelled`,
+      notificationUrl: `${baseUrl}/api/payment/notify`,
       ipAddress: event.headers['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1',
       userAgent: event.headers['user-agent'] || 'ILB Reservas',
       buyer: {

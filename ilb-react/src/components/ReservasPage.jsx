@@ -468,28 +468,67 @@ export default function ReservasPage() {
     }
 
     if (requestId) {
-      fetch('/api/payment/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId }),
-      })
-        .then(r => r.json())
-        .then(data => {
-          setPaymentResult({
-            status: data.status?.status || 'UNKNOWN',
-            reference: ref,
-            message: data.status?.message,
-            reserva: data.reserva || null,
-          })
+      let cancelled = false
+      const maxAttempts = 24
+      const delayMs = 5000
+
+      const applyPaymentResult = (data) => {
+        const resolvedStatus = data.estado === 'exitosa'
+          ? 'APPROVED'
+          : data.estado === 'rechazada'
+            ? 'REJECTED'
+            : data.estado === 'cancelada'
+              ? 'CANCELLED'
+              : data.status?.status || 'UNKNOWN'
+
+        setPaymentResult({
+          status: resolvedStatus,
+          reference: ref,
+          message: data.status?.message,
+          reserva: data.reserva || null,
         })
-        .catch(() => {
-          setPaymentResult({ status: 'ERROR', reference: ref })
-        })
-        .finally(() => {
+      }
+
+      const verifyPayment = async (attempt = 0) => {
+        const finishReturnFlow = () => {
           localStorage.removeItem('ilb_requestId')
           localStorage.removeItem('ilb_reference')
           setSearchParams({}, { replace: true })
-        })
+        }
+
+        try {
+          const response = await fetch('/api/payment/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId }),
+          })
+          const data = await response.json()
+          if (cancelled) return
+
+          applyPaymentResult(data)
+
+          const stillPending = data.estado === 'pendiente' || data.status?.status === 'PENDING'
+          if (stillPending && attempt < maxAttempts) {
+            window.setTimeout(() => {
+              verifyPayment(attempt + 1)
+            }, delayMs)
+            return
+          }
+
+          finishReturnFlow()
+        } catch {
+          if (!cancelled) {
+            setPaymentResult({ status: 'ERROR', reference: ref })
+            finishReturnFlow()
+          }
+        }
+      }
+
+      verifyPayment()
+
+      return () => {
+        cancelled = true
+      }
     }
   }, [searchParams, setSearchParams])
 
