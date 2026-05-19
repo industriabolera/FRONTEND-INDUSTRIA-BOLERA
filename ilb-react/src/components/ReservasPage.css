@@ -667,6 +667,12 @@
   letter-spacing: .5px;
 }
 
+.confirm-pista-extra-tag {
+  color: #e4d28d;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
 .confirm-hora-tag {
   background: rgba(228, 210, 141, 0.1);
   border: 1px solid rgba(228, 210, 141, 0.25);
@@ -926,6 +932,94 @@
   font-size: 12px;
   color: #ffb74d;
   margin-top: -6px;
+}
+
+.extra-jugador-por-pista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.extra-jugador-por-pista.has-selection {
+  background: rgba(228, 210, 141, 0.08);
+  border-color: #e4d28d;
+}
+
+.extra-jugador-por-pista-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.extra-jugador-por-pista-header > i {
+  color: #e4d28d;
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.extra-jugador-todas {
+  padding: 12px 16px;
+  background: rgba(228, 210, 141, 0.05);
+  border: 1px solid rgba(228, 210, 141, 0.12);
+  border-radius: 10px;
+}
+
+.extra-jugador-todas-price {
+  margin-left: auto;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #e4d28d;
+}
+
+.extra-jugador-pista-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extra-jugador-pista-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.extra-jugador-pista-item:hover {
+  border-color: rgba(228, 210, 141, 0.25);
+}
+
+.extra-jugador-pista-item.selected {
+  border-color: #e4d28d;
+  background: rgba(228, 210, 141, 0.06);
+}
+
+.extra-jugador-pista-item i {
+  color: #e4d28d;
+  font-size: 18px;
+}
+
+.extra-jugador-pista-price {
+  margin-left: auto;
+  font-weight: 700;
+  color: #e4d28d;
+}
+
+.extra-jugador-summary {
+  margin-top: 4px;
 }
 
 /* ============================================

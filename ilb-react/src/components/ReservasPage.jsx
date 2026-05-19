@@ -364,7 +364,8 @@ export default function ReservasPage() {
   const [personas, setPersonas] = useState(2)
   const [addZapatos, setAddZapatos] = useState(false)
   const [zapatosTodasLasHoras, setZapatosTodasLasHoras] = useState(true)
-  const [addJugadorExtra, setAddJugadorExtra] = useState(false)
+  /** Números de pista con 7° jugador (uno por pista seleccionada). */
+  const [jugadorExtraPistas, setJugadorExtraPistas] = useState([])
   const [datosPersonales, setDatosPersonales] = useState({
     nombre: '', codigoPais: '+57', telefono: '', correo: '', fechaNacimiento: '',
     tipoDocumento: 'CC', documento: '',
@@ -437,10 +438,25 @@ export default function ReservasPage() {
   }, [currentStep, isMobile, scrollToEl])
 
   useEffect(() => {
-    if (personas !== 6 && addJugadorExtra) {
-      setAddJugadorExtra(false)
+    if (personas !== 6) {
+      setJugadorExtraPistas([])
+      return
     }
-  }, [personas, addJugadorExtra])
+    const validPistas = new Set(pistaSelection.map(p => p.pista))
+    setJugadorExtraPistas(prev => prev.filter(p => validPistas.has(p)))
+  }, [personas, pistaSelection])
+
+  const toggleJugadorExtraPista = (pistaNum, e) => {
+    e?.stopPropagation?.()
+    setJugadorExtraPistas(prev =>
+      prev.includes(pistaNum) ? prev.filter(p => p !== pistaNum) : [...prev, pistaNum].sort((a, b) => a - b)
+    )
+  }
+
+  const setJugadorExtraEnTodasLasPistas = (e) => {
+    e?.stopPropagation?.()
+    setJugadorExtraPistas(pistaSelection.map(p => p.pista))
+  }
 
   useEffect(() => {
     const ref = searchParams.get('ref') || localStorage.getItem('ilb_reference')
@@ -714,7 +730,9 @@ export default function ReservasPage() {
     return startOfCalendarDayLocal(d).getTime() < startOfCalendarDayLocal(new Date()).getTime()
   }
 
-  const totalPersonas = personas + (addJugadorExtra ? 1 : 0)
+  const jugadorExtraCount = jugadorExtraPistas.length
+  const hasJugadorExtra = jugadorExtraCount > 0
+  const totalPersonas = personas + (hasJugadorExtra ? 1 : 0)
 
   const totalHorasReservadas = pistaSelection.length > 0
     ? pistaSelection.reduce((sum, p) => sum + p.horas.length, 0)
@@ -760,7 +778,7 @@ export default function ReservasPage() {
     : 0
 
   const precioZapatos = addZapatos ? precios.zapatos * zapatosCobroQty : 0
-  const precioJugador = addJugadorExtra ? precios.jugadorAdicional * pistaSelection.length : 0
+  const precioJugador = hasJugadorExtra ? precios.jugadorAdicional * jugadorExtraCount : 0
   const totalPrice = totalPistasCost + precioZapatos + precioJugador
 
   const updateDatos = (field, value) => setDatosPersonales(prev => ({ ...prev, [field]: value }))
@@ -826,7 +844,9 @@ export default function ReservasPage() {
 
       const extras = [
         addZapatos ? `Zapatos x${zapatosCobroQty}${horasSinZapatos > 0 ? ` (faltan ${horasSinZapatos}h por comprar presencial)` : ''}` : null,
-        addJugadorExtra ? `Jugador adicional x${pistaSelection.length}` : null,
+        hasJugadorExtra
+          ? `Jugador adicional (${jugadorExtraPistas.map(p => `Pista ${p}`).join(', ')})`
+          : null,
       ].filter(Boolean).join(', ')
 
       const res = await fetch('/api/payment/create', {
@@ -1337,21 +1357,73 @@ export default function ReservasPage() {
                   )}
 
                   {/* Jugador Adicional (solo cuando hay 6 personas) */}
-                  {personas === 6 && (
-                    <div className={`extra-card-v2 ${addJugadorExtra ? 'selected' : ''}`} onClick={() => setAddJugadorExtra(v => !v)}>
-                      <div className="extra-card-left">
-                        <div className="extra-card-check">
-                          <i className={addJugadorExtra ? 'fas fa-check-square' : 'far fa-square'} />
+                  {personas === 6 && pistaSelection.length > 0 && (
+                    pistaSelection.length === 1 ? (
+                      <div
+                        className={`extra-card-v2 ${hasJugadorExtra ? 'selected' : ''}`}
+                        onClick={() => toggleJugadorExtraPista(pistaSelection[0].pista)}
+                      >
+                        <div className="extra-card-left">
+                          <div className="extra-card-check">
+                            <i className={hasJugadorExtra ? 'fas fa-check-square' : 'far fa-square'} />
+                          </div>
+                          <div className="extra-card-info">
+                            <span className="extra-card-name">Jugador Adicional (+1)</span>
+                            <span className="extra-card-desc">Agrega un 7° jugador a la Pista {pistaSelection[0].pista}</span>
+                          </div>
                         </div>
-                        <div className="extra-card-info">
-                          <span className="extra-card-name">Jugador Adicional (+1)</span>
-                          <span className="extra-card-desc">Agrega un 7° jugador a tu pista</span>
+                        <div className="extra-card-right">
+                          <span className="extra-card-price">{formatPrice(precios.jugadorAdicional)}</span>
                         </div>
                       </div>
-                      <div className="extra-card-right">
-                        <span className="extra-card-price">{formatPrice(precios.jugadorAdicional)}</span>
+                    ) : (
+                      <div className={`extra-jugador-por-pista ${hasJugadorExtra ? 'has-selection' : ''}`}>
+                        <div className="extra-jugador-por-pista-header">
+                          <i className="fas fa-user-plus" />
+                          <div>
+                            <span className="extra-card-name">Jugador Adicional (+1 por pista)</span>
+                            <span className="extra-card-desc">
+                              Elige en qué pista(s) agregar un 7° jugador
+                              {promo2x1Active ? ' (promoción 2×1)' : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <label
+                          className="extra-hours-checkbox extra-jugador-todas"
+                          onClick={setJugadorExtraEnTodasLasPistas}
+                        >
+                          <i className={jugadorExtraCount === pistaSelection.length ? 'fas fa-check-square' : 'far fa-square'} />
+                          <span>Todas las pistas ({pistaSelection.length})</span>
+                          <span className="extra-jugador-todas-price">
+                            {formatPrice(precios.jugadorAdicional * pistaSelection.length)}
+                          </span>
+                        </label>
+                        <div className="extra-jugador-pista-list">
+                          {pistaSelection.map(({ pista }) => {
+                            const selected = jugadorExtraPistas.includes(pista)
+                            return (
+                              <label
+                                key={pista}
+                                className={`extra-jugador-pista-item ${selected ? 'selected' : ''}`}
+                                onClick={(e) => toggleJugadorExtraPista(pista, e)}
+                              >
+                                <i className={selected ? 'fas fa-check-square' : 'far fa-square'} />
+                                <span>Pista {pista}</span>
+                                <span className="extra-jugador-pista-price">{formatPrice(precios.jugadorAdicional)}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                        {hasJugadorExtra && (
+                          <div className="extra-qty-row extra-jugador-summary">
+                            <span className="extra-qty-label">
+                              {jugadorExtraCount} pista{jugadorExtraCount > 1 ? 's' : ''} con jugador adicional
+                            </span>
+                            <span className="extra-qty-total">= {formatPrice(precioJugador)}</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )
                   )}
                 </div>
               </div>
@@ -1533,7 +1605,12 @@ export default function ReservasPage() {
                     <div key={pista} className="confirm-pista-block">
                       <div className="confirm-row">
                         <span className="confirm-label"><i className="fas fa-bowling-ball" /> Pista {pista}</span>
-                        <span className="confirm-value">{horas.length} hora{horas.length > 1 ? 's' : ''}</span>
+                        <span className="confirm-value">
+                          {horas.length} hora{horas.length > 1 ? 's' : ''}
+                          {jugadorExtraPistas.includes(pista) && (
+                            <span className="confirm-pista-extra-tag"> · 7 jugadores</span>
+                          )}
+                        </span>
                       </div>
                       <div className="confirm-horas-list">
                         {horas.map(h => <span key={h} className="confirm-hora-tag">{h}</span>)}
@@ -1544,7 +1621,10 @@ export default function ReservasPage() {
                   <div className="confirm-row">
                     <span className="confirm-label"><i className="fas fa-users" /> Personas</span>
                     <span className="confirm-value">
-                      {personas}{addJugadorExtra ? ` + ${pistaSelection.length} adicional(es)` : ''} ({totalPersonas} total)
+                      {personas}
+                      {hasJugadorExtra && (
+                        <> · +1 en {jugadorExtraPistas.map(p => `Pista ${p}`).join(', ')} (7 por pista)</>
+                      )}
                     </span>
                   </div>
                   <div className="confirm-divider" />
@@ -1602,9 +1682,11 @@ export default function ReservasPage() {
                       <span className="confirm-value">{formatPrice(precioZapatos)}</span>
                     </div>
                   )}
-                  {addJugadorExtra && (
+                  {hasJugadorExtra && (
                     <div className="confirm-row">
-                      <span className="confirm-label">Jugador Adicional × {pistaSelection.length}</span>
+                      <span className="confirm-label">
+                        Jugador Adicional × {jugadorExtraCount} ({jugadorExtraPistas.map(p => `Pista ${p}`).join(', ')})
+                      </span>
                       <span className="confirm-value">{formatPrice(precioJugador)}</span>
                     </div>
                   )}
@@ -1749,9 +1831,9 @@ export default function ReservasPage() {
                         <span className="sidebar-detail-value">{formatPrice(precioZapatos)}</span>
                       </div>
                     )}
-                    {addJugadorExtra && (
+                    {hasJugadorExtra && (
                       <div className="sidebar-detail">
-                        <span className="sidebar-detail-label">+1 Jugador × {pistaSelection.length}</span>
+                        <span className="sidebar-detail-label">+1 Jugador × {jugadorExtraCount}</span>
                         <span className="sidebar-detail-value">{formatPrice(precioJugador)}</span>
                       </div>
                     )}
