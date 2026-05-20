@@ -5,11 +5,13 @@ import AdminPromociones from './AdminPromociones'
 import AdminPistas from './AdminPistas'
 import AdminReservas from './AdminReservas'
 import AdminDashboard from './AdminDashboard'
+import AdminCronograma from './AdminCronograma'
 import AdminUsuarios from './AdminUsuarios'
 import './AdminPage.css'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-bar' },
+  { id: 'cronograma', label: 'Cronograma', icon: 'fas fa-calendar-week' },
   { id: 'precios', label: 'Precios', icon: 'fas fa-tags' },
   { id: 'promociones', label: 'Promociones', icon: 'fas fa-percent' },
   { id: 'pistas', label: 'Pistas', icon: 'fas fa-bowling-ball' },
@@ -36,6 +38,7 @@ export default function AdminPage() {
     // Admin full
     const tabs = []
     if (can('reservas:read') || can('config:read') || can('pistas:read')) tabs.push('dashboard')
+    if (can('reservas:read')) tabs.push('cronograma')
     if (can('config:write')) tabs.push('precios', 'promociones')
     if (can('pistas:write') || can('pistas:read')) tabs.push('pistas')
     if (can('reservas:read') || can('reservas:write')) tabs.push('reservas')
@@ -170,6 +173,7 @@ export default function AdminPage() {
           </div>
           <div className="admin-content">
             {activeTab === 'dashboard' && <AdminDashboard />}
+            {activeTab === 'cronograma' && allowedTabs.includes('cronograma') && <AdminCronograma />}
             {activeTab === 'precios' && allowedTabs.includes('precios') && <AdminPrecios />}
             {activeTab === 'promociones' && allowedTabs.includes('promociones') && <AdminPromociones />}
             {activeTab === 'pistas' && allowedTabs.includes('pistas') && <AdminPistas />}

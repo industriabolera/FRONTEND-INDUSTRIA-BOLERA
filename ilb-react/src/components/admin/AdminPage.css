@@ -1295,3 +1295,354 @@ select.admin-input {
 .admin-bloqueo-summary b {
   color: #e4d28d;
 }
+
+/* ============================================
+   CRONOGRAMA (vista día tipo planilla)
+   ============================================ */
+
+.admin-cronograma {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-cronograma-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-cronograma-desc {
+  margin-top: 4px;
+  margin-bottom: 0;
+  max-width: 520px;
+}
+
+.admin-cronograma-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.admin-cronograma-date-field {
+  min-width: 160px;
+}
+
+.admin-cronograma-fecha-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #e4d28d;
+  text-transform: capitalize;
+  margin: 0;
+}
+
+.admin-cronograma-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(216, 63, 54, 0.12);
+  border: 1px solid rgba(216, 63, 54, 0.35);
+  border-radius: 10px;
+  color: #ff8a80;
+  font-size: 14px;
+}
+
+.admin-cronograma-error button {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.admin-cronograma-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.admin-cronograma-sidebar {
+  padding: 16px;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+}
+
+.admin-cronograma-sidebar-title {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-cronograma-badge {
+  background: rgba(228, 210, 141, 0.2);
+  color: #e4d28d;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.admin-cronograma-sidebar-stats {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0 0 12px;
+}
+
+.admin-cronograma-empty {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+.admin-cronograma-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-cronograma-list-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background 0.2s ease;
+}
+
+.admin-cronograma-list-item:hover,
+.admin-cronograma-list-item.is-selected {
+  background: rgba(228, 210, 141, 0.08);
+}
+
+.admin-cronograma-list-item.cronograma-cell--exitosa { border-left-color: #e6a817; }
+.admin-cronograma-list-item.cronograma-cell--pendiente { border-left-color: #e91e8c; }
+.admin-cronograma-list-item.cronograma-cell--manual { border-left-color: #9b59b6; }
+
+.admin-cronograma-list-time {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.admin-cronograma-list-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.admin-cronograma-list-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.admin-cronograma-grid-wrap {
+  padding: 12px;
+  min-width: 0;
+}
+
+.admin-cronograma-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 20px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.admin-cronograma-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cronograma-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  font-style: normal;
+}
+
+.cronograma-swatch--exitosa { background: #c9920a; }
+.cronograma-swatch--pendiente { background: #d81b8b; }
+.cronograma-swatch--manual { background: #7e57c2; }
+.cronograma-swatch--bloqueo { background: #5a5a5a; }
+.cronograma-swatch--libre { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); }
+
+.admin-cronograma-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.admin-cronograma-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+}
+
+.admin-cronograma-table th,
+.admin-cronograma-table td {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0;
+  vertical-align: middle;
+}
+
+.admin-cronograma-th-lane,
+.admin-cronograma-lane-label {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #1e1e1e;
+  min-width: 72px;
+  padding: 8px 10px;
+  font-weight: 700;
+  color: #e4d28d;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-cronograma-th-hour {
+  padding: 8px 6px;
+  min-width: 72px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  background: #1a1a1a;
+  text-align: center;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.admin-cronograma-table thead th.admin-cronograma-th-lane {
+  z-index: 3;
+}
+
+.cronograma-cell {
+  height: 36px;
+  min-width: 72px;
+  padding: 4px 6px;
+  text-align: center;
+  cursor: default;
+}
+
+.cronograma-cell--libre {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cronograma-cell--bloqueo {
+  background: #4a4a4a;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.cronograma-cell--reserva {
+  cursor: pointer;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.cronograma-cell--reserva.cronograma-cell--exitosa { background: #e6b422; }
+.cronograma-cell--reserva.cronograma-cell--pendiente { background: #f062b8; color: #fff; }
+.cronograma-cell--reserva.cronograma-cell--manual { background: #b39ddb; }
+.cronograma-cell--reserva.is-selected {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.cronograma-cell-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+  margin: 0 auto;
+  font-size: 11px;
+}
+
+.admin-cronograma-detail {
+  padding: 16px 20px;
+}
+
+.admin-cronograma-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.admin-cronograma-detail-header h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #e4d28d;
+}
+
+.admin-cronograma-detail-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.admin-cronograma-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+}
+
+.admin-cronograma-detail-grid span {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 2px;
+}
+
+.admin-cronograma-detail-grid strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.admin-cronograma-detail-wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1024px) {
+  .admin-cronograma-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-cronograma-sidebar {
+    max-height: 240px;
+  }
+}

@@ -1,59 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 import FloorPlan from '../FloorPlan'
-import { parseHorasFromString } from '../../utils/bookingSlots'
-
-const ALL_HORAS = [
-  '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
-  '5:00 PM', '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM', '10:00 PM',
-]
-
-const LANES = Array.from({ length: 11 }, (_, i) => i + 1)
-
-function reservationsForDate(reservas, fechaStr) {
-  return (reservas || []).filter(r => r.fecha === fechaStr && r.estado !== 'cancelada' && r.estado !== 'rechazada')
-}
-
-/** Slots normalizados: admite `horas` tipo P1:…|… o legacy `pista` + `hora`. */
-function slotsFromReserva(r) {
-  const parsed = parseHorasFromString(r?.horas)
-  if (parsed.length) return parsed
-  if (r?.pista != null && r?.hora)
-    return [{ pista: Number(r.pista), hora: String(r.hora).trim() }]
-  return []
-}
-
-/** Lista API + manual guardado sólo en localStorage (forma antigua por pista/hora). */
-function mergeReservasParaPlano(reservasApi, reservasAdminLocal) {
-  const out = [...(reservasApi || [])]
-  for (const r of reservasAdminLocal || []) {
-    if (!r?.fecha || r.pista == null || !r.hora) continue
-    const pid = Number(r.pista)
-    const h = String(r.hora).trim()
-    const dupe = out.some(x => x.fecha === r.fecha && slotsFromReserva(x).some(s => Number(s.pista) === pid && s.hora === h))
-    if (dupe) continue
-    out.push({
-      fecha: r.fecha,
-      horas: `P${pid}:${h}`,
-      estado: 'exitosa',
-      reference: `LOCAL-${r.id || 'adm'}`,
-      datosPersonales: { nombre: r.nombre },
-    })
-  }
-  return out
-}
-
-function reservationsAtSlot(items, fechaStr, pista, hora) {
-  for (const r of items) {
-    if (r.fecha !== fechaStr) continue
-    const hit = slotsFromReserva(r).some(
-      s => Number(s.pista) === Number(pista) && s.hora === hora
-    )
-    if (hit)
-      return r
-  }
-  return null
-}
+import {
+  LANES,
+  ADMIN_STANDARD_HORAS as ALL_HORAS,
+  mergeReservasParaPlano,
+  reservationsForDate,
+  reservationsAtSlot,
+  bloqueoMotivoLaneSlot,
+} from '../../utils/adminReservasGrid'
 
 function escapeCsv(cell) {
   const s = String(cell ?? '')
@@ -72,33 +27,14 @@ function downloadUtf8Csv(filename, rows) {
   URL.revokeObjectURL(url)
 }
 
-function bloqueoMotivoLaneSlot(bloqueos, fechaStr, pista, hora) {
-  for (const b of bloqueos || []) {
-    if (Number(b.pista) !== Number(pista)) continue
-    if (b.fechaInicio && b.fechaFin) {
-      if (fechaStr < b.fechaInicio || fechaStr > b.fechaFin) continue
-    }
-    else if (b.fecha && b.fecha !== fechaStr) {
-      continue
-    }
-    const bh = Array.isArray(b.horas) ? b.horas : []
-    if (bh.length === 0 || bh.includes(hora))
-      return b.motivo || 'Bloqueo administrativo'
-  }
-  return ''
-}
-
-/** Bloqueo admin en ese slot de pista/fecha (misma semántica que el CSV). */
 function laneTieneBloqueoAdmin(bloqueos, fechaStr, pista, hora) {
   return bloqueoMotivoLaneSlot(bloqueos, fechaStr, pista, hora) !== ''
 }
 
-/** Reserva válida ese día sobre esa pista+hora (incluye multi-slot en `horas`). */
 function laneTieneReserva(reservasDia, fechaStr, pista, hora) {
   return reservationsAtSlot(reservasDia, fechaStr, pista, hora) != null
 }
 
-/** Pistas donde todas las horas estándar están ocupadas (bloqueo/reserva). */
 function blockedLanesWholeDayAgg({
   fechaStr,
   horasDia,
@@ -255,7 +191,6 @@ export default function AdminPlanoDia({ reservas }) {
           <i className="fas fa-file-download" /> Exportar Excel (CSV)
         </button>
       </div>
-
       <div className="admin-form-row admin-form-row-3" style={{ marginTop: 12 }}>
         <div className="admin-field">
           <label className="admin-field-label">Fecha</label>
