@@ -926,12 +926,20 @@
   margin-left: auto;
 }
 
-.extra-qty-warning {
+.extra-qty-warning,
+.extra-qty-hint {
   width: 100%;
   font-family: 'Montserrat', sans-serif;
   font-size: 12px;
-  color: #ffb74d;
   margin-top: -6px;
+}
+
+.extra-qty-warning {
+  color: #ffb74d;
+}
+
+.extra-qty-hint {
+  color: #81c784;
 }
 
 .extra-jugador-por-pista {

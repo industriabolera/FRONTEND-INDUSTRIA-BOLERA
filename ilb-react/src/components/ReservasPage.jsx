@@ -469,28 +469,6 @@ export default function ReservasPage() {
 
   const getExtraEnPista = (pistaNum) => jugadorExtraPorPista[pistaNum] || 0
 
-  const setExtraEnPista = (pistaNum, count) => {
-    setJugadorExtraPorPista(prev => {
-      const next = { ...prev }
-      const n = Math.max(0, Math.min(MAX_EXTRA_JUGADORES_POR_PISTA, count))
-      if (n <= 0) delete next[pistaNum]
-      else next[pistaNum] = n
-      return next
-    })
-  }
-
-  const setExtraTodasLasPistas = (count, e) => {
-    e?.stopPropagation?.()
-    const n = Math.max(0, Math.min(MAX_EXTRA_JUGADORES_POR_PISTA, count))
-    if (n <= 0) {
-      setJugadorExtraPorPista({})
-      return
-    }
-    const next = {}
-    for (const { pista } of pistaSelection) next[pista] = n
-    setJugadorExtraPorPista(next)
-  }
-
   useEffect(() => {
     const ref = searchParams.get('ref') || localStorage.getItem('ilb_reference')
     const status = searchParams.get('status')
@@ -779,9 +757,63 @@ export default function ReservasPage() {
   const totalHorasReservadas = pistaSelection.length > 0
     ? pistaSelection.reduce((sum, p) => sum + p.horas.length, 0)
     : globalBookingHoras.length
+
+  const promo2x1Active = useMemo(() => {
+    if (!activePromo || activePromo.tipo !== '2x1') return false
+    return totalHorasReservadas >= (activePromo.minHoras || 2)
+  }, [activePromo, totalHorasReservadas])
+
+  const setExtraEnPista = useCallback((pistaNum, count) => {
+    setJugadorExtraPorPista(prev => {
+      const n = Math.max(0, Math.min(MAX_EXTRA_JUGADORES_POR_PISTA, count))
+      if (n <= 0) {
+        const next = { ...prev }
+        delete next[pistaNum]
+        return next
+      }
+      if (promo2x1Active) return { [pistaNum]: n }
+      const next = { ...prev }
+      next[pistaNum] = n
+      return next
+    })
+  }, [promo2x1Active])
+
+  const setExtraTodasLasPistas = useCallback((count, e) => {
+    e?.stopPropagation?.()
+    const n = Math.max(0, Math.min(MAX_EXTRA_JUGADORES_POR_PISTA, count))
+    if (n <= 0) {
+      setJugadorExtraPorPista({})
+      return
+    }
+    if (promo2x1Active && pistaSelection.length > 0) {
+      setJugadorExtraPorPista({ [pistaSelection[0].pista]: n })
+      return
+    }
+    const next = {}
+    for (const { pista } of pistaSelection) next[pista] = n
+    setJugadorExtraPorPista(next)
+  }, [promo2x1Active, pistaSelection])
+
+  useEffect(() => {
+    if (!promo2x1Active) return
+    setJugadorExtraPorPista(prev => {
+      const keys = Object.keys(prev).filter(k => prev[k] > 0)
+      if (keys.length <= 1) return prev
+      return { [keys[0]]: 1 }
+    })
+  }, [promo2x1Active])
+
   const horasCobroZapatos = totalHorasReservadas <= 1 ? 1 : (zapatosTodasLasHoras ? totalHorasReservadas : 1)
-  const zapatosCobroQty = maxPersonasPorPista * horasCobroZapatos
-  const horasSinZapatos = Math.max(0, totalHorasReservadas - horasCobroZapatos)
+  const horasCobroZapatosEfectivas = promo2x1Active ? 1 : horasCobroZapatos
+  const personasCobro = useMemo(() => {
+    if (promo2x1Active) return personas + (hasJugadorExtra ? 1 : 0)
+    return maxPersonasPorPista
+  }, [promo2x1Active, personas, hasJugadorExtra, maxPersonasPorPista])
+  const jugadorExtraCobro = promo2x1Active ? (hasJugadorExtra ? 1 : 0) : jugadorExtraCount
+  const zapatosCobroQty = personasCobro * horasCobroZapatosEfectivas
+  const horasSinZapatos = promo2x1Active
+    ? 0
+    : Math.max(0, totalHorasReservadas - horasCobroZapatos)
 
   const precioPistaBase = selectedDate
     ? (isWeekendOrHoliday(selectedDate, holidaysSet) ? precios.pistaVD : precios.pistaLJ)
@@ -789,7 +821,6 @@ export default function ReservasPage() {
 
   let precioPista = precioPistaBase
   let promoLabel = ''
-  let promo2x1Active = false
 
   if (activePromo) {
     if (activePromo.tipo === 'porcentaje') {
@@ -800,12 +831,7 @@ export default function ReservasPage() {
       promoLabel = `-${formatPrice(activePromo.valor)}`
     } else if (activePromo.tipo === '2x1') {
       const minH = activePromo.minHoras || 2
-      if (totalHorasReservadas >= minH) {
-        promo2x1Active = true
-        promoLabel = '2×1'
-      } else {
-        promoLabel = `2×1 (mín. ${minH}h)`
-      }
+      promoLabel = promo2x1Active ? '2×1' : `2×1 (mín. ${minH}h)`
     }
   }
 
@@ -820,7 +846,7 @@ export default function ReservasPage() {
     : 0
 
   const precioZapatos = addZapatos ? precios.zapatos * zapatosCobroQty : 0
-  const precioJugador = hasJugadorExtra ? precios.jugadorAdicional * jugadorExtraCount : 0
+  const precioJugador = hasJugadorExtra ? precios.jugadorAdicional * jugadorExtraCobro : 0
   const totalPrice = totalPistasCost + precioZapatos + precioJugador
 
   const updateDatos = (field, value) => setDatosPersonales(prev => ({ ...prev, [field]: value }))
@@ -882,12 +908,16 @@ export default function ReservasPage() {
 
       const reference = `ILB-${Date.now()}`
       const pistasDesc = pistaSelection.map(p => `Pista ${p.pista}`).join(', ')
-      const description = `Reserva ${pistasDesc} - ${personas} base${hasJugadorExtra ? ` +${jugadorExtraCount} extra` : ''}`
+      const description = promo2x1Active
+        ? `Reserva ${pistasDesc} - ${personasCobro} personas (promo 2×1)`
+        : `Reserva ${pistasDesc} - ${personas} base${hasJugadorExtra ? ` +${jugadorExtraCount} extra` : ''}`
 
       const extras = [
         addZapatos ? `Zapatos x${zapatosCobroQty}${horasSinZapatos > 0 ? ` (faltan ${horasSinZapatos}h por comprar presencial)` : ''}` : null,
         hasJugadorExtra
-          ? `Jugador adicional (${formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)})`
+          ? promo2x1Active
+            ? 'Jugador adicional (7 en total, promo 2×1)'
+            : `Jugador adicional (${formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)})`
           : null,
       ].filter(Boolean).join(', ')
 
@@ -901,7 +931,7 @@ export default function ReservasPage() {
           pista: pistaSelection.map(p => p.pista).join(','),
           fecha: fechaStr,
           hora: pistaSelection.map(p => `P${p.pista}:${p.horas.join(',')}`).join('|'),
-          personas: maxPersonasPorPista,
+          personas: personasCobro,
           extras,
           datosPersonales: {
             nombre: datosPersonales.nombre,
@@ -1243,7 +1273,11 @@ export default function ReservasPage() {
                     <div>
                       <strong>{activePromo.nombre}</strong>
                       {promo2x1Active ? (
-                        <p>2×1 activado — Pagas {horasFacturables} de {totalHorasReservadas} hora{totalHorasReservadas > 1 ? 's' : ''}. ¡Ahorras {formatPrice(totalSinDescuento2x1 - totalPistasCost)}!</p>
+                        <p>
+                          2×1 activado — Pagas {horasFacturables} de {totalHorasReservadas} hora{totalHorasReservadas > 1 ? 's' : ''}.
+                          {' '}Personas, zapatos y jugador adicional se cuentan una sola vez para todo el grupo.
+                          {' '}¡Ahorras {formatPrice(totalSinDescuento2x1 - totalPistasCost)}!
+                        </p>
                       ) : (
                         <p>Selecciona al menos {activePromo.minHoras || 2} hora{(activePromo.minHoras || 2) > 1 ? 's' : ''} para activar el 2×1 — te falta{totalHorasReservadas === 0 ? 'n' : ''} {Math.max(0, (activePromo.minHoras || 2) - totalHorasReservadas)} hora{Math.max(0, (activePromo.minHoras || 2) - totalHorasReservadas) !== 1 ? 's' : ''}</p>
                       )}
@@ -1376,14 +1410,19 @@ export default function ReservasPage() {
 
                   {addZapatos && (
                     <div className="extra-qty-row">
-                      {totalHorasReservadas > 1 && (
+                      {totalHorasReservadas > 1 && !promo2x1Active && (
                         <label className="extra-hours-checkbox" onClick={() => setZapatosTodasLasHoras(v => !v)}>
                           <i className={zapatosTodasLasHoras ? 'fas fa-check-square' : 'far fa-square'} />
                           <span>Comprar zapatos y medias para todas las horas seleccionadas</span>
                         </label>
                       )}
+                      {promo2x1Active && totalHorasReservadas > 1 && (
+                        <span className="extra-qty-hint">
+                          Promoción 2×1: un juego de zapatos y medias para todo el grupo ({personasCobro} persona{personasCobro !== 1 ? 's' : ''}), sin cobro por cada hora.
+                        </span>
+                      )}
                       <span className="extra-qty-label">
-                        Cobro: {maxPersonasPorPista} persona(s) × {horasCobroZapatos} hora(s)
+                        Cobro: {personasCobro} persona(s){promo2x1Active ? ' (grupo 2×1)' : ` × ${horasCobroZapatosEfectivas} hora(s)`}
                         <i
                           className="fas fa-info-circle extra-tooltip-icon"
                           title="Si no compras para todas las horas, en los horarios restantes deberán adquirirse presencialmente en la bolera."
@@ -1404,15 +1443,18 @@ export default function ReservasPage() {
                       <div className="extra-jugador-por-pista-header">
                         <i className="fas fa-user-plus" />
                         <div>
-                          <span className="extra-card-name">Jugador adicional (+1 por pista)</span>
+                          <span className="extra-card-name">
+                            {promo2x1Active ? 'Jugador adicional (7.º del grupo)' : 'Jugador adicional (+1 por pista)'}
+                          </span>
                           <span className="extra-card-desc">
-                            Solo aplica con {MAX_PERSONAS} personas en la reserva. Máximo un 7.º jugador por pista.
-                            {promo2x1Active ? ' Promoción 2×1 activa.' : ''}
-                            {' '}{formatPrice(precios.jugadorAdicional)} por pista con extra.
+                            Solo aplica con {MAX_PERSONAS} personas en la reserva.
+                            {promo2x1Active
+                              ? ` Promoción 2×1: un solo 7.º jugador para todo el grupo (${formatPrice(precios.jugadorAdicional)}).`
+                              : ` Máximo un 7.º jugador por pista. ${formatPrice(precios.jugadorAdicional)} por pista con extra.`}
                           </span>
                         </div>
                       </div>
-                      {pistaSelection.length > 1 && (
+                      {pistaSelection.length > 1 && !promo2x1Active && (
                         <div className="extra-jugador-quick-actions">
                           <button
                             type="button"
@@ -1446,7 +1488,9 @@ export default function ReservasPage() {
                               <div className="extra-jugador-pista-info">
                                 <span className="extra-jugador-pista-name">Pista {pista}</span>
                                 <span className="extra-jugador-pista-total">
-                                  {tieneExtra ? '7 jugadores (6 + 1 extra)' : `${MAX_PERSONAS} jugadores`}
+                                  {tieneExtra
+                                    ? (promo2x1Active ? '7 jugadores en total (grupo 2×1)' : '7 jugadores (6 + 1 extra)')
+                                    : `${MAX_PERSONAS} jugadores`}
                                 </span>
                               </div>
                               <span className="extra-jugador-pista-price">{formatPrice(precios.jugadorAdicional)}</span>
@@ -1457,7 +1501,9 @@ export default function ReservasPage() {
                       {hasJugadorExtra && (
                         <div className="extra-qty-row extra-jugador-summary">
                           <span className="extra-qty-label">
-                            {jugadorExtraCount} pista{jugadorExtraCount !== 1 ? 's' : ''} con 7.º jugador
+                            {promo2x1Active
+                              ? '7 jugadores en total (promo 2×1)'
+                              : `${jugadorExtraCount} pista${jugadorExtraCount !== 1 ? 's' : ''} con 7.º jugador`}
                           </span>
                           <span className="extra-qty-total">= {formatPrice(precioJugador)}</span>
                         </div>
@@ -1662,10 +1708,16 @@ export default function ReservasPage() {
                   <div className="confirm-row">
                     <span className="confirm-label"><i className="fas fa-users" /> Personas</span>
                     <span className="confirm-value">
-                      {personas} base por pista
-                      {hasJugadorExtra && (
-                        <> · {formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)}</>
-                      )}
+                      {promo2x1Active
+                        ? `${personasCobro} en total (mismo grupo, promo 2×1)`
+                        : (
+                          <>
+                            {personas} base por pista
+                            {hasJugadorExtra && (
+                              <> · {formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)}</>
+                            )}
+                          </>
+                        )}
                     </span>
                   </div>
                   <div className="confirm-divider" />
@@ -1726,7 +1778,10 @@ export default function ReservasPage() {
                   {hasJugadorExtra && (
                     <div className="confirm-row">
                       <span className="confirm-label">
-                        Jugador Adicional × {jugadorExtraCount} ({formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)})
+                        Jugador Adicional{promo2x1Active ? '' : ` × ${jugadorExtraCobro}`}
+                        {promo2x1Active
+                          ? ' (7.º del grupo, promo 2×1)'
+                          : ` (${formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)})`}
                       </span>
                       <span className="confirm-value">{formatPrice(precioJugador)}</span>
                     </div>
@@ -1837,7 +1892,9 @@ export default function ReservasPage() {
                 <div className="sidebar-detail">
                   <span className="sidebar-detail-label">Personas</span>
                   <span className="sidebar-detail-value">
-                    {personas}{hasJugadorExtra ? ` (hasta ${maxPersonasPorPista})` : ''}
+                    {promo2x1Active
+                      ? `${personasCobro} en total (2×1)`
+                      : `${personas}${hasJugadorExtra ? ` (hasta ${maxPersonasPorPista})` : ''}`}
                   </span>
                 </div>
                 {datosPersonales.nombre && (
@@ -1876,7 +1933,9 @@ export default function ReservasPage() {
                     )}
                     {hasJugadorExtra && (
                       <div className="sidebar-detail">
-                        <span className="sidebar-detail-label">+1 Jugador × {jugadorExtraCount}</span>
+                        <span className="sidebar-detail-label">
+                          {promo2x1Active ? '+1 Jugador (grupo 2×1)' : `+1 Jugador × ${jugadorExtraCobro}`}
+                        </span>
                         <span className="sidebar-detail-value">{formatPrice(precioJugador)}</span>
                       </div>
                     )}
