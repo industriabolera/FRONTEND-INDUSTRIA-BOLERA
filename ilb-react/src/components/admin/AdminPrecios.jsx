@@ -63,7 +63,7 @@ export default function AdminPrecios() {
     { key: 'pistaLJ', label: 'Pista Lunes - Jueves', desc: 'Precio base por pista en días de semana' },
     { key: 'pistaVD', label: 'Pista Viernes - Domingo', desc: 'Precio base por pista en fines de semana' },
     { key: 'zapatos', label: 'Zapatos y Medias', desc: 'Precio por persona' },
-    { key: 'jugadorAdicional', label: 'Jugador Adicional', desc: 'Costo del 7° jugador' },
+    { key: 'jugadorAdicional', label: 'Jugador Adicional', desc: '7° jugador (incluye zapatos y medias)' },
   ]
 
   return (

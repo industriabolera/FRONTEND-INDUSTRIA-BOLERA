@@ -810,7 +810,9 @@ export default function ReservasPage() {
     return maxPersonasPorPista
   }, [promo2x1Active, personas, hasJugadorExtra, maxPersonasPorPista])
   const jugadorExtraCobro = promo2x1Active ? (hasJugadorExtra ? 1 : 0) : jugadorExtraCount
-  const zapatosCobroQty = personasCobro * horasCobroZapatosEfectivas
+  // Zapatos solo para el grupo base; el 7.º lleva zapatos/medias en jugadorAdicional
+  const personasZapatosCobro = personas
+  const zapatosCobroQty = personasZapatosCobro * horasCobroZapatosEfectivas
   const horasSinZapatos = promo2x1Active
     ? 0
     : Math.max(0, totalHorasReservadas - horasCobroZapatos)
@@ -1418,11 +1420,16 @@ export default function ReservasPage() {
                       )}
                       {promo2x1Active && totalHorasReservadas > 1 && (
                         <span className="extra-qty-hint">
-                          Promoción 2×1: un juego de zapatos y medias para todo el grupo ({personasCobro} persona{personasCobro !== 1 ? 's' : ''}), sin cobro por cada hora.
+                          Promoción 2×1: un juego de zapatos y medias para el grupo base ({personasZapatosCobro} persona{personasZapatosCobro !== 1 ? 's' : ''}), sin cobro por cada hora.
+                        </span>
+                      )}
+                      {hasJugadorExtra && (
+                        <span className="extra-qty-hint">
+                          El 7.º jugador ({formatPrice(precios.jugadorAdicional)}) ya incluye zapatos y medias; no se suman aquí.
                         </span>
                       )}
                       <span className="extra-qty-label">
-                        Cobro: {personasCobro} persona(s){promo2x1Active ? ' (grupo 2×1)' : ` × ${horasCobroZapatosEfectivas} hora(s)`}
+                        Cobro: {personasZapatosCobro} persona(s){hasJugadorExtra ? ' base' : ''}{promo2x1Active ? ' (grupo 2×1)' : ` × ${horasCobroZapatosEfectivas} hora(s)`}
                         <i
                           className="fas fa-info-circle extra-tooltip-icon"
                           title="Si no compras para todas las horas, en los horarios restantes deberán adquirirse presencialmente en la bolera."
@@ -1449,8 +1456,8 @@ export default function ReservasPage() {
                           <span className="extra-card-desc">
                             Solo aplica con {MAX_PERSONAS} personas en la reserva.
                             {promo2x1Active
-                              ? ` Promoción 2×1: un solo 7.º jugador para todo el grupo (${formatPrice(precios.jugadorAdicional)}).`
-                              : ` Máximo un 7.º jugador por pista. ${formatPrice(precios.jugadorAdicional)} por pista con extra.`}
+                              ? ` Promoción 2×1: un solo 7.º jugador para todo el grupo (${formatPrice(precios.jugadorAdicional)}, incluye zapatos y medias).`
+                              : ` Máximo un 7.º jugador por pista. ${formatPrice(precios.jugadorAdicional)} por pista (incluye zapatos y medias).`}
                           </span>
                         </div>
                       </div>
