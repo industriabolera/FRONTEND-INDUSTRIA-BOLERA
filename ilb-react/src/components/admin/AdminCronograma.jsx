@@ -130,17 +130,8 @@ export default function AdminCronograma() {
 
   return (
     <div className="admin-cronograma">
-      <div className="admin-cronograma-top admin-card admin-form-card">
-        <div className="admin-cronograma-top-text">
-          <h3 className="admin-plano-dia-title">
-            <i className="fas fa-calendar-week" /> Cronograma del día
-          </h3>
-          <p className="admin-panel-desc admin-cronograma-desc">
-            Selecciona una fecha para ver reservas y bloqueos por pista y horario (estilo planilla).
-          </p>
-          <p className="admin-cronograma-fecha-label">{formatFechaLarga(fecha)}</p>
-        </div>
-        <div className="admin-cronograma-top-calendar">
+      <div className="admin-cronograma-shell">
+        <aside className="admin-cronograma-calendar-col admin-card">
           <BookingCalendarMini
             value={fecha}
             onChange={handleFechaChange}
@@ -155,17 +146,26 @@ export default function AdminCronograma() {
           >
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} /> Actualizar
           </button>
-        </div>
-      </div>
+        </aside>
 
-      {error && (
-        <div className="admin-cronograma-error">
-          <i className="fas fa-exclamation-triangle" /> {error}
-          <button type="button" onClick={() => fetchReservas({ silent: false })}>Reintentar</button>
-        </div>
-      )}
+        <div className="admin-cronograma-body">
+          <div className="admin-cronograma-header">
+            <h3 className="admin-plano-dia-title">
+              <i className="fas fa-calendar-week" /> Cronograma del día
+            </h3>
+            <p className="admin-panel-desc admin-cronograma-desc">
+              {formatFechaLarga(fecha)} — reservas y bloqueos por pista y horario.
+            </p>
+          </div>
 
-      <div className="admin-cronograma-layout">
+          {error && (
+            <div className="admin-cronograma-error">
+              <i className="fas fa-exclamation-triangle" /> {error}
+              <button type="button" onClick={() => fetchReservas({ silent: false })}>Reintentar</button>
+            </div>
+          )}
+
+          <div className="admin-cronograma-layout">
         <aside className="admin-cronograma-sidebar admin-card">
           <h4 className="admin-cronograma-sidebar-title">
             Reservas del día
@@ -278,30 +278,32 @@ export default function AdminCronograma() {
             </table>
           </div>
         </div>
-      </div>
+          </div>
 
-      {selected && (
-        <div className="admin-cronograma-detail admin-card">
-          <div className="admin-cronograma-detail-header">
-            <h4><i className="fas fa-info-circle" /> Detalle</h4>
-            <button type="button" className="admin-cronograma-detail-close" onClick={() => setSelected(null)} aria-label="Cerrar">
-              <i className="fas fa-times" />
-            </button>
-          </div>
-          <div className="admin-cronograma-detail-grid">
-            <div><span>Cliente</span><strong>{clienteNombreReserva(selected)}</strong></div>
-            <div><span>Referencia</span><strong>{selected.reference || '—'}</strong></div>
-            <div><span>Estado</span><strong>{ESTADO_CELL[selected.estado]?.label || selected.estado}</strong></div>
-            <div><span>Total</span><strong>{formatPrice(selected.total)}</strong></div>
-            <div className="admin-cronograma-detail-wide">
-              <span>Pistas y horarios</span>
-              <strong>
-                {slotsFromReserva(selected).map(s => `P${s.pista} ${s.hora}`).join(' · ') || '—'}
-              </strong>
+          {selected && (
+            <div className="admin-cronograma-detail admin-card">
+              <div className="admin-cronograma-detail-header">
+                <h4><i className="fas fa-info-circle" /> Detalle</h4>
+                <button type="button" className="admin-cronograma-detail-close" onClick={() => setSelected(null)} aria-label="Cerrar">
+                  <i className="fas fa-times" />
+                </button>
+              </div>
+              <div className="admin-cronograma-detail-grid">
+                <div><span>Cliente</span><strong>{clienteNombreReserva(selected)}</strong></div>
+                <div><span>Referencia</span><strong>{selected.reference || '—'}</strong></div>
+                <div><span>Estado</span><strong>{ESTADO_CELL[selected.estado]?.label || selected.estado}</strong></div>
+                <div><span>Total</span><strong>{formatPrice(selected.total)}</strong></div>
+                <div className="admin-cronograma-detail-wide">
+                  <span>Pistas y horarios</span>
+                  <strong>
+                    {slotsFromReserva(selected).map(s => `P${s.pista} ${s.hora}`).join(' · ') || '—'}
+                  </strong>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

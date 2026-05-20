@@ -1303,48 +1303,58 @@ select.admin-input {
 .admin-cronograma {
   display: flex;
   flex-direction: column;
+  gap: 0;
+}
+
+.admin-cronograma-shell {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
   gap: 16px;
 }
 
-.admin-cronograma-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.admin-cronograma-top-text {
-  flex: 1;
-  min-width: 200px;
-}
-
-.admin-cronograma-desc {
-  margin-top: 4px;
-  margin-bottom: 8px;
-  max-width: 520px;
-}
-
-.admin-cronograma-top-calendar {
+.admin-cronograma-calendar-col {
+  flex: 0 0 300px;
+  width: 300px;
+  position: sticky;
+  top: 12px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 10px;
+  padding: 12px !important;
+}
+
+.admin-cronograma-calendar-col .booking-calendar-mini {
+  max-width: 100%;
+  width: 100%;
 }
 
 .admin-cronograma-refresh {
   width: 100%;
-  max-width: 320px;
   justify-content: center;
 }
 
-.admin-cronograma-fecha-label {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: #e4d28d;
-  text-transform: capitalize;
+.admin-cronograma-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-cronograma-header {
+  padding: 0 2px;
+}
+
+.admin-cronograma-header .admin-plano-dia-title {
+  margin-bottom: 4px;
+}
+
+.admin-cronograma-desc {
   margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: capitalize;
 }
 
 .admin-cronograma-error {
@@ -1502,7 +1512,7 @@ select.admin-input {
 
 .admin-cronograma-scroll {
   overflow: auto;
-  max-height: calc(100vh - 280px);
+  max-height: calc(100vh - 200px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
 }
@@ -1644,22 +1654,16 @@ select.admin-input {
   grid-column: 1 / -1;
 }
 
-@media (max-width: 1024px) {
-  .admin-cronograma-top {
+@media (max-width: 1100px) {
+  .admin-cronograma-shell {
     flex-direction: column;
   }
 
-  .admin-cronograma-top-calendar {
-    align-items: stretch;
+  .admin-cronograma-calendar-col {
+    flex: none;
     width: 100%;
-  }
-
-  .booking-calendar-mini {
-    max-width: 100%;
-  }
-
-  .admin-cronograma-refresh {
-    max-width: none;
+    max-width: 320px;
+    position: static;
   }
 
   .admin-cronograma-layout {
