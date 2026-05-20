@@ -1,0 +1,206 @@
+/* Calendario compartido (reservas + admin mini) */
+
+.calendar-component {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px;
+  backdrop-filter: blur(10px);
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.calendar-month-title {
+  font-family: 'Yeseva One', cursive;
+  font-size: 1.6rem;
+  color: #fff;
+  letter-spacing: 2px;
+}
+
+.calendar-nav {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.calendar-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.calendar-nav-btn:hover:not(:disabled) {
+  background: rgba(228, 210, 141, 0.15);
+  border-color: #e4d28d;
+  color: #e4d28d;
+}
+
+.calendar-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 8px 0 12px;
+  letter-spacing: 1px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-day:hover:not(:disabled):not(.other-month) {
+  background: rgba(228, 210, 141, 0.12);
+  border-color: rgba(228, 210, 141, 0.3);
+}
+
+.calendar-day.other-month { color: rgba(255, 255, 255, 0.12); cursor: default; }
+.calendar-day.past { color: rgba(255, 255, 255, 0.18); cursor: not-allowed; }
+.calendar-day.today { border-color: #e68007; color: #e68007; font-weight: 700; }
+.calendar-day.selected {
+  background: #d83f36;
+  border-color: #d83f36;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(216, 63, 54, 0.5);
+}
+
+.calendar-day.holiday { position: relative; }
+
+.calendar-day.holiday::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #e4d28d;
+}
+
+.calendar-day.holiday.selected::after {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.calendar-holiday-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.holiday-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e4d28d;
+  flex-shrink: 0;
+}
+
+/* Variante compacta (admin cronograma) */
+.booking-calendar-mini {
+  padding: 14px 16px;
+  border-radius: 12px;
+  max-width: 320px;
+  flex-shrink: 0;
+}
+
+.booking-calendar-mini .calendar-header {
+  margin-bottom: 12px;
+}
+
+.booking-calendar-mini .calendar-month-title {
+  font-size: 1rem;
+  letter-spacing: 1px;
+}
+
+.booking-calendar-mini .calendar-nav-btn {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.booking-calendar-mini-hoy {
+  border: 1px solid rgba(228, 210, 141, 0.35);
+  background: rgba(228, 210, 141, 0.1);
+  color: #e4d28d;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.booking-calendar-mini-hoy:hover {
+  background: rgba(228, 210, 141, 0.2);
+}
+
+.booking-calendar-mini .calendar-grid {
+  gap: 4px;
+}
+
+.booking-calendar-mini .calendar-day-header {
+  font-size: 9px;
+  padding: 4px 0 6px;
+  letter-spacing: 0.5px;
+}
+
+.booking-calendar-mini .calendar-day {
+  font-size: 12px;
+  border-radius: 6px;
+  border-width: 1px;
+}
+
+.booking-calendar-mini .calendar-day.holiday::after {
+  width: 4px;
+  height: 4px;
+  bottom: 2px;
+}
+
+.booking-calendar-mini-legend {
+  margin-top: 8px;
+  font-size: 10px;
+}

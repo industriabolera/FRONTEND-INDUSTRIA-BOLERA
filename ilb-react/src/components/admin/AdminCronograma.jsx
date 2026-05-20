@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 import { fetchAllReservasForAdminPortal } from '../../utils/adminReservasFetch'
+import BookingCalendarMini from '../BookingCalendarMini'
 import {
   LANES,
   toDateStr,
@@ -122,50 +123,40 @@ export default function AdminCronograma() {
     return { total: listaDia.length, confirmadas, pendientes }
   }, [listaDia])
 
-  const shiftDia = (delta) => {
-    const d = parseFechaInput(fecha) || new Date()
-    d.setDate(d.getDate() + delta)
-    setFecha(toDateStr(d))
+  const handleFechaChange = (next) => {
+    setFecha(next)
     setSelected(null)
   }
 
   return (
     <div className="admin-cronograma">
-      <div className="admin-cronograma-toolbar admin-card admin-form-card">
-        <div className="admin-cronograma-toolbar-main">
+      <div className="admin-cronograma-top admin-card admin-form-card">
+        <div className="admin-cronograma-top-text">
           <h3 className="admin-plano-dia-title">
             <i className="fas fa-calendar-week" /> Cronograma del día
           </h3>
           <p className="admin-panel-desc admin-cronograma-desc">
             Selecciona una fecha para ver reservas y bloqueos por pista y horario (estilo planilla).
           </p>
+          <p className="admin-cronograma-fecha-label">{formatFechaLarga(fecha)}</p>
         </div>
-        <div className="admin-cronograma-controls">
-          <button type="button" className="admin-btn admin-btn-secondary" onClick={() => shiftDia(-1)} title="Día anterior">
-            <i className="fas fa-chevron-left" />
-          </button>
-          <div className="admin-field admin-cronograma-date-field">
-            <label className="admin-field-label">Fecha</label>
-            <input
-              className="admin-input"
-              type="date"
-              value={fecha}
-              onChange={e => { setFecha(e.target.value); setSelected(null) }}
-            />
-          </div>
-          <button type="button" className="admin-btn admin-btn-secondary" onClick={() => shiftDia(1)} title="Día siguiente">
-            <i className="fas fa-chevron-right" />
-          </button>
-          <button type="button" className="admin-btn admin-btn-secondary" onClick={() => { setFecha(toDateStr(new Date())); setSelected(null) }}>
-            Hoy
-          </button>
-          <button type="button" className="admin-btn admin-btn-primary" onClick={() => fetchReservas({ silent: false })} disabled={loading}>
+        <div className="admin-cronograma-top-calendar">
+          <BookingCalendarMini
+            value={fecha}
+            onChange={handleFechaChange}
+            allowPastDays
+            showHoyButton
+          />
+          <button
+            type="button"
+            className="admin-btn admin-btn-primary admin-cronograma-refresh"
+            onClick={() => fetchReservas({ silent: false })}
+            disabled={loading}
+          >
             <i className={`fas fa-sync-alt ${loading ? 'fa-spin' : ''}`} /> Actualizar
           </button>
         </div>
       </div>
-
-      <p className="admin-cronograma-fecha-label">{formatFechaLarga(fecha)}</p>
 
       {error && (
         <div className="admin-cronograma-error">

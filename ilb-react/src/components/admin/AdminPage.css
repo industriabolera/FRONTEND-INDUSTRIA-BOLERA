@@ -1306,29 +1306,36 @@ select.admin-input {
   gap: 16px;
 }
 
-.admin-cronograma-toolbar {
+.admin-cronograma-top {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
+}
+
+.admin-cronograma-top-text {
+  flex: 1;
+  min-width: 200px;
 }
 
 .admin-cronograma-desc {
   margin-top: 4px;
-  margin-bottom: 0;
+  margin-bottom: 8px;
   max-width: 520px;
 }
 
-.admin-cronograma-controls {
+.admin-cronograma-top-calendar {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: flex-end;
   gap: 10px;
 }
 
-.admin-cronograma-date-field {
-  min-width: 160px;
+.admin-cronograma-refresh {
+  width: 100%;
+  max-width: 320px;
+  justify-content: center;
 }
 
 .admin-cronograma-fecha-label {
@@ -1638,6 +1645,23 @@ select.admin-input {
 }
 
 @media (max-width: 1024px) {
+  .admin-cronograma-top {
+    flex-direction: column;
+  }
+
+  .admin-cronograma-top-calendar {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .booking-calendar-mini {
+    max-width: 100%;
+  }
+
+  .admin-cronograma-refresh {
+    max-width: none;
+  }
+
   .admin-cronograma-layout {
     grid-template-columns: 1fr;
   }
