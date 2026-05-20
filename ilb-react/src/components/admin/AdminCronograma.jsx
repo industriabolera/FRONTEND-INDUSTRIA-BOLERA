@@ -45,16 +45,16 @@ function formatPrice(n) {
 
 export default function AdminCronograma() {
   const { config, isLaneFullDayBlocked } = useBolera()
-  const holidaysSet = useMemo(() => {
-    const y = parseFechaInput(fecha)?.getFullYear() ?? new Date().getFullYear()
-    return buildHolidaysSet([y - 1, y, y + 1])
-  }, [fecha])
-
   const [fecha, setFecha] = useState(() => toDateStr(new Date()))
   const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
+
+  const holidaysSet = useMemo(() => {
+    const y = parseFechaInput(fecha)?.getFullYear() ?? new Date().getFullYear()
+    return buildHolidaysSet([y - 1, y, y + 1])
+  }, [fecha])
 
   const fetchReservas = useCallback(async (opts = {}) => {
     const silent = Boolean(opts.silent)

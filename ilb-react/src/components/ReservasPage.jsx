@@ -163,6 +163,20 @@ const DAYS_HEADER = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM']
 const DAYS_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 const MAX_PERSONAS = 6
+/** Solo un 7.º jugador extra por pista, cuando la reserva ya es de {MAX_PERSONAS} personas. */
+const MAX_EXTRA_JUGADORES_POR_PISTA = 1
+
+function totalJugadoresEnPista(personasBase, extrasEnPista) {
+  return personasBase + (extrasEnPista || 0)
+}
+
+function formatJugadorExtraPistaResumen(jugadorExtraPorPista, personasBase) {
+  return Object.entries(jugadorExtraPorPista)
+    .filter(([, n]) => n > 0)
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([p]) => `Pista ${p} (7 jugadores)`)
+    .join(' · ')
+}
 
 function getCalendarDays(year, month) {
   const firstDay = new Date(year, month, 1)
@@ -364,8 +378,8 @@ export default function ReservasPage() {
   const [personas, setPersonas] = useState(2)
   const [addZapatos, setAddZapatos] = useState(false)
   const [zapatosTodasLasHoras, setZapatosTodasLasHoras] = useState(true)
-  /** Números de pista con 7° jugador (uno por pista seleccionada). */
-  const [jugadorExtraPistas, setJugadorExtraPistas] = useState([])
+  /** Por pista: cantidad de jugadores extra (cada uno se cobra aparte). */
+  const [jugadorExtraPorPista, setJugadorExtraPorPista] = useState({})
   const [datosPersonales, setDatosPersonales] = useState({
     nombre: '', codigoPais: '+57', telefono: '', correo: '', fechaNacimiento: '',
     tipoDocumento: 'CC', documento: '',
@@ -438,24 +452,43 @@ export default function ReservasPage() {
   }, [currentStep, isMobile, scrollToEl])
 
   useEffect(() => {
-    if (personas !== 6) {
-      setJugadorExtraPistas([])
+    if (personas !== MAX_PERSONAS) {
+      setJugadorExtraPorPista({})
       return
     }
     const validPistas = new Set(pistaSelection.map(p => p.pista))
-    setJugadorExtraPistas(prev => prev.filter(p => validPistas.has(p)))
+    setJugadorExtraPorPista(prev => {
+      const next = {}
+      for (const [k, v] of Object.entries(prev)) {
+        const p = Number(k)
+        if (validPistas.has(p) && v > 0) next[p] = Math.min(MAX_EXTRA_JUGADORES_POR_PISTA, v)
+      }
+      return next
+    })
   }, [personas, pistaSelection])
 
-  const toggleJugadorExtraPista = (pistaNum, e) => {
-    e?.stopPropagation?.()
-    setJugadorExtraPistas(prev =>
-      prev.includes(pistaNum) ? prev.filter(p => p !== pistaNum) : [...prev, pistaNum].sort((a, b) => a - b)
-    )
+  const getExtraEnPista = (pistaNum) => jugadorExtraPorPista[pistaNum] || 0
+
+  const setExtraEnPista = (pistaNum, count) => {
+    setJugadorExtraPorPista(prev => {
+      const next = { ...prev }
+      const n = Math.max(0, Math.min(MAX_EXTRA_JUGADORES_POR_PISTA, count))
+      if (n <= 0) delete next[pistaNum]
+      else next[pistaNum] = n
+      return next
+    })
   }
 
-  const setJugadorExtraEnTodasLasPistas = (e) => {
+  const setExtraTodasLasPistas = (count, e) => {
     e?.stopPropagation?.()
-    setJugadorExtraPistas(pistaSelection.map(p => p.pista))
+    const n = Math.max(0, Math.min(MAX_EXTRA_JUGADORES_POR_PISTA, count))
+    if (n <= 0) {
+      setJugadorExtraPorPista({})
+      return
+    }
+    const next = {}
+    for (const { pista } of pistaSelection) next[pista] = n
+    setJugadorExtraPorPista(next)
   }
 
   useEffect(() => {
@@ -730,15 +763,24 @@ export default function ReservasPage() {
     return startOfCalendarDayLocal(d).getTime() < startOfCalendarDayLocal(new Date()).getTime()
   }
 
-  const jugadorExtraCount = jugadorExtraPistas.length
+  const jugadorExtraCount = useMemo(
+    () => Object.values(jugadorExtraPorPista).reduce((s, n) => s + n, 0),
+    [jugadorExtraPorPista]
+  )
   const hasJugadorExtra = jugadorExtraCount > 0
-  const totalPersonas = personas + (hasJugadorExtra ? 1 : 0)
+  const maxPersonasPorPista = useMemo(() => {
+    let max = personas
+    for (const { pista } of pistaSelection) {
+      max = Math.max(max, totalJugadoresEnPista(personas, jugadorExtraPorPista[pista]))
+    }
+    return max
+  }, [personas, pistaSelection, jugadorExtraPorPista])
 
   const totalHorasReservadas = pistaSelection.length > 0
     ? pistaSelection.reduce((sum, p) => sum + p.horas.length, 0)
     : globalBookingHoras.length
   const horasCobroZapatos = totalHorasReservadas <= 1 ? 1 : (zapatosTodasLasHoras ? totalHorasReservadas : 1)
-  const zapatosCobroQty = totalPersonas * horasCobroZapatos
+  const zapatosCobroQty = maxPersonasPorPista * horasCobroZapatos
   const horasSinZapatos = Math.max(0, totalHorasReservadas - horasCobroZapatos)
 
   const precioPistaBase = selectedDate
@@ -840,12 +882,12 @@ export default function ReservasPage() {
 
       const reference = `ILB-${Date.now()}`
       const pistasDesc = pistaSelection.map(p => `Pista ${p.pista}`).join(', ')
-      const description = `Reserva ${pistasDesc} - ${totalPersonas} personas`
+      const description = `Reserva ${pistasDesc} - ${personas} base${hasJugadorExtra ? ` +${jugadorExtraCount} extra` : ''}`
 
       const extras = [
         addZapatos ? `Zapatos x${zapatosCobroQty}${horasSinZapatos > 0 ? ` (faltan ${horasSinZapatos}h por comprar presencial)` : ''}` : null,
         hasJugadorExtra
-          ? `Jugador adicional (${jugadorExtraPistas.map(p => `Pista ${p}`).join(', ')})`
+          ? `Jugador adicional (${formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)})`
           : null,
       ].filter(Boolean).join(', ')
 
@@ -859,7 +901,7 @@ export default function ReservasPage() {
           pista: pistaSelection.map(p => p.pista).join(','),
           fecha: fechaStr,
           hora: pistaSelection.map(p => `P${p.pista}:${p.horas.join(',')}`).join('|'),
-          personas: totalPersonas,
+          personas: maxPersonasPorPista,
           extras,
           datosPersonales: {
             nombre: datosPersonales.nombre,
@@ -1341,7 +1383,7 @@ export default function ReservasPage() {
                         </label>
                       )}
                       <span className="extra-qty-label">
-                        Cobro: {totalPersonas} persona(s) × {horasCobroZapatos} hora(s)
+                        Cobro: {maxPersonasPorPista} persona(s) × {horasCobroZapatos} hora(s)
                         <i
                           className="fas fa-info-circle extra-tooltip-icon"
                           title="Si no compras para todas las horas, en los horarios restantes deberán adquirirse presencialmente en la bolera."
@@ -1356,74 +1398,71 @@ export default function ReservasPage() {
                     </div>
                   )}
 
-                  {/* Jugador Adicional (solo cuando hay 6 personas) */}
-                  {personas === 6 && pistaSelection.length > 0 && (
-                    pistaSelection.length === 1 ? (
-                      <div
-                        className={`extra-card-v2 ${hasJugadorExtra ? 'selected' : ''}`}
-                        onClick={() => toggleJugadorExtraPista(pistaSelection[0].pista)}
-                      >
-                        <div className="extra-card-left">
-                          <div className="extra-card-check">
-                            <i className={hasJugadorExtra ? 'fas fa-check-square' : 'far fa-square'} />
-                          </div>
-                          <div className="extra-card-info">
-                            <span className="extra-card-name">Jugador Adicional (+1)</span>
-                            <span className="extra-card-desc">Agrega un 7° jugador a la Pista {pistaSelection[0].pista}</span>
-                          </div>
-                        </div>
-                        <div className="extra-card-right">
-                          <span className="extra-card-price">{formatPrice(precios.jugadorAdicional)}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className={`extra-jugador-por-pista ${hasJugadorExtra ? 'has-selection' : ''}`}>
-                        <div className="extra-jugador-por-pista-header">
-                          <i className="fas fa-user-plus" />
-                          <div>
-                            <span className="extra-card-name">Jugador Adicional (+1 por pista)</span>
-                            <span className="extra-card-desc">
-                              Elige en qué pista(s) agregar un 7° jugador
-                              {promo2x1Active ? ' (promoción 2×1)' : ''}
-                            </span>
-                          </div>
-                        </div>
-                        <label
-                          className="extra-hours-checkbox extra-jugador-todas"
-                          onClick={setJugadorExtraEnTodasLasPistas}
-                        >
-                          <i className={jugadorExtraCount === pistaSelection.length ? 'fas fa-check-square' : 'far fa-square'} />
-                          <span>Todas las pistas ({pistaSelection.length})</span>
-                          <span className="extra-jugador-todas-price">
-                            {formatPrice(precios.jugadorAdicional * pistaSelection.length)}
+                  {/* Jugadores extra por pista (base = 6 personas) */}
+                  {personas === MAX_PERSONAS && pistaSelection.length > 0 && (
+                    <div className={`extra-jugador-por-pista ${hasJugadorExtra ? 'has-selection' : ''}`}>
+                      <div className="extra-jugador-por-pista-header">
+                        <i className="fas fa-user-plus" />
+                        <div>
+                          <span className="extra-card-name">Jugador adicional (+1 por pista)</span>
+                          <span className="extra-card-desc">
+                            Solo aplica con {MAX_PERSONAS} personas en la reserva. Máximo un 7.º jugador por pista.
+                            {promo2x1Active ? ' Promoción 2×1 activa.' : ''}
+                            {' '}{formatPrice(precios.jugadorAdicional)} por pista con extra.
                           </span>
-                        </label>
-                        <div className="extra-jugador-pista-list">
-                          {pistaSelection.map(({ pista }) => {
-                            const selected = jugadorExtraPistas.includes(pista)
-                            return (
-                              <label
-                                key={pista}
-                                className={`extra-jugador-pista-item ${selected ? 'selected' : ''}`}
-                                onClick={(e) => toggleJugadorExtraPista(pista, e)}
-                              >
-                                <i className={selected ? 'fas fa-check-square' : 'far fa-square'} />
-                                <span>Pista {pista}</span>
-                                <span className="extra-jugador-pista-price">{formatPrice(precios.jugadorAdicional)}</span>
-                              </label>
-                            )
-                          })}
                         </div>
-                        {hasJugadorExtra && (
-                          <div className="extra-qty-row extra-jugador-summary">
-                            <span className="extra-qty-label">
-                              {jugadorExtraCount} pista{jugadorExtraCount > 1 ? 's' : ''} con jugador adicional
-                            </span>
-                            <span className="extra-qty-total">= {formatPrice(precioJugador)}</span>
-                          </div>
-                        )}
                       </div>
-                    )
+                      {pistaSelection.length > 1 && (
+                        <div className="extra-jugador-quick-actions">
+                          <button
+                            type="button"
+                            className="extra-jugador-quick-btn"
+                            onClick={(e) => setExtraTodasLasPistas(1, e)}
+                          >
+                            7.º jugador en todas las pistas
+                          </button>
+                          <button
+                            type="button"
+                            className="extra-jugador-quick-btn extra-jugador-quick-btn--ghost"
+                            onClick={(e) => setExtraTodasLasPistas(0, e)}
+                          >
+                            Sin 7.º jugador
+                          </button>
+                        </div>
+                      )}
+                      <div className="extra-jugador-pista-list">
+                        {pistaSelection.map(({ pista }) => {
+                          const tieneExtra = getExtraEnPista(pista) > 0
+                          return (
+                            <label
+                              key={pista}
+                              className={`extra-jugador-pista-item extra-jugador-pista-item--toggle ${tieneExtra ? 'selected' : ''}`}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                setExtraEnPista(pista, tieneExtra ? 0 : 1)
+                              }}
+                            >
+                              <i className={tieneExtra ? 'fas fa-check-square' : 'far fa-square'} />
+                              <div className="extra-jugador-pista-info">
+                                <span className="extra-jugador-pista-name">Pista {pista}</span>
+                                <span className="extra-jugador-pista-total">
+                                  {tieneExtra ? '7 jugadores (6 + 1 extra)' : `${MAX_PERSONAS} jugadores`}
+                                </span>
+                              </div>
+                              <span className="extra-jugador-pista-price">{formatPrice(precios.jugadorAdicional)}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                      {hasJugadorExtra && (
+                        <div className="extra-qty-row extra-jugador-summary">
+                          <span className="extra-qty-label">
+                            {jugadorExtraCount} pista{jugadorExtraCount !== 1 ? 's' : ''} con 7.º jugador
+                          </span>
+                          <span className="extra-qty-total">= {formatPrice(precioJugador)}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1607,8 +1646,10 @@ export default function ReservasPage() {
                         <span className="confirm-label"><i className="fas fa-bowling-ball" /> Pista {pista}</span>
                         <span className="confirm-value">
                           {horas.length} hora{horas.length > 1 ? 's' : ''}
-                          {jugadorExtraPistas.includes(pista) && (
-                            <span className="confirm-pista-extra-tag"> · 7 jugadores</span>
+                          {getExtraEnPista(pista) > 0 && (
+                            <span className="confirm-pista-extra-tag">
+                              {' '}· {totalJugadoresEnPista(personas, getExtraEnPista(pista))} jugadores
+                            </span>
                           )}
                         </span>
                       </div>
@@ -1621,9 +1662,9 @@ export default function ReservasPage() {
                   <div className="confirm-row">
                     <span className="confirm-label"><i className="fas fa-users" /> Personas</span>
                     <span className="confirm-value">
-                      {personas}
+                      {personas} base por pista
                       {hasJugadorExtra && (
-                        <> · +1 en {jugadorExtraPistas.map(p => `Pista ${p}`).join(', ')} (7 por pista)</>
+                        <> · {formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)}</>
                       )}
                     </span>
                   </div>
@@ -1685,7 +1726,7 @@ export default function ReservasPage() {
                   {hasJugadorExtra && (
                     <div className="confirm-row">
                       <span className="confirm-label">
-                        Jugador Adicional × {jugadorExtraCount} ({jugadorExtraPistas.map(p => `Pista ${p}`).join(', ')})
+                        Jugador Adicional × {jugadorExtraCount} ({formatJugadorExtraPistaResumen(jugadorExtraPorPista, personas)})
                       </span>
                       <span className="confirm-value">{formatPrice(precioJugador)}</span>
                     </div>
@@ -1795,7 +1836,9 @@ export default function ReservasPage() {
                 )}
                 <div className="sidebar-detail">
                   <span className="sidebar-detail-label">Personas</span>
-                  <span className="sidebar-detail-value">{totalPersonas}</span>
+                  <span className="sidebar-detail-value">
+                    {personas}{hasJugadorExtra ? ` (hasta ${maxPersonasPorPista})` : ''}
+                  </span>
                 </div>
                 {datosPersonales.nombre && (
                   <div className="sidebar-detail">
