@@ -74,7 +74,17 @@ export function mergeReservasParaPlano(reservasApi, reservasAdminLocal) {
       horas: `P${pid}:${h}`,
       estado: 'exitosa',
       reference: `LOCAL-${r.id || 'adm'}`,
-      datosPersonales: { nombre: r.nombre },
+      personas: r.personas,
+      metodoPago: r.metodoPago || '',
+      notas: r.notas || '',
+      datosPersonales: {
+        nombre: r.nombre || '',
+        telefono: r.telefono || '',
+        correo: r.correo || '',
+        tipoDocumento: r.tipoDocumento || '',
+        documento: r.documento || '',
+        fechaNacimiento: r.fechaNacimiento || '',
+      },
       origen: 'manual',
     })
   }

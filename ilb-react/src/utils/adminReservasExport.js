@@ -17,9 +17,20 @@ const ESTADO_EXPORT = {
   manual: 'Manual',
 }
 
+/** Datos del cliente (columnas visibles al abrir el CSV). */
+export const CLIENTE_CSV_HEADERS = [
+  'Cliente (nombre)',
+  'Celular',
+  'Correo electrónico',
+  'Tipo documento',
+  'Número documento',
+  'Fecha de cumpleaños',
+]
+
 /** Columnas de detalle de reserva (sin slot del plano). */
 export const RESERVA_CSV_DETAIL_HEADERS = [
   'Referencia',
+  ...CLIENTE_CSV_HEADERS,
   'Estado reserva',
   'Origen',
   'Fecha reserva',
@@ -32,12 +43,6 @@ export const RESERVA_CSV_DETAIL_HEADERS = [
   'Descripción',
   'Notas',
   'Motivo pendiente',
-  'Cliente',
-  'Teléfono',
-  'Correo',
-  'Tipo documento',
-  'Documento',
-  'Fecha nacimiento',
   'Creada',
   'Actualizada',
 ]
@@ -125,16 +130,96 @@ function emptyDetailCells() {
 }
 
 /**
+ * Normaliza datos del cliente desde reserva API, manual local o unified.
+ * @param {object} source
+ * @returns {{ nombre: string, celular: string, correo: string, tipoDocumento: string, documento: string, fechaCumpleanos: string }}
+ */
+export function extractDatosCliente(source) {
+  if (!source) {
+    return {
+      nombre: '',
+      celular: '',
+      correo: '',
+      tipoDocumento: '',
+      documento: '',
+      fechaCumpleanos: '',
+    }
+  }
+
+  const dp = source.datosPersonales || source.datos_personales || {}
+  const docJoined = typeof source.documento === 'string' ? source.documento.trim() : ''
+
+  let tipoDocumento = dp.tipoDocumento || dp.tipo_documento || ''
+  let documento = dp.documento || ''
+  if (!documento && docJoined) {
+    const parts = docJoined.split(/\s+/)
+    if (parts.length > 1 && !tipoDocumento) {
+      tipoDocumento = parts[0]
+      documento = parts.slice(1).join(' ')
+    } else {
+      documento = docJoined
+    }
+  }
+
+  const fechaCumpleanos =
+    dp.fechaNacimiento ||
+    dp.fecha_nacimiento ||
+    dp.fechaCumpleanos ||
+    dp.fecha_cumpleanos ||
+    source.fechaNacimiento ||
+    source.fechaCumpleanos ||
+    ''
+
+  return {
+    nombre:
+      dp.nombre ||
+      source.nombre ||
+      (source.cliente && source.cliente !== '—' ? source.cliente : '') ||
+      '',
+    celular:
+      dp.telefono ||
+      dp.celular ||
+      dp.mobile ||
+      source.telefono ||
+      source.celular ||
+      '',
+    correo: dp.correo || dp.email || source.correo || source.email || '',
+    tipoDocumento,
+    documento,
+    fechaCumpleanos,
+  }
+}
+
+/** @returns {string[]} Celdas de CLIENTE_CSV_HEADERS */
+export function clienteToCsvCells(source) {
+  const c = extractDatosCliente(source)
+  return [
+    c.nombre,
+    c.celular,
+    c.correo,
+    c.tipoDocumento,
+    c.documento,
+    c.fechaCumpleanos,
+  ]
+}
+
+/**
  * @param {object|null|undefined} r Reserva API o merged para plano
  * @returns {string[]}
  */
 export function reservaToCsvDetailCells(r) {
   if (!r) return emptyDetailCells()
 
-  const dp = r.datosPersonales || {}
+  const cliente = extractDatosCliente(r)
 
   return [
     r.reference || '',
+    cliente.nombre,
+    cliente.celular,
+    cliente.correo,
+    cliente.tipoDocumento,
+    cliente.documento,
+    cliente.fechaCumpleanos,
     ESTADO_EXPORT[r.estado] || r.estado || '',
     origenReserva(r),
     r.fecha || '',
@@ -147,12 +232,6 @@ export function reservaToCsvDetailCells(r) {
     r.description || '',
     r.notas || '',
     motivoPendiente(r),
-    dp.nombre || r.nombre || '',
-    dp.telefono || r.telefono || '',
-    dp.correo || '',
-    dp.tipoDocumento || '',
-    dp.documento || '',
-    dp.fechaNacimiento || '',
     formatDateTimeCsv(r.creadaEn),
     formatDateTimeCsv(r.actualizadaEn),
   ]
@@ -165,12 +244,16 @@ export function reservaToCsvDetailCells(r) {
  */
 export function unifiedReservaToCsvRow(u) {
   const raw = u.raw || {}
-  const dp = raw.datosPersonales || {}
-  const docTipo = dp.tipoDocumento || (u.documento ? u.documento.split(' ')[0] : '')
-  const docNum = dp.documento || (u.documento ? u.documento.replace(/^\S+\s*/, '') : '')
+  const cliente = extractDatosCliente({ ...raw, ...u })
 
   return [
     u.numero || '',
+    cliente.nombre,
+    cliente.celular,
+    cliente.correo,
+    cliente.tipoDocumento,
+    cliente.documento,
+    cliente.fechaCumpleanos,
     ESTADO_EXPORT[u.estado] || u.estado || '',
     u.origen === 'manual' ? 'manual' : 'online',
     u.fecha || '',
@@ -183,12 +266,6 @@ export function unifiedReservaToCsvRow(u) {
     u.descripcion || '',
     u.notas || '',
     raw.motivoPendiente || motivoPendiente(raw),
-    u.cliente && u.cliente !== '—' ? u.cliente : (dp.nombre || raw.nombre || ''),
-    u.telefono || dp.telefono || '',
-    u.correo || dp.correo || '',
-    docTipo,
-    docNum,
-    u.fechaNacimiento || dp.fechaNacimiento || '',
     formatDateTimeCsv(u.creadaEn),
     formatDateTimeCsv(u.actualizadaEn),
   ]
