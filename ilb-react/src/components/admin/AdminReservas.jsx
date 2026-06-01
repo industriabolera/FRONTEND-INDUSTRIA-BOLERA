@@ -12,10 +12,23 @@ const ALL_HORAS = [
 
 const PISTAS = Array.from({ length: 11 }, (_, i) => i + 1)
 
+const DOC_TYPES = [
+  { value: 'CC', label: 'Cédula de Ciudadanía' },
+  { value: 'CE', label: 'Cédula de Extranjería' },
+  { value: 'TI', label: 'Tarjeta de Identidad' },
+  { value: 'NIT', label: 'NIT' },
+  { value: 'PPN', label: 'Pasaporte' },
+  { value: 'DNI', label: 'DNI (Perú)' },
+]
+
 const EMPTY_FORM = {
   fecha: '',
   nombre: '',
   telefono: '',
+  correo: '',
+  fechaNacimiento: '',
+  tipoDocumento: 'CC',
+  documento: '',
   personas: 2,
   metodoPago: '',
   notas: '',
@@ -189,6 +202,10 @@ export default function AdminReservas() {
         fecha: form.fecha,
         nombre: form.nombre,
         telefono: form.telefono,
+        correo: form.correo,
+        fechaNacimiento: form.fechaNacimiento,
+        tipoDocumento: form.tipoDocumento,
+        documento: form.documento,
         personas: form.personas,
         metodoPago: form.metodoPago,
         notas: form.notas,
@@ -332,14 +349,40 @@ export default function AdminReservas() {
               <input className="admin-input" value={form.nombre} onChange={e => handleChange('nombre', e.target.value)} placeholder="Nombre completo" required />
             </div>
             <div className="admin-field">
-              <label className="admin-field-label">Teléfono</label>
-              <input className="admin-input" value={form.telefono} onChange={e => handleChange('telefono', e.target.value)} placeholder="3XX XXX XXXX" />
+              <label className="admin-field-label">Celular</label>
+              <input className="admin-input" type="tel" value={form.telefono} onChange={e => handleChange('telefono', e.target.value)} placeholder="+57 3XX XXX XXXX" />
             </div>
           </div>
 
           <div className="admin-form-row admin-form-row-2">
             <div className="admin-field">
-              <label className="admin-field-label">Fecha</label>
+              <label className="admin-field-label">Correo electrónico</label>
+              <input className="admin-input" type="email" value={form.correo} onChange={e => handleChange('correo', e.target.value)} placeholder="cliente@correo.com" />
+            </div>
+            <div className="admin-field">
+              <label className="admin-field-label">Fecha de cumpleaños</label>
+              <input className="admin-input" type="date" value={form.fechaNacimiento} onChange={e => handleChange('fechaNacimiento', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="admin-form-row admin-form-row-2">
+            <div className="admin-field">
+              <label className="admin-field-label">Tipo de documento (opcional)</label>
+              <select className="admin-input" value={form.tipoDocumento} onChange={e => handleChange('tipoDocumento', e.target.value)}>
+                {DOC_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="admin-field">
+              <label className="admin-field-label">Número de documento (opcional)</label>
+              <input className="admin-input" value={form.documento} onChange={e => handleChange('documento', e.target.value)} placeholder="Número de identificación" />
+            </div>
+          </div>
+
+          <div className="admin-form-row admin-form-row-2">
+            <div className="admin-field">
+              <label className="admin-field-label">Fecha de la reserva</label>
               <input className="admin-input" type="date" value={form.fecha} onChange={e => handleChange('fecha', e.target.value)} required />
             </div>
             <p className="admin-panel-desc" style={{ margin: '8px 0 0', flex: '1 1 200px' }}>
@@ -422,7 +465,7 @@ export default function AdminReservas() {
 
           <div className="admin-field">
             <label className="admin-field-label">Notas / Comentarios (opcional)</label>
-            <input className="admin-input" value={form.notas} onChange={e => handleChange('notas', e.target.value)} placeholder="Cumpleaños, evento especial..." />
+            <input className="admin-input" value={form.notas} onChange={e => handleChange('notas', e.target.value)} placeholder="Evento especial, preferencias..." />
           </div>
 
           <div className="admin-form-actions">

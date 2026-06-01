@@ -36,6 +36,10 @@ export async function handler(event) {
     const fecha = String(body.fecha || '').trim()
     const nombre = String(body.nombre || '').trim()
     const telefono = String(body.telefono || '').trim()
+    const correo = String(body.correo || '').trim()
+    const fechaNacimiento = String(body.fechaNacimiento || body.fechaCumpleanos || '').trim()
+    const tipoDocumento = String(body.tipoDocumento || '').trim()
+    const documento = String(body.documento || '').trim()
     const notas = body.notas != null ? String(body.notas) : ''
     const metodoPago = body.metodoPago != null ? String(body.metodoPago) : ''
     const personas = body.personas !== undefined && body.personas !== null && body.personas !== ''
@@ -107,9 +111,10 @@ export async function handler(event) {
       datosPersonales: {
         nombre,
         telefono,
-        correo: '',
-        tipoDocumento: '',
-        documento: '',
+        correo,
+        tipoDocumento,
+        documento,
+        fechaNacimiento,
       },
       metodoPago,
       notas,

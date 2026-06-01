@@ -295,6 +295,10 @@ export function BoleraProvider({ children }) {
       metodoPago: reserva.metodoPago || '',
       nombre: reserva.nombre,
       telefono: reserva.telefono || '',
+      correo: reserva.correo || '',
+      fechaNacimiento: reserva.fechaNacimiento || '',
+      tipoDocumento: reserva.tipoDocumento || '',
+      documento: reserva.documento || '',
       notas: reserva.notas || '',
     }
     const body =
