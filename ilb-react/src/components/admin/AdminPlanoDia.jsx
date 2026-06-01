@@ -9,23 +9,11 @@ import {
   reservationsAtSlot,
   bloqueoMotivoLaneSlot,
 } from '../../utils/adminReservasGrid'
-
-function escapeCsv(cell) {
-  const s = String(cell ?? '')
-  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
-}
-
-function downloadUtf8Csv(filename, rows) {
-  const csv = rows.map(row => row.map(escapeCsv).join(',')).join('\r\n')
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  URL.revokeObjectURL(url)
-}
+import {
+  PLANO_OCUPACION_CSV_HEADERS,
+  downloadUtf8Csv,
+  reservaToCsvDetailCells,
+} from '../../utils/adminReservasExport'
 
 function laneTieneBloqueoAdmin(bloqueos, fechaStr, pista, hora) {
   return bloqueoMotivoLaneSlot(bloqueos, fechaStr, pista, hora) !== ''
@@ -125,34 +113,25 @@ export default function AdminPlanoDia({ reservas }) {
 
   const exportarCsv = () => {
     if (!fecha) return
-    const header = ['Fecha', 'Pista', 'Hora', 'Estado', 'Detalle', 'Referencia', 'Cliente', 'Método pago', 'Origen']
-    const rows = [header]
+    const rows = [PLANO_OCUPACION_CSV_HEADERS]
+    const emptyDetail = reservaToCsvDetailCells(null)
 
     for (const pista of LANES) {
       for (const hora of ALL_HORAS) {
         const bloqueoTxt = bloqueoMotivoLaneSlot(config.bloqueos, fecha, pista, hora)
         if (bloqueoTxt) {
-          rows.push([fecha, pista, hora, 'Bloqueada (admin)', bloqueoTxt, '', '', '', ''])
+          rows.push([fecha, pista, hora, 'Bloqueada (admin)', bloqueoTxt, ...emptyDetail])
           continue
         }
 
         const r = reservationsAtSlot(reservasDia, fecha, pista, hora)
         if (r) {
-          rows.push([
-            fecha,
-            pista,
-            hora,
-            r.estado === 'pendiente' ? 'Apartada/Pendiente' : 'Reservada (vendida)',
-            '',
-            r.reference || '',
-            r.datosPersonales?.nombre || '',
-            r.metodoPago || '',
-            r.origen || (String(r.reference || '').startsWith('MANUAL-') ? 'manual' : 'online'),
-          ])
+          const estadoSlot = r.estado === 'pendiente' ? 'Apartada/Pendiente' : 'Reservada (vendida)'
+          rows.push([fecha, pista, hora, estadoSlot, '', ...reservaToCsvDetailCells(r)])
           continue
         }
 
-        rows.push([fecha, pista, hora, 'Disponible', '', '', '', '', ''])
+        rows.push([fecha, pista, hora, 'Disponible', '', ...emptyDetail])
       }
     }
 

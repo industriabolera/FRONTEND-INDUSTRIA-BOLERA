@@ -3,6 +3,7 @@ import { useBolera } from '../../context/BoleraContext'
 import AdminPlanoDia from './AdminPlanoDia'
 import { parseHorasFromString } from '../../utils/bookingSlots'
 import { fetchAllReservasForAdminPortal } from '../../utils/adminReservasFetch'
+import { downloadReservasListCsv } from '../../utils/adminReservasExport'
 
 const ALL_HORAS = [
   '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
@@ -296,6 +297,12 @@ export default function AdminReservas() {
 
   const sortedDates = Object.keys(grouped).sort().reverse()
 
+  const exportarReservasCsv = () => {
+    const stamp = new Date().toISOString().slice(0, 10)
+    const suffix = filtro !== 'todas' ? `_${filtro}` : ''
+    downloadReservasListCsv(filtered, `reservas_${stamp}${suffix}.csv`)
+  }
+
   const counts = useMemo(() => ({
     todas: unified.length,
     exitosa: unified.filter(r => r.estado === 'exitosa').length,
@@ -449,6 +456,15 @@ export default function AdminReservas() {
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          className="admin-btn admin-btn-secondary"
+          onClick={exportarReservasCsv}
+          disabled={filtered.length === 0}
+          title="Exportar reservas visibles con todos los datos"
+        >
+          <i className="fas fa-file-download" /> Exportar CSV
+        </button>
         <button className="dash-refresh-btn" onClick={fetchOnline} title="Actualizar">
           <i className="fas fa-sync-alt" />
         </button>
