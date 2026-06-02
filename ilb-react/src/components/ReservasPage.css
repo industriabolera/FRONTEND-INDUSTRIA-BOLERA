@@ -942,6 +942,13 @@
   color: #81c784;
 }
 
+.extra-qty-hint-block {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.45;
+}
+
 .extra-jugador-por-pista {
   display: flex;
   flex-direction: column;

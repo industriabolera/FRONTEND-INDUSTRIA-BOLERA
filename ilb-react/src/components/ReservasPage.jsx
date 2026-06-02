@@ -377,7 +377,7 @@ export default function ReservasPage() {
   const [globalBookingHoras, setGlobalBookingHoras] = useState([])
   const [personas, setPersonas] = useState(2)
   const [addZapatos, setAddZapatos] = useState(false)
-  const [zapatosTodasLasHoras, setZapatosTodasLasHoras] = useState(true)
+  const [zapatosTodasLasHoras, setZapatosTodasLasHoras] = useState(false)
   /** Por pista: cantidad de jugadores extra (cada uno se cobra aparte). */
   const [jugadorExtraPorPista, setJugadorExtraPorPista] = useState({})
   const [datosPersonales, setDatosPersonales] = useState({
@@ -1388,7 +1388,7 @@ export default function ReservasPage() {
                   <i className="fas fa-exclamation-triangle" />
                   <p>
                     <strong>Recuerda:</strong> el uso de medias y zapatos es obligatorio. Si no los incluyes en tu compra, debes adquirirlos directamente en la Bolera.
-                    <strong> Medias y Zapatos {formatPrice(precios.zapatos)}</strong>. El cobro aplica por cada bloque de pista-hora y no se reutilizan.
+                    <strong> Medias y Zapatos {formatPrice(precios.zapatos)}</strong>. Si el mismo grupo juega en todos los turnos, basta un juego por persona; solo cobra por cada turno si en cada hora o pista jugarán personas distintas.
                   </p>
                 </div>
 
@@ -1413,10 +1413,15 @@ export default function ReservasPage() {
                   {addZapatos && (
                     <div className="extra-qty-row">
                       {totalHorasReservadas > 1 && !promo2x1Active && (
-                        <label className="extra-hours-checkbox" onClick={() => setZapatosTodasLasHoras(v => !v)}>
-                          <i className={zapatosTodasLasHoras ? 'fas fa-check-square' : 'far fa-square'} />
-                          <span>Comprar zapatos y medias para todas las horas seleccionadas</span>
-                        </label>
+                        <>
+                          <p className="extra-qty-hint extra-qty-hint-block">
+                            Si las <strong>mismas personas</strong> juegan en todos los turnos, deja la casilla sin marcar: con un juego de zapatos y medias por persona es suficiente.
+                          </p>
+                          <label className="extra-hours-checkbox" onClick={() => setZapatosTodasLasHoras(v => !v)}>
+                            <i className={zapatosTodasLasHoras ? 'fas fa-check-square' : 'far fa-square'} />
+                            <span>En cada hora o pista jugarán <strong>personas distintas</strong> (incluir zapatos y medias en todos los turnos)</span>
+                          </label>
+                        </>
                       )}
                       {promo2x1Active && totalHorasReservadas > 1 && (
                         <span className="extra-qty-hint">
@@ -1432,13 +1437,13 @@ export default function ReservasPage() {
                         Cobro: {personasZapatosCobro} persona(s){hasJugadorExtra ? ' base' : ''}{promo2x1Active ? ' (grupo 2×1)' : ` × ${horasCobroZapatosEfectivas} hora(s)`}
                         <i
                           className="fas fa-info-circle extra-tooltip-icon"
-                          title="Si no compras para todas las horas, en los horarios restantes deberán adquirirse presencialmente en la bolera."
+                          title="Marca la opción solo si en cada turno juega un grupo distinto. Si es el mismo grupo en todos los turnos, no hace falta."
                         />
                       </span>
                       <span className="extra-qty-total">= {formatPrice(precios.zapatos * zapatosCobroQty)}</span>
                       {horasSinZapatos > 0 && (
                         <span className="extra-qty-warning">
-                          En {horasSinZapatos} hora(s) restante(s) los zapatos/medias deben comprarse presencialmente.
+                          En {horasSinZapatos} turno(s) no incluyes zapatos en esta compra. Si ahí jugarán personas distintas, marca la casilla arriba o cómpralos en la bolera.
                         </span>
                       )}
                     </div>
