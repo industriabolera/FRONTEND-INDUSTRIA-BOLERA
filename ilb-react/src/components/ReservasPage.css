@@ -91,13 +91,50 @@
    STEPPER
    ============================================ */
 
+.reservas-stepper-block {
+  margin-bottom: 50px;
+}
+
 .reservas-stepper {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin-bottom: 50px;
   flex-wrap: wrap;
+}
+
+.reservas-nav-hint {
+  max-width: 720px;
+  margin: 16px auto 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(228, 210, 141, 0.08);
+  border: 1px solid rgba(228, 210, 141, 0.22);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: center;
+}
+
+.reservas-nav-hint i {
+  margin-right: 6px;
+  color: #e4d28d;
+}
+
+.reservas-nav-hint strong {
+  color: #e4d28d;
+  font-weight: 600;
+}
+
+.sidebar-nav-hint {
+  width: 100%;
+  margin: 0 0 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
 }
 
 .stepper-item-wrapper {
@@ -1559,9 +1596,17 @@
     font-size: 2rem;
   }
 
+  .reservas-stepper-block {
+    margin-bottom: 30px;
+  }
+
   .reservas-stepper {
     gap: 8px;
-    margin-bottom: 30px;
+  }
+
+  .reservas-nav-hint {
+    font-size: 12px;
+    padding: 10px 12px;
   }
 
   .stepper-item {

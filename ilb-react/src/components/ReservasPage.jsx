@@ -1141,23 +1141,35 @@ export default function ReservasPage() {
         </div>
 
         {/* Stepper */}
-        <div className="reservas-stepper">
-          {STEPS.map((step, i) => (
-            <div key={step} className="stepper-item-wrapper">
-              <button
-                className={`stepper-item ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'completed' : ''}`}
-                onClick={() => i < currentStep && setCurrentStep(i)}
-                disabled={i > currentStep}
-              >
-                <span className="stepper-label">{step}</span>
-              </button>
-              {i < STEPS.length - 1 && (
-                <div className={`stepper-arrow ${i < currentStep ? 'completed' : ''}`}>
-                  <i className="fas fa-arrow-right" />
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="reservas-stepper-block">
+          <div className="reservas-stepper">
+            {STEPS.map((step, i) => (
+              <div key={step} className="stepper-item-wrapper">
+                <button
+                  type="button"
+                  className={`stepper-item ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'completed' : ''}`}
+                  onClick={() => i < currentStep && setCurrentStep(i)}
+                  disabled={i > currentStep}
+                  title={i < currentStep ? `Volver a ${step}` : undefined}
+                >
+                  <span className="stepper-label">{step}</span>
+                </button>
+                {i < STEPS.length - 1 && (
+                  <div className={`stepper-arrow ${i < currentStep ? 'completed' : ''}`}>
+                    <i className="fas fa-arrow-right" />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          {currentStep > 0 && (
+            <p className="reservas-nav-hint">
+              <i className="fas fa-info-circle" aria-hidden="true" />
+              Para volver y cambiar algo en tu reserva, selecciona en la barra de navegación la pestaña a la que quieres regresar.
+              Por ejemplo, para modificar la <strong>fecha</strong> o la <strong>pista y hora</strong>, haz clic en
+              {' '}<strong>Fecha</strong> o <strong>Pista y Hora</strong>.
+            </p>
+          )}
         </div>
 
         <div className="reservas-body">
@@ -1933,6 +1945,11 @@ export default function ReservasPage() {
               )}
 
               <div className="sidebar-actions" ref={sidebarActionsRef}>
+                {currentStep > 0 && (
+                  <p className="sidebar-nav-hint">
+                    También puedes usar las pestañas de arriba para ir directo al paso que quieras editar.
+                  </p>
+                )}
                 {currentStep > 0 && (
                   <button className="sidebar-btn sidebar-btn-back" onClick={goBack}>
                     Volver
