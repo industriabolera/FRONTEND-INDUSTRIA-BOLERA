@@ -1,5 +1,7 @@
-import { getReservasCollection } from './lib/db.js'
+import { getReservasCollection, getBloqueosCollection } from './lib/db.js'
 import { requireAuth } from './lib/admin-auth.js'
+import { reprogramarReservaAdmin } from './lib/admin-reserva-reprogramar-shared.js'
+import { mapReservaDocToListRow } from './lib/reservas-list-shared.js'
 
 const json = (statusCode, body) => ({
   statusCode,
@@ -36,6 +38,20 @@ export async function handler(event) {
           { returnDocument: 'after' }
         )
         return json(200, { reserva: result })
+      }
+
+      if (action === 'reprogramar') {
+        const bloqueos = await getBloqueosCollection()
+        const outcome = await reprogramarReservaAdmin({
+          reservasCol: reservas,
+          bloqueosCol: bloqueos,
+          reference,
+          fecha: body.fecha,
+          slots: body.slots,
+          username: auth.user?.username,
+        })
+        if (!outcome.ok) return json(outcome.status, { error: outcome.error })
+        return json(200, { reserva: mapReservaDocToListRow(outcome.reserva) })
       }
 
       return json(400, { error: 'action inválida' })

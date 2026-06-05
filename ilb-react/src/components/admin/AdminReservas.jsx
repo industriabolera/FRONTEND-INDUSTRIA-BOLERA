@@ -83,6 +83,22 @@ function horasResumen(slots) {
   return Array.from(set).join(' · ')
 }
 
+function slotsFromUnifiedReserva(r) {
+  if (r?.slots?.length) {
+    return r.slots.map(s => ({
+      pista: Number(s.pista),
+      hora: String(s.hora || '').trim(),
+    }))
+  }
+  return parseHorasFromString(r?.raw?.horas)
+}
+
+function reservaModificable(r) {
+  const ref = r?.raw?.reference || r?.numero
+  if (!ref || String(ref).startsWith('MAN-') || String(ref).startsWith('LOCAL-')) return false
+  return r.estado === 'exitosa' || r.estado === 'pendiente'
+}
+
 export default function AdminReservas() {
   const { config, addReservaAdmin, deleteReservaAdmin, isLaneBlocked, isLaneReservedAdmin, isLaneReservedOnline, auth } = useBolera()
   const [showForm, setShowForm] = useState(false)
@@ -93,6 +109,10 @@ export default function AdminReservas() {
   const [expanded, setExpanded] = useState(null)
   const [filtro, setFiltro] = useState('todas')
   const [busqueda, setBusqueda] = useState('')
+  const [modificarTarget, setModificarTarget] = useState(null)
+  const [modificarForm, setModificarForm] = useState({ fecha: '', slots: [{ pista: 1, hora: '' }] })
+  const [modificarError, setModificarError] = useState(null)
+  const [modificarSaving, setModificarSaving] = useState(false)
 
   const fetchOnline = useCallback(async (opts = {}) => {
     const silent = Boolean(opts.silent)
@@ -124,6 +144,86 @@ export default function AdminReservas() {
     const data = await r.json().catch(() => ({}))
     if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
     fetchOnline()
+  }
+
+  const abrirModificar = (r) => {
+    const slots = slotsFromUnifiedReserva(r)
+    setModificarTarget(r)
+    setModificarForm({
+      fecha: r.fecha || '',
+      slots: slots.length ? slots.map(s => ({ ...s })) : [{ pista: 1, hora: '' }],
+    })
+    setModificarError(null)
+  }
+
+  const cerrarModificar = () => {
+    setModificarTarget(null)
+    setModificarError(null)
+    setModificarSaving(false)
+  }
+
+  const changeModificarSlot = (idx, key, raw) => {
+    setModificarForm(prev => {
+      const slots = [...prev.slots]
+      slots[idx] = {
+        ...slots[idx],
+        [key]: key === 'pista' ? parseInt(raw, 10) || 1 : raw,
+      }
+      return { ...prev, slots }
+    })
+  }
+
+  const addModificarSlotRow = () => {
+    setModificarForm(prev => ({
+      ...prev,
+      slots: [...prev.slots, { pista: 1, hora: '' }],
+    }))
+  }
+
+  const removeModificarSlotRow = (idx) => {
+    setModificarForm(prev => {
+      if (prev.slots.length < 2) return prev
+      return { ...prev, slots: prev.slots.filter((_, i) => i !== idx) }
+    })
+  }
+
+  const guardarModificacion = async () => {
+    if (!modificarTarget) return
+    const reference = modificarTarget.raw?.reference || modificarTarget.numero
+    const slotsFilled = modificarForm.slots
+      .map(s => ({ pista: Number(s.pista), hora: String(s.hora || '').trim() }))
+      .filter(s => s.hora.length > 0)
+    if (!modificarForm.fecha) {
+      setModificarError('Selecciona una fecha.')
+      return
+    }
+    if (slotsFilled.length === 0) {
+      setModificarError('Agrega al menos una pista con hora.')
+      return
+    }
+    setModificarSaving(true)
+    setModificarError(null)
+    try {
+      const r = await fetch('/api/admin/reservas', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({
+          reference,
+          action: 'reprogramar',
+          fecha: modificarForm.fecha,
+          slots: slotsFilled,
+        }),
+      })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(data.error || `Error ${r.status}`)
+      cerrarModificar()
+      setExpanded(null)
+      fetchOnline()
+    } catch (e) {
+      setModificarError(e.message || String(e))
+    } finally {
+      setModificarSaving(false)
+    }
   }
 
   const borrarOnline = async (reference) => {
@@ -630,6 +730,16 @@ export default function AdminReservas() {
 
                         {r.origen === 'online' && (
                           <div className="admin-reserva-detail-actions">
+                            {reservaModificable(r) && (
+                              <button
+                                type="button"
+                                className="admin-btn-icon"
+                                title="Cambiar solo fecha u horario"
+                                onClick={() => abrirModificar(r)}
+                              >
+                                <i className="fas fa-calendar-alt" /> Modificar fecha/hora
+                              </button>
+                            )}
                             {r.estado !== 'cancelada' && (
                               <button
                                 className="admin-btn-icon admin-btn-danger"
@@ -651,6 +761,16 @@ export default function AdminReservas() {
 
                         {r.origen === 'manual' && r.raw?.reference && (
                           <div className="admin-reserva-detail-actions">
+                            {reservaModificable(r) && (
+                              <button
+                                type="button"
+                                className="admin-btn-icon"
+                                title="Cambiar solo fecha u horario"
+                                onClick={() => abrirModificar(r)}
+                              >
+                                <i className="fas fa-calendar-alt" /> Modificar fecha/hora
+                              </button>
+                            )}
                             {r.estado !== 'cancelada' && (
                               <button
                                 className="admin-btn-icon admin-btn-danger"
@@ -688,6 +808,103 @@ export default function AdminReservas() {
               })}
             </div>
           ))}
+        </div>
+      )}
+
+      {modificarTarget && (
+        <div className="admin-modal-overlay" role="presentation" onClick={cerrarModificar}>
+          <div
+            className="admin-modal admin-modal-reprogramar"
+            role="dialog"
+            aria-labelledby="admin-modificar-title"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="admin-modal-header">
+              <h3 id="admin-modificar-title">
+                <i className="fas fa-calendar-alt" /> Modificar fecha y horario
+              </h3>
+              <button type="button" className="admin-modal-close" onClick={cerrarModificar} aria-label="Cerrar">
+                <i className="fas fa-times" />
+              </button>
+            </div>
+            <p className="admin-panel-desc" style={{ marginTop: 0 }}>
+              Reserva <strong>{modificarTarget.numero}</strong> · {modificarTarget.cliente}
+              <br />
+              Solo cambia la fecha o los turnos. Personas, pago y datos del cliente no se modifican.
+            </p>
+
+            <div className="admin-field">
+              <label className="admin-field-label">Nueva fecha</label>
+              <input
+                className="admin-input"
+                type="date"
+                value={modificarForm.fecha}
+                onChange={e => setModificarForm(prev => ({ ...prev, fecha: e.target.value }))}
+              />
+            </div>
+
+            <div className="admin-field">
+              <label className="admin-field-label">Pistas y horarios</label>
+              {modificarForm.slots.map((row, idx) => (
+                <div key={idx} className="admin-form-row admin-form-row-3 admin-manual-slot-row">
+                  <div className="admin-field" style={{ marginBottom: 0 }}>
+                    <label className="admin-field-label">Pista</label>
+                    <select
+                      className="admin-input"
+                      value={row.pista}
+                      onChange={e => changeModificarSlot(idx, 'pista', e.target.value)}
+                    >
+                      {PISTAS.map(p => (
+                        <option key={p} value={p}>Pista {p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="admin-field" style={{ marginBottom: 0 }}>
+                    <label className="admin-field-label">Hora</label>
+                    <select
+                      className="admin-input"
+                      value={row.hora}
+                      onChange={e => changeModificarSlot(idx, 'hora', e.target.value)}
+                    >
+                      <option value="">Seleccionar…</option>
+                      {ALL_HORAS.map(h => (
+                        <option key={h} value={h}>{h}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="admin-field" style={{ marginBottom: 0, display: 'flex', alignItems: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="admin-btn admin-btn-secondary"
+                      style={{ width: '100%' }}
+                      disabled={modificarForm.slots.length < 2}
+                      onClick={() => removeModificarSlotRow(idx)}
+                    >
+                      <i className="fas fa-minus" /> Quitar
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button type="button" className="admin-btn admin-btn-secondary" style={{ marginTop: 10 }} onClick={addModificarSlotRow}>
+                <i className="fas fa-plus" /> Agregar pista u horario
+              </button>
+            </div>
+
+            {modificarError && (
+              <p className="admin-modal-error">
+                <i className="fas fa-exclamation-circle" /> {modificarError}
+              </p>
+            )}
+
+            <div className="admin-modal-footer">
+              <button type="button" className="admin-btn admin-btn-secondary" onClick={cerrarModificar} disabled={modificarSaving}>
+                Cancelar
+              </button>
+              <button type="button" className="admin-btn admin-btn-primary" onClick={guardarModificacion} disabled={modificarSaving}>
+                {modificarSaving ? <><i className="fas fa-spinner fa-spin" /> Guardando…</> : <><i className="fas fa-check" /> Guardar cambios</>}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

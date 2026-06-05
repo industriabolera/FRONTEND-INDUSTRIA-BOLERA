@@ -21,6 +21,7 @@ import {
   mapReservaDocToListRow,
   buildReservaListFilter,
 } from '../netlify/functions/lib/reservas-list-shared.js'
+import { reprogramarReservaAdmin } from '../netlify/functions/lib/admin-reserva-reprogramar-shared.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -36,7 +37,7 @@ app.use(cors({
     if (!origin) return cb(null, true)
     return cb(null, allowed.has(origin))
   },
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use(express.json())
@@ -273,6 +274,20 @@ app.patch('/api/admin/reservas', async (req, res) => {
         { returnDocument: 'after' }
       )
       return res.json({ reserva: result })
+    }
+
+    if (action === 'reprogramar') {
+      const bloqueosCol = await getBloqueosCollection()
+      const outcome = await reprogramarReservaAdmin({
+        reservasCol: reservas,
+        bloqueosCol,
+        reference,
+        fecha: req.body?.fecha,
+        slots: req.body?.slots,
+        username: auth.user?.username,
+      })
+      if (!outcome.ok) return res.status(outcome.status).json({ error: outcome.error })
+      return res.json({ reserva: mapReservaDocToListRow(outcome.reserva) })
     }
 
     return res.status(400).json({ error: 'action inválida' })

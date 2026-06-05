@@ -137,6 +137,29 @@ export async function bloqueoConflictoConOtrosAdmin(bloqueosCol, opts) {
   return null
 }
 
+export async function isSlotReservedByConfirmedOrPendingHoldExcluding(
+  { pista, fecha, hora, excludeReference },
+  reservasCol
+) {
+  const holdSince = new Date(Date.now() - HOLD_MS)
+  const query = {
+    fecha,
+    $or: [
+      { estado: 'exitosa' },
+      { estado: 'pendiente', actualizadaEn: { $gte: holdSince } },
+    ],
+  }
+  if (excludeReference) query.reference = { $ne: String(excludeReference) }
+
+  const candidates = await reservasCol.find(query).project({ horas: 1 }).toArray()
+
+  for (const r of candidates) {
+    const slots = parseSlots(fecha, r.horas || '')
+    if (slots.some(s => s.pista === Number(pista) && s.hora === hora)) return true
+  }
+  return false
+}
+
 export async function isSlotBlockedOrReserved({ pista, fecha, hora }, { reservasCol, bloqueosCol }) {
   const bloqueos = await bloqueosCol
     .find({
@@ -155,6 +178,33 @@ export async function isSlotBlockedOrReserved({ pista, fecha, hora }, { reservas
   }
 
   return isSlotReservedByConfirmedOrPendingHold({ pista, fecha, hora }, reservasCol)
+}
+
+/** Igual que isSlotBlockedOrReserved pero ignora los slots de excludeReference (reprogramación admin). */
+export async function isSlotBlockedOrReservedExcluding(
+  { pista, fecha, hora, excludeReference },
+  { reservasCol, bloqueosCol }
+) {
+  const bloqueos = await bloqueosCol
+    .find({
+      pista: Number(pista),
+      $or: [
+        { fechaInicio: { $lte: fecha }, fechaFin: { $gte: fecha } },
+        { fecha },
+      ],
+    })
+    .project({ horas: 1 })
+    .toArray()
+
+  for (const bloqueo of bloqueos) {
+    const bh = Array.isArray(bloqueo.horas) ? bloqueo.horas : []
+    if (bh.length === 0 || bh.includes(hora)) return true
+  }
+
+  return isSlotReservedByConfirmedOrPendingHoldExcluding(
+    { pista, fecha, hora, excludeReference },
+    reservasCol
+  )
 }
 
 /** Varias parejas { pista, hora } únicas para una reserva manual (sin duplicados). */
