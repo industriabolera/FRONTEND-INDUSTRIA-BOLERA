@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { MENU_PDF_URL } from '../../../constants/menuPdf'
 import './ServiciosMenuSection.css'
 
 const slideshow = [
@@ -15,7 +16,6 @@ const slideshow = [
 ]
 
 const SLIDE_MS = 4500
-const MENU_PDF = 'https://laindustriabolera.co/wp-content/uploads/2025/08/Carta-La-Industria_.pdf'
 
 export default function ServiciosMenuSection() {
   const [current, setCurrent] = useState(0)
@@ -50,7 +50,7 @@ export default function ServiciosMenuSection() {
             </p>
             <a
               className="servicios-menu-button"
-              href={MENU_PDF}
+              href={MENU_PDF_URL}
               target="_blank"
               rel="noopener noreferrer"
             >

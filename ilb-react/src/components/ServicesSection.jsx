@@ -1,4 +1,5 @@
 import './ServicesSection.css'
+import { MENU_PDF_URL } from '../constants/menuPdf'
 
 const services = [
   {
@@ -15,7 +16,7 @@ const services = [
     title2: 'menú',
     description: <>¿Y qué tal una <span style={{ color: '#e68007' }}>picadita para compartir?</span>, anímate.</>,
     buttonText: 'VER MENÚ',
-    buttonLink: 'https://laindustriabolera.co/wp-content/uploads/2026/01/CARTA-LA-INDUSTRIA-2026.pdf',
+    buttonLink: MENU_PDF_URL,
     buttonTarget: '_blank',
   },
   {
@@ -49,9 +50,11 @@ export default function ServicesSection() {
                 <a
                   className="elementor-button elementor-animation-grow"
                   href={service.buttonLink}
-                  {...(service.buttonLink?.startsWith('http')
-                    ? { target: service.buttonTarget || '_blank', rel: 'noopener noreferrer' }
-                    : {})}
+                  {...(service.buttonTarget
+                    ? { target: service.buttonTarget, rel: 'noopener noreferrer' }
+                    : service.buttonLink?.startsWith('http')
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
                 >
                   {service.buttonText}
                 </a>
