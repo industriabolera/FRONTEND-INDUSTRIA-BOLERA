@@ -9,7 +9,7 @@ const json = (statusCode, body) => ({
   body: JSON.stringify(body),
 })
 
-function mapDoc(d) {
+function mapDocPublic(d) {
   if (!d) return null
   return {
     id: d.id,
@@ -17,11 +17,18 @@ function mapDoc(d) {
     fechaInicio: d.fechaInicio,
     fechaFin: d.fechaFin,
     horas: Array.isArray(d.horas) ? d.horas : [],
+    fecha: d.fecha || undefined,
+  }
+}
+
+function mapDoc(d) {
+  if (!d) return null
+  return {
+    ...mapDocPublic(d),
     motivo: d.motivo || '',
     metodoPago: d.metodoPago || '',
     comentarios: d.comentarios || '',
     personas: typeof d.personas === 'number' ? d.personas : (d.personas ? Number(d.personas) : undefined),
-    fecha: d.fecha || undefined,
     creadaEn: d.creadaEn,
   }
 }
@@ -36,7 +43,9 @@ export async function handler(event) {
 
     if (event.httpMethod === 'GET') {
       const docs = await col.find({}).sort({ fechaInicio: 1, pista: 1 }).toArray()
-      return json(200, { bloqueos: docs.map(mapDoc).filter(Boolean) })
+      const auth = requireAuth(event, ['pistas:read'])
+      const mapper = auth.ok ? mapDoc : mapDocPublic
+      return json(200, { bloqueos: docs.map(mapper).filter(Boolean) })
     }
 
     if (event.httpMethod === 'POST') {

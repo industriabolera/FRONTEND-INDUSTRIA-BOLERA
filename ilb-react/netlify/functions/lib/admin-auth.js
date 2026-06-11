@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.ADMIN_JWT_SECRET || process.env.PLACETOPAY_TRANKEY || process.env.MONGODB_URI
+import { isProductionEnv } from './http-security.js'
 
 export const ROLES = {
   admin: {
@@ -18,6 +17,15 @@ export const ROLES = {
   },
 }
 
+export function getJwtSecret() {
+  const dedicated = process.env.ADMIN_JWT_SECRET
+  if (dedicated) return dedicated
+  if (isProductionEnv()) {
+    throw new Error('ADMIN_JWT_SECRET is required in production')
+  }
+  return process.env.PLACETOPAY_TRANKEY || process.env.MONGODB_URI || 'dev-insecure-jwt-secret'
+}
+
 export async function hashPassword(password) {
   return await bcrypt.hash(String(password), 10)
 }
@@ -27,13 +35,13 @@ export async function verifyPassword(password, hash) {
 }
 
 export function signAdminToken(payload, { expiresIn = '12h' } = {}) {
-  if (!JWT_SECRET) throw new Error('ADMIN_JWT_SECRET is not set')
-  return jwt.sign(payload, JWT_SECRET, { expiresIn })
+  const secret = getJwtSecret()
+  return jwt.sign(payload, secret, { expiresIn, algorithm: 'HS256' })
 }
 
 export function verifyAdminToken(token) {
-  if (!JWT_SECRET) throw new Error('ADMIN_JWT_SECRET is not set')
-  return jwt.verify(token, JWT_SECRET)
+  const secret = getJwtSecret()
+  return jwt.verify(token, secret, { algorithms: ['HS256'] })
 }
 
 export function getBearerToken(event) {
@@ -52,9 +60,33 @@ export function requireAuth(event, requiredPermissions = []) {
     const perms = roleInfo?.permissions || []
     const hasAll = requiredPermissions.every(p => perms.includes(p))
     if (!hasAll) return { ok: false, statusCode: 403, error: 'Sin permisos' }
-    return { ok: true, user: { username: decoded.username, role, permissions: perms } }
+    return {
+      ok: true,
+      user: {
+        username: decoded.username,
+        role,
+        permissions: perms,
+        tokenVersion: decoded.tokenVersion || 0,
+      },
+    }
   } catch {
     return { ok: false, statusCode: 401, error: 'Token inválido' }
   }
 }
 
+/** Valida permisos + versión de token contra BD (invalida sesiones tras cambio de contraseña). */
+export async function requireAuthAsync(event, requiredPermissions = [], usersCol) {
+  const base = requireAuth(event, requiredPermissions)
+  if (!base.ok) return base
+  if (!usersCol) return base
+  try {
+    const user = await usersCol.findOne({ username: base.user.username })
+    const dbVersion = user?.tokenVersion || 0
+    if (dbVersion !== (base.user.tokenVersion || 0)) {
+      return { ok: false, statusCode: 401, error: 'Sesión expirada. Inicia sesión de nuevo.' }
+    }
+    return base
+  } catch {
+    return { ok: false, statusCode: 401, error: 'Token inválido' }
+  }
+}

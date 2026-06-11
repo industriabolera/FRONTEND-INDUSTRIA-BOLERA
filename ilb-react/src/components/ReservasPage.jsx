@@ -484,14 +484,16 @@ export default function ReservasPage() {
 
     if (status === 'cancelled') {
       setPaymentResult({ status: 'CANCELLED', reference: ref })
+      const accessToken = localStorage.getItem('ilb_paymentAccessToken') || ''
       // Persistir cancelación en BD para que no quede "pendiente"
       fetch('/api/payment/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference: ref, reason: 'Cancelada por el usuario' }),
+        body: JSON.stringify({ reference: ref, reason: 'Cancelada por el usuario', accessToken }),
       }).catch(() => {})
       localStorage.removeItem('ilb_requestId')
       localStorage.removeItem('ilb_reference')
+      localStorage.removeItem('ilb_paymentAccessToken')
       setSearchParams({}, { replace: true })
       return
     }
@@ -527,14 +529,16 @@ export default function ReservasPage() {
         const finishReturnFlow = () => {
           localStorage.removeItem('ilb_requestId')
           localStorage.removeItem('ilb_reference')
+          localStorage.removeItem('ilb_paymentAccessToken')
           setSearchParams({}, { replace: true })
         }
 
         try {
+          const accessToken = localStorage.getItem('ilb_paymentAccessToken') || ''
           const response = await fetch('/api/payment/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requestId }),
+            body: JSON.stringify({ requestId, accessToken }),
           })
           const data = await response.json()
           if (cancelled) return
@@ -901,7 +905,7 @@ export default function ReservasPage() {
         }
       }
 
-      const reference = `ILB-${Date.now()}`
+      const reference = `ILB-${crypto.randomUUID()}`
       const pistasDesc = pistaSelection.map(p => `Pista ${p.pista}`).join(', ')
       const description = promo2x1Active
         ? `Reserva ${pistasDesc} - ${personasCobro} personas (promo 2×1)`
@@ -947,6 +951,9 @@ export default function ReservasPage() {
 
       localStorage.setItem('ilb_requestId', String(data.requestId))
       localStorage.setItem('ilb_reference', reference)
+      if (data.accessToken) {
+        localStorage.setItem('ilb_paymentAccessToken', data.accessToken)
+      }
       window.location.href = data.processUrl
     } catch (err) {
       console.error('Payment error:', err)

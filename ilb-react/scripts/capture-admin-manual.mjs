@@ -7,7 +7,11 @@ import { dirname, resolve } from 'node:path'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT = resolve(__dirname, 'manual-images')
 const URL = process.env.ADMIN_URL || 'https://laindustriabolera.co/admin'
-const PASS = process.env.ADMIN_PASS || 'bolera2026'
+const PASS = process.env.ADMIN_PASS
+if (!PASS) {
+  console.error('Define ADMIN_PASS en el entorno (contraseña del panel admin).')
+  process.exit(1)
+}
 
 const VIEWPORT = { width: 1440, height: 900 }
 

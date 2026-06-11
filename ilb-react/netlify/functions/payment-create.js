@@ -1,44 +1,48 @@
+import { randomUUID } from 'crypto'
 import { getReservasCollection, getBloqueosCollection } from './lib/db.js'
 import { createSession } from './lib/placetopay.js'
 import { validateFechaHorariosReservaColombia } from './lib/booking-datetime-colombia.js'
 import { parseSlots, isSlotBlockedOrReserved } from './lib/reserva-availability.js'
+import { getOrInitAdminConfig } from './lib/admin-config-shared.js'
+import { computeBookingTotal } from './lib/booking-pricing-shared.js'
+import { createPaymentAccessToken } from './lib/payment-access-token.js'
+import { apiErrorMessage, checkRateLimit, corsHeaders, getClientIp, jsonResponse } from './lib/http-security.js'
+
+const POST_METHODS = 'POST, OPTIONS'
 
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'POST' } }
+    return jsonResponse(204, {}, event, POST_METHODS)
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) }
+    return jsonResponse(405, { error: 'Method not allowed' }, event, POST_METHODS)
   }
 
   try {
-    const body = JSON.parse(event.body)
+    const ip = getClientIp(event)
+    if (!checkRateLimit(`pay-create:${ip}`, { max: 30, windowMs: 60 * 60 * 1000 })) {
+      return jsonResponse(429, { error: 'Demasiados intentos. Intenta más tarde.' }, event, POST_METHODS)
+    }
+
+    const body = JSON.parse(event.body || '{}')
     const { reference, description, total, pista, fecha, hora, personas, extras, datosPersonales } = body
 
-    if (!reference || !total || !description) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'reference, total y description son requeridos' }) }
+    if (!reference || total == null || !description) {
+      return jsonResponse(400, { error: 'reference, total y description son requeridos' }, event, POST_METHODS)
     }
 
     if (!datosPersonales?.nombre || !datosPersonales?.telefono || !datosPersonales?.correo || !datosPersonales?.documento) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Datos personales son requeridos (nombre, teléfono, correo, documento)' }) }
+      return jsonResponse(400, { error: 'Datos personales son requeridos (nombre, teléfono, correo, documento)' }, event, POST_METHODS)
     }
 
     if (!fecha || !hora) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'fecha y hora son requeridos' }),
-      }
+      return jsonResponse(400, { error: 'fecha y hora son requeridos' }, event, POST_METHODS)
     }
 
     const slotsForDate = parseSlots(fecha, hora)
     if (slotsForDate.length === 0) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Datos de pista / horario inválidos' }),
-      }
+      return jsonResponse(400, { error: 'Datos de pista / horario inválidos' }, event, POST_METHODS)
     }
 
     const fechaHoraErr = validateFechaHorariosReservaColombia(
@@ -46,20 +50,23 @@ export async function handler(event) {
       slotsForDate.map(s => s.hora)
     )
     if (fechaHoraErr) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: fechaHoraErr }),
-      }
+      return jsonResponse(400, { error: fechaHoraErr }, event, POST_METHODS)
     }
 
-    // Validar nombre: solo letras, tildes, ñ, espacios, guiones
     const namePattern = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/
-    if (!namePattern.test(datosPersonales.nombre.trim())) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'El nombre solo puede contener letras, tildes, ñ, espacios y guiones' }) }
+    if (!namePattern.test(String(datosPersonales.nombre).trim())) {
+      return jsonResponse(400, { error: 'El nombre solo puede contener letras, tildes, ñ, espacios y guiones' }, event, POST_METHODS)
     }
 
-    // ── Anti-duplicado: verificar si ya existe una sesión pendiente reciente ──
+    const config = await getOrInitAdminConfig()
+    const pricing = computeBookingTotal({ config, fecha, hora, personas, extras })
+    if (!pricing.ok) {
+      return jsonResponse(400, { error: pricing.error }, event, POST_METHODS)
+    }
+    if (Number(total) !== pricing.total) {
+      return jsonResponse(400, { error: 'El total no coincide con el precio calculado. Recarga la página e intenta de nuevo.' }, event, POST_METHODS)
+    }
+
     const reservas = await getReservasCollection()
     const recentDuplicate = await reservas.findOne({
       reference,
@@ -67,43 +74,34 @@ export async function handler(event) {
       creadaEn: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
     })
     if (recentDuplicate) {
-      console.log(`[Payment] Duplicate blocked: ref=${reference} (existing requestId=${recentDuplicate.requestId})`)
-      return {
-        statusCode: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          requestId: recentDuplicate.requestId,
-          processUrl: recentDuplicate.placetopay?.processUrl,
-          status: { status: 'OK', message: 'Session already exists' },
-        }),
-      }
+      return jsonResponse(200, {
+        requestId: recentDuplicate.requestId,
+        processUrl: recentDuplicate.placetopay?.processUrl,
+        accessToken: recentDuplicate.paymentAccessToken || null,
+        status: { status: 'OK', message: 'Session already exists' },
+      }, event, POST_METHODS)
     }
 
-    // Validar disponibilidad (bloqueos + reservas existentes) ANTES de crear sesión de pago
-    const slotsToCheck = slotsForDate
     const bloqueos = await getBloqueosCollection()
-    for (const s of slotsToCheck) {
+    for (const s of slotsForDate) {
       const taken = await isSlotBlockedOrReserved(s, { reservasCol: reservas, bloqueosCol: bloqueos })
       if (taken) {
-        return {
-          statusCode: 409,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ error: `La pista ${s.pista} a las ${s.hora} ya no está disponible.` }),
-        }
+        return jsonResponse(409, { error: `La pista ${s.pista} a las ${s.hora} ya no está disponible.` }, event, POST_METHODS)
       }
     }
 
     const baseUrl = process.env.URL || process.env.FRONTEND_URL || 'http://localhost:8888'
+    const safeReference = String(reference).trim()
 
     const result = await createSession({
-      reference,
+      reference: safeReference,
       description,
-      total,
+      total: pricing.total,
       currency: 'COP',
-      returnUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&requestId={requestId}`,
-      cancelUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&status=cancelled`,
+      returnUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(safeReference)}&requestId={requestId}`,
+      cancelUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(safeReference)}&status=cancelled`,
       notificationUrl: `${baseUrl}/api/payment/notify`,
-      ipAddress: event.headers['x-forwarded-for']?.split(',')[0]?.trim() || '127.0.0.1',
+      ipAddress: ip,
       userAgent: event.headers['user-agent'] || 'ILB Reservas',
       buyer: {
         name: datosPersonales.nombre.split(' ')[0],
@@ -122,51 +120,60 @@ export async function handler(event) {
       ],
     })
 
-    await reservas.insertOne({
-      reference,
-      requestId: String(result.requestId),
-      estado: 'pendiente',
-      fecha,
-      pistas: pista,
-      horas: hora,
-      personas: Number(personas),
-      extras: extras || '',
-      total: Number(total),
-      description,
-      datosPersonales: {
-        nombre: datosPersonales.nombre,
-        telefono: datosPersonales.telefono,
-        correo: datosPersonales.correo,
-        tipoDocumento: datosPersonales.tipoDocumento,
-        documento: datosPersonales.documento,
-        fechaNacimiento: datosPersonales.fechaNacimiento,
-      },
-      placetopay: {
-        requestId: result.requestId,
-        processUrl: result.processUrl,
-        statusMessage: result.status?.message,
-      },
-      creadaEn: new Date(),
-      actualizadaEn: new Date(),
-    })
+    const requestId = String(result.requestId)
+    const paymentAccessToken = createPaymentAccessToken(safeReference, requestId)
 
-    console.log(`[Payment] Created: ref=${reference} requestId=${result.requestId} estado=pendiente`)
-
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestId: result.requestId,
-        processUrl: result.processUrl,
-        status: result.status,
-      }),
+    for (const s of slotsForDate) {
+      const taken = await isSlotBlockedOrReserved(s, { reservasCol: reservas, bloqueosCol: bloqueos })
+      if (taken) {
+        return jsonResponse(409, { error: `La pista ${s.pista} a las ${s.hora} ya no está disponible.` }, event, POST_METHODS)
+      }
     }
+
+    try {
+      await reservas.insertOne({
+        reference: safeReference,
+        requestId,
+        paymentAccessToken,
+        estado: 'pendiente',
+        fecha,
+        pistas: pista,
+        horas: hora,
+        personas: Number(personas),
+        extras: extras || '',
+        total: pricing.total,
+        description,
+        datosPersonales: {
+          nombre: datosPersonales.nombre,
+          telefono: datosPersonales.telefono,
+          correo: datosPersonales.correo,
+          tipoDocumento: datosPersonales.tipoDocumento,
+          documento: datosPersonales.documento,
+          fechaNacimiento: datosPersonales.fechaNacimiento,
+        },
+        placetopay: {
+          requestId: result.requestId,
+          processUrl: result.processUrl,
+          statusMessage: result.status?.message,
+        },
+        creadaEn: new Date(),
+        actualizadaEn: new Date(),
+      })
+    } catch (insertErr) {
+      if (insertErr?.code === 11000) {
+        return jsonResponse(409, { error: 'Esta referencia ya está en uso. Intenta de nuevo.' }, event, POST_METHODS)
+      }
+      throw insertErr
+    }
+
+    return jsonResponse(200, {
+      requestId: result.requestId,
+      processUrl: result.processUrl,
+      accessToken: paymentAccessToken,
+      status: result.status,
+    }, event, POST_METHODS)
   } catch (err) {
     console.error('[Payment] Create error:', err.message)
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: err.message }),
-    }
+    return jsonResponse(500, { error: apiErrorMessage(err) }, event, POST_METHODS)
   }
 }

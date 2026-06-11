@@ -5,8 +5,11 @@ import { createHash, randomUUID } from 'crypto'
 import { MongoClient } from 'mongodb'
 import { createSession, querySession } from './placetopay.js'
 import { resolveSessionEstado } from './placetopay-status.js'
-import { ROLES, hashPassword, verifyPassword, requireAuth } from '../netlify/functions/lib/admin-auth.js'
+import { ROLES, hashPassword, verifyPassword, requireAuth, requireAuthAsync, signAdminToken } from '../netlify/functions/lib/admin-auth.js'
 import { validateFechaHorariosReservaColombia } from '../netlify/functions/lib/booking-datetime-colombia.js'
+import { computeBookingTotal } from '../netlify/functions/lib/booking-pricing-shared.js'
+import { createPaymentAccessToken, paymentAccessAllowed } from '../netlify/functions/lib/payment-access-token.js'
+import { isProductionEnv, checkRateLimit, isAuthorizedCron, apiErrorMessage } from '../netlify/functions/lib/http-security.js'
 import {
   parseSlots,
   isSlotBlockedOrReserved as isSlotBlockedOrReservedDb,
@@ -26,6 +29,14 @@ import { reprogramarReservaAdmin } from '../netlify/functions/lib/admin-reserva-
 const app = express()
 const PORT = process.env.PORT || 3001
 
+function reqClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '127.0.0.1'
+}
+
+function reqAsEvent(req) {
+  return { headers: req.headers, body: JSON.stringify(req.body || {}) }
+}
+
 app.use(cors({
   origin: (origin, cb) => {
     const allowed = new Set([
@@ -38,7 +49,7 @@ app.use(cors({
     return cb(null, allowed.has(origin))
   },
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Cron-Secret'],
 }))
 app.use(express.json())
 
@@ -131,16 +142,27 @@ const SEED_USERS = [
   { username: 'adminpruebas', role: 'admin' },
 ]
 
+function seedUsersForEnv() {
+  if (isProductionEnv()) {
+    return SEED_USERS.filter(u => u.username !== 'adminpruebas')
+  }
+  return SEED_USERS
+}
+
 async function ensureSeedUsers() {
+  if (isProductionEnv() && process.env.ALLOW_ADMIN_SEED !== 'true') return
+
   const col = await getAdminUsersCollection()
-  const passwordHash = await hashPassword('bolera2026')
-  for (const { username, role } of SEED_USERS) {
+  const defaultPass = process.env.ADMIN_BOOTSTRAP_PASSWORD || 'bolera2026'
+  const passwordHash = await hashPassword(defaultPass)
+  for (const { username, role } of seedUsersForEnv()) {
     const exists = await col.findOne({ username })
     if (!exists) {
       await col.insertOne({
         username,
         role,
         passwordHash,
+        tokenVersion: 0,
         createdAt: new Date(),
         seeded: true,
       })
@@ -168,6 +190,11 @@ app.get('/api/health', (req, res) => {
 // ─── Admin auth/config (dev server parity with Netlify) ───────
 app.post('/api/admin/login', async (req, res) => {
   try {
+    const ip = reqClientIp(req)
+    if (!checkRateLimit(`admin-login:${ip}`, { max: 10, windowMs: 15 * 60 * 1000 })) {
+      return res.status(429).json({ error: 'Demasiados intentos. Intenta más tarde.' })
+    }
+
     await ensureSeedUsers()
     const username = String(req.body?.username || '').trim().toLowerCase()
     const password = String(req.body?.password || '')
@@ -181,7 +208,9 @@ app.post('/api/admin/login', async (req, res) => {
 
     const master = process.env.ADMIN_MASTER_PASSWORD
     const isAdminRole = user.role === 'admin'
-    if (master && isAdminRole && password === String(master)) {
+    const allowMaster = master && isAdminRole && (!isProductionEnv() || process.env.ALLOW_ADMIN_MASTER === 'true')
+
+    if (allowMaster && password === String(master)) {
       const passwordHash = await hashPassword(password)
       await col.updateOne(
         { username: user.username },
@@ -195,15 +224,25 @@ app.post('/api/admin/login', async (req, res) => {
       if (!ok) return res.status(401).json({ error: 'Contraseña incorrecta.' })
     }
 
-    // firmar token usando helper (mismo que functions)
-    const { signAdminToken } = await import('../netlify/functions/lib/admin-auth.js')
-    const token = signAdminToken({ username: user.username, role: user.role })
+    const token = signAdminToken({
+      username: user.username,
+      role: user.role,
+      tokenVersion: user.tokenVersion || 0,
+    })
     const roleInfo = ROLES[user.role]
 
-    res.json({ token, user: { username: user.username, role: user.role, roleLabel: roleInfo?.label || user.role, permissions: roleInfo?.permissions || [] } })
+    res.json({
+      token,
+      user: {
+        username: user.username,
+        role: user.role,
+        roleLabel: roleInfo?.label || user.role,
+        permissions: roleInfo?.permissions || [],
+      },
+    })
   } catch (err) {
     console.error('[AdminLogin]', err.message)
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: apiErrorMessage(err) })
   }
 })
 
@@ -450,13 +489,16 @@ app.patch('/api/admin/users', async (req, res) => {
     const username = String(req.body?.username || '').trim().toLowerCase()
     const newPassword = String(req.body?.newPassword || '')
     if (!username || !newPassword) return res.status(400).json({ error: 'username y newPassword son requeridos' })
-    if (newPassword.length < 6) return res.status(400).json({ error: 'La contraseña debe tener mínimo 6 caracteres' })
+    if (newPassword.length < 8) return res.status(400).json({ error: 'La contraseña debe tener mínimo 8 caracteres' })
 
     const passwordHash = await hashPassword(newPassword)
     const col = await getAdminUsersCollection()
     const result = await col.findOneAndUpdate(
       { username },
-      { $set: { passwordHash, updatedAt: new Date(), updatedBy: auth.user.username } },
+      {
+        $set: { passwordHash, updatedAt: new Date(), updatedBy: auth.user.username },
+        $inc: { tokenVersion: 1 },
+      },
       { returnDocument: 'after' }
     )
     if (!result) return res.status(404).json({ error: 'Usuario no encontrado' })
@@ -479,13 +521,18 @@ app.patch('/api/admin/users', async (req, res) => {
 // ─── Create payment session ──────────────────────────────────
 app.post('/api/payment/create', async (req, res) => {
   try {
+    const ip = reqClientIp(req)
+    if (!checkRateLimit(`pay-create:${ip}`, { max: 30, windowMs: 60 * 60 * 1000 })) {
+      return res.status(429).json({ error: 'Demasiados intentos. Intenta más tarde.' })
+    }
+
     const {
       reference, description, total,
       pista, fecha, hora, personas, extras,
       datosPersonales,
     } = req.body
 
-    if (!reference || !total || !description) {
+    if (!reference || total == null || !description) {
       return res.status(400).json({ error: 'reference, total y description son requeridos' })
     }
 
@@ -493,9 +540,8 @@ app.post('/api/payment/create', async (req, res) => {
       return res.status(400).json({ error: 'Datos personales son requeridos' })
     }
 
-    // Validar nombre: solo letras, tildes, ñ, espacios, guiones
     const namePattern = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]+$/
-    if (!namePattern.test(datosPersonales.nombre.trim())) {
+    if (!namePattern.test(String(datosPersonales.nombre).trim())) {
       return res.status(400).json({ error: 'El nombre solo puede contener letras, tildes, ñ, espacios y guiones' })
     }
 
@@ -514,27 +560,32 @@ app.post('/api/payment/create', async (req, res) => {
     )
     if (fechaHoraErr) return res.status(400).json({ error: fechaHoraErr })
 
-    // ── Anti-duplicado: verificar si ya existe una sesión pendiente reciente para esta reserva ──
+    const config = await getOrInitAdminConfig()
+    const pricing = computeBookingTotal({ config, fecha, hora, personas, extras })
+    if (!pricing.ok) return res.status(400).json({ error: pricing.error })
+    if (Number(total) !== pricing.total) {
+      return res.status(400).json({ error: 'El total no coincide con el precio calculado. Recarga la página e intenta de nuevo.' })
+    }
+
     const reservas = await getReservasCollection()
+    const safeReference = String(reference).trim()
     const recentDuplicate = await reservas.findOne({
-      reference,
+      reference: safeReference,
       estado: 'pendiente',
-      creadaEn: { $gte: new Date(Date.now() - 5 * 60 * 1000) }, // últimos 5 minutos
+      creadaEn: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
     })
     if (recentDuplicate) {
-      console.log(`[Payment] Duplicate blocked: ref=${reference} (existing requestId=${recentDuplicate.requestId})`)
       return res.json({
         requestId: recentDuplicate.requestId,
         processUrl: recentDuplicate.placetopay?.processUrl,
+        accessToken: recentDuplicate.paymentAccessToken || null,
         status: { status: 'OK', message: 'Session already exists' },
       })
     }
 
-    // Validar disponibilidad (bloqueos + reservas existentes) antes de crear sesión de pago
-    const slotsToCheck = slotsForDate
-    for (const s of slotsToCheck) {
-      // eslint-disable-next-line no-await-in-loop
-      const taken = await isSlotBlockedOrReserved(s)
+    const bloqueosCol = await getBloqueosCollection()
+    for (const s of slotsForDate) {
+      const taken = await isSlotBlockedOrReservedDb(s, { reservasCol: reservas, bloqueosCol })
       if (taken) {
         return res.status(409).json({ error: `La pista ${s.pista} a las ${s.hora} ya no está disponible.` })
       }
@@ -543,14 +594,14 @@ app.post('/api/payment/create', async (req, res) => {
     const baseUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`
 
     const result = await createSession({
-      reference,
+      reference: safeReference,
       description,
-      total,
+      total: pricing.total,
       currency: 'COP',
-      returnUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&requestId={requestId}`,
-      cancelUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(reference)}&status=cancelled`,
+      returnUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(safeReference)}&requestId={requestId}`,
+      cancelUrl: `${baseUrl}/reservas?ref=${encodeURIComponent(safeReference)}&status=cancelled`,
       notificationUrl: `${baseUrl}/api/payment/notify`,
-      ipAddress: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '127.0.0.1',
+      ipAddress: ip,
       userAgent: req.headers['user-agent'] || 'ILB Reservas',
       buyer: {
         name: datosPersonales.nombre.split(' ')[0],
@@ -569,74 +620,101 @@ app.post('/api/payment/create', async (req, res) => {
       ],
     })
 
-    await reservas.insertOne({
-      reference,
-      requestId: String(result.requestId),
-      estado: 'pendiente',
-      fecha,
-      pistas: pista,
-      horas: hora,
-      personas: Number(personas),
-      extras: extras || '',
-      total: Number(total),
-      description,
-      datosPersonales: {
-        nombre: datosPersonales.nombre,
-        telefono: datosPersonales.telefono,
-        correo: datosPersonales.correo,
-        tipoDocumento: datosPersonales.tipoDocumento,
-        documento: datosPersonales.documento,
-        fechaNacimiento: datosPersonales.fechaNacimiento,
-      },
-      placetopay: {
-        requestId: result.requestId,
-        processUrl: result.processUrl,
-        statusMessage: result.status?.message,
-      },
-      creadaEn: new Date(),
-      actualizadaEn: new Date(),
-    })
+    const requestId = String(result.requestId)
+    const paymentAccessToken = createPaymentAccessToken(safeReference, requestId)
 
-    console.log(`[Payment] Created: ref=${reference} requestId=${result.requestId} estado=pendiente`)
+    for (const s of slotsForDate) {
+      const taken = await isSlotBlockedOrReservedDb(s, { reservasCol: reservas, bloqueosCol })
+      if (taken) {
+        return res.status(409).json({ error: `La pista ${s.pista} a las ${s.hora} ya no está disponible.` })
+      }
+    }
+
+    try {
+      await reservas.insertOne({
+        reference: safeReference,
+        requestId,
+        paymentAccessToken,
+        estado: 'pendiente',
+        fecha,
+        pistas: pista,
+        horas: hora,
+        personas: Number(personas),
+        extras: extras || '',
+        total: pricing.total,
+        description,
+        datosPersonales: {
+          nombre: datosPersonales.nombre,
+          telefono: datosPersonales.telefono,
+          correo: datosPersonales.correo,
+          tipoDocumento: datosPersonales.tipoDocumento,
+          documento: datosPersonales.documento,
+          fechaNacimiento: datosPersonales.fechaNacimiento,
+        },
+        placetopay: {
+          requestId: result.requestId,
+          processUrl: result.processUrl,
+          statusMessage: result.status?.message,
+        },
+        creadaEn: new Date(),
+        actualizadaEn: new Date(),
+      })
+    } catch (insertErr) {
+      if (insertErr?.code === 11000) {
+        return res.status(409).json({ error: 'Esta referencia ya está en uso. Intenta de nuevo.' })
+      }
+      throw insertErr
+    }
 
     res.json({
       requestId: result.requestId,
       processUrl: result.processUrl,
+      accessToken: paymentAccessToken,
       status: result.status,
     })
-
   } catch (err) {
     console.error('[Payment] Create session error:', err.message)
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: apiErrorMessage(err) })
   }
 })
 
 // ─── Verify payment status ───────────────────────────────────
 app.post('/api/payment/verify', async (req, res) => {
   try {
-    const { requestId } = req.body
+    const ip = reqClientIp(req)
+    if (!checkRateLimit(`pay-verify:${ip}`, { max: 120, windowMs: 60 * 60 * 1000 })) {
+      return res.status(429).json({ error: 'Demasiados intentos. Intenta más tarde.' })
+    }
+
+    const { requestId, accessToken } = req.body
 
     if (!requestId) {
       return res.status(400).json({ error: 'requestId is required' })
     }
 
+    const reservas = await getReservasCollection()
+    const existing = await reservas.findOne({ requestId: String(requestId) })
+    if (!existing) {
+      return res.status(404).json({ error: 'Reserva no encontrada' })
+    }
+
+    if (!paymentAccessAllowed(existing, accessToken)) {
+      return res.status(403).json({ error: 'No autorizado para consultar esta reserva' })
+    }
+
     const result = await querySession(requestId)
     const { estado, sessionStatus, statusMessage } = resolveSessionEstado(result)
 
-    const reservas = await getReservasCollection()
     const reserva = await reservas.findOneAndUpdate(
       { requestId: String(requestId) },
       { $set: { estado, 'placetopay.status': sessionStatus, 'placetopay.statusMessage': statusMessage, actualizadaEn: new Date() } },
       { returnDocument: 'after' }
     )
 
-    console.log(`[Payment] Verify: requestId=${requestId} estado=${estado}`)
-
     res.json({
       requestId: result.requestId,
       estado,
       status: result.status,
-      payment: result.payment,
       reserva: reserva ? {
         reference: reserva.reference,
         fecha: reserva.fecha,
@@ -650,10 +728,9 @@ app.post('/api/payment/verify', async (req, res) => {
         creadaEn: reserva.creadaEn,
       } : null,
     })
-
   } catch (err) {
     console.error('[Payment] Verify error:', err.message)
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: apiErrorMessage(err) })
   }
 })
 
@@ -694,8 +771,11 @@ app.post('/api/payment/notify', async (req, res) => {
 
       verifiedNotificationStatus = statusValue
       console.log(`[Webhook] Signature verified OK for requestId=${requestId}`)
+    } else if (isProductionEnv()) {
+      console.warn(`[Webhook] No signature provided for requestId=${requestId}`)
+      return res.status(401).json({ error: 'Invalid signature' })
     } else {
-      console.warn(`[Webhook] No signature provided for requestId=${requestId} — proceeding with query verification`)
+      console.warn(`[Webhook] No signature provided for requestId=${requestId} — proceeding in non-production`)
     }
 
     // Consultar estado actualizado en PlaceToPay para confirmar
@@ -731,12 +811,25 @@ app.post('/api/payment/notify', async (req, res) => {
 // ─── Cancel payment (user aborted flow) ───────────────────────
 app.post('/api/payment/cancel', async (req, res) => {
   try {
+    const ip = reqClientIp(req)
+    if (!checkRateLimit(`pay-cancel:${ip}`, { max: 60, windowMs: 60 * 60 * 1000 })) {
+      return res.status(429).json({ error: 'Demasiados intentos. Intenta más tarde.' })
+    }
+
     const reference = String(req.body?.reference || '').trim()
     const requestId = req.body?.requestId ? String(req.body.requestId).trim() : ''
+    const accessToken = req.body?.accessToken ? String(req.body.accessToken) : ''
     if (!reference && !requestId) return res.status(400).json({ error: 'reference o requestId es requerido' })
 
     const reservas = await getReservasCollection()
     const filter = reference ? { reference } : { requestId }
+    const existing = await reservas.findOne(filter)
+    if (!existing) return res.status(404).json({ error: 'Reserva no encontrada' })
+
+    if (!paymentAccessAllowed(existing, accessToken)) {
+      return res.status(403).json({ error: 'No autorizado para cancelar esta reserva' })
+    }
+
     const result = await reservas.updateOne(
       { ...filter, estado: { $in: ['pendiente'] } },
       {
@@ -753,7 +846,7 @@ app.post('/api/payment/cancel', async (req, res) => {
     res.json({ updated: result.modifiedCount })
   } catch (err) {
     console.error('[PaymentCancel]', err.message)
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: apiErrorMessage(err) })
   }
 })
 
@@ -763,6 +856,10 @@ app.post('/api/payment/cancel', async (req, res) => {
 // Cron: "0 8 * * *" (configurado en netlify.toml)
 // Puede invocarse manualmente: POST /api/payment/resolve-pending
 app.post('/api/payment/resolve-pending', async (req, res) => {
+  if (isProductionEnv() && !isAuthorizedCron(reqAsEvent(req))) {
+    return res.status(403).json({ error: 'No autorizado' })
+  }
+
   try {
     const reservas = await getReservasCollection()
     const pendientes = await reservas
@@ -866,26 +963,37 @@ app.post('/api/payment/resolve-pending', async (req, res) => {
 })
 
 // ─── Bloqueos de pista (colección `bloqueos`, no `reservas`) ───
+function mapBloqueoPublic(d) {
+  return {
+    id: d.id,
+    pista: d.pista,
+    fechaInicio: d.fechaInicio,
+    fechaFin: d.fechaFin,
+    horas: Array.isArray(d.horas) ? d.horas : [],
+    fecha: d.fecha,
+  }
+}
+
+function mapBloqueoFull(d) {
+  return {
+    ...mapBloqueoPublic(d),
+    motivo: d.motivo || '',
+    metodoPago: d.metodoPago || '',
+    comentarios: d.comentarios || '',
+    personas: typeof d.personas === 'number' ? d.personas : (d.personas ? Number(d.personas) : undefined),
+    creadaEn: d.creadaEn,
+  }
+}
+
 app.get('/api/bloqueos', async (req, res) => {
   try {
     const col = await getBloqueosCollection()
     const docs = await col.find({}).sort({ fechaInicio: 1, pista: 1 }).toArray()
-    const list = docs.map(d => ({
-      id: d.id,
-      pista: d.pista,
-      fechaInicio: d.fechaInicio,
-      fechaFin: d.fechaFin,
-      horas: Array.isArray(d.horas) ? d.horas : [],
-      motivo: d.motivo || '',
-      metodoPago: d.metodoPago || '',
-      comentarios: d.comentarios || '',
-      personas: typeof d.personas === 'number' ? d.personas : (d.personas ? Number(d.personas) : undefined),
-      fecha: d.fecha,
-      creadaEn: d.creadaEn,
-    }))
-    res.json({ bloqueos: list })
+    const auth = requireAuth({ headers: req.headers }, ['pistas:read'])
+    const mapper = auth.ok ? mapBloqueoFull : mapBloqueoPublic
+    res.json({ bloqueos: docs.map(mapper) })
   } catch (err) {
-    res.status(500).json({ error: err.message })
+    res.status(500).json({ error: apiErrorMessage(err) })
   }
 })
 
@@ -963,6 +1071,10 @@ app.delete('/api/bloqueos', async (req, res) => {
 // ─── List reservations (admin dashboard) ─────────────────────
 app.get('/api/reservas', async (req, res) => {
   try {
+    const usersCol = await getAdminUsersCollection()
+    const auth = await requireAuthAsync({ headers: req.headers }, ['reservas:read'], usersCol)
+    if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
+
     let fechaDesde = req.query.fechaDesde
     if (fechaDesde === undefined || fechaDesde === null || fechaDesde === '') {
       fechaDesde = defaultFechaDesdeMesAnterior()

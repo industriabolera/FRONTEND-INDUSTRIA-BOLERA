@@ -1,4 +1,6 @@
-import { getReservasCollection } from './lib/db.js'
+import { getReservasCollection, getAdminUsersCollection } from './lib/db.js'
+import { requireAuthAsync } from './lib/admin-auth.js'
+import { apiErrorMessage, jsonResponse } from './lib/http-security.js'
 import {
   defaultFechaDesdeMesAnterior,
   FECHA_YMD_QUERY_RE,
@@ -7,22 +9,26 @@ import {
 } from './lib/reservas-list-shared.js'
 
 export async function handler(event) {
+  if (event.httpMethod === 'OPTIONS') {
+    return jsonResponse(204, {}, event, 'GET, OPTIONS')
+  }
+
   if (event.httpMethod !== 'GET') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) }
+    return jsonResponse(405, { error: 'Method not allowed' }, event, 'GET, OPTIONS')
   }
 
   try {
+    const usersCol = await getAdminUsersCollection()
+    const auth = await requireAuthAsync(event, ['reservas:read'], usersCol)
+    if (!auth.ok) return jsonResponse(auth.statusCode, { error: auth.error }, event, 'GET, OPTIONS')
+
     const q = event.queryStringParameters || {}
 
     let fechaDesde = q.fechaDesde
     if (fechaDesde === undefined || fechaDesde === null || fechaDesde === '') {
       fechaDesde = defaultFechaDesdeMesAnterior()
     } else if (!FECHA_YMD_QUERY_RE.test(String(fechaDesde))) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'fechaDesde debe ser YYYY-MM-DD' }),
-      }
+      return jsonResponse(400, { error: 'fechaDesde debe ser YYYY-MM-DD' }, event, 'GET, OPTIONS')
     } else {
       fechaDesde = String(fechaDesde)
     }
@@ -47,23 +53,15 @@ export async function handler(event) {
     const list = docs.map(mapReservaDocToListRow)
     const hasMore = docs.length === limit
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reservas: list,
-        hasMore,
-        fechaDesde,
-        skip,
-        limit,
-      }),
-    }
+    return jsonResponse(200, {
+      reservas: list,
+      hasMore,
+      fechaDesde,
+      skip,
+      limit,
+    }, event, 'GET, OPTIONS')
   } catch (err) {
-    console.error('[Reservas] List error:', err.message)
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: err.message }),
-    }
+    console.error('[ReservasList]', err.message)
+    return jsonResponse(500, { error: apiErrorMessage(err) }, event, 'GET, OPTIONS')
   }
 }

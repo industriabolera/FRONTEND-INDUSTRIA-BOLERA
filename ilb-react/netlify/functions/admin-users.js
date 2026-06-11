@@ -37,12 +37,15 @@ export async function handler(event) {
       const username = String(body.username || '').trim().toLowerCase()
       const newPassword = String(body.newPassword || '')
       if (!username || !newPassword) return json(400, { error: 'username y newPassword son requeridos' })
-      if (newPassword.length < 6) return json(400, { error: 'La contraseña debe tener mínimo 6 caracteres' })
+      if (newPassword.length < 8) return json(400, { error: 'La contraseña debe tener mínimo 8 caracteres' })
 
       const passwordHash = await hashPassword(newPassword)
       const result = await col.findOneAndUpdate(
         { username },
-        { $set: { passwordHash, updatedAt: new Date(), updatedBy: auth.user.username } },
+        {
+          $set: { passwordHash, updatedAt: new Date(), updatedBy: auth.user.username },
+          $inc: { tokenVersion: 1 },
+        },
         { returnDocument: 'after' }
       )
       if (!result) return json(404, { error: 'Usuario no encontrado' })

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, Fragment, useCallback } from 'react'
+import { useBolera } from '../../context/BoleraContext'
 import { parseHorasFromString } from '../../utils/bookingSlots'
 import { fetchAllReservasForAdminPortal } from '../../utils/adminReservasFetch'
 import './AdminDashboard.css'
@@ -113,6 +114,7 @@ function ReservaDetailPanel({ r }) {
 }
 
 export default function AdminDashboard() {
+  const { auth } = useBolera()
   const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -125,7 +127,7 @@ export default function AdminDashboard() {
     if (!silent)
       setLoading(true)
     try {
-      const list = await fetchAllReservasForAdminPortal()
+      const list = await fetchAllReservasForAdminPortal(auth?.token)
       setReservas(list)
       setError(null)
     } catch (e) {
@@ -134,13 +136,14 @@ export default function AdminDashboard() {
       if (!silent)
         setLoading(false)
     }
-  }, [])
+  }, [auth?.token])
 
   useEffect(() => {
+    if (!auth?.token) return undefined
     fetchReservas({ silent: false })
     const interval = setInterval(() => fetchReservas({ silent: true }), 15000)
     return () => clearInterval(interval)
-  }, [fetchReservas])
+  }, [fetchReservas, auth?.token])
 
   const stats = useMemo(() => ({
     total: reservas.length,

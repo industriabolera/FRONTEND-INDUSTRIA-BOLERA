@@ -121,7 +121,7 @@ export default function AdminUsuarios() {
                 type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 autoComplete="new-password"
               />
               <button
@@ -141,7 +141,7 @@ export default function AdminUsuarios() {
         </div>
 
         <div className="admin-form-actions">
-          <button className="admin-btn admin-btn-primary" onClick={handleSave} disabled={saving || !selected || newPassword.length < 6}>
+          <button className="admin-btn admin-btn-primary" onClick={handleSave} disabled={saving || !selected || newPassword.length < 8}>
             <i className={saving ? 'fas fa-spinner fa-spin' : 'fas fa-key'} /> Guardar contraseña
           </button>
           {saved && <span className="admin-saved-msg"><i className="fas fa-check-circle" /> Contraseña actualizada</span>}

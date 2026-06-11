@@ -121,7 +121,7 @@ export default function AdminReservas() {
       setErrorOnline(null)
     }
     try {
-      const list = await fetchAllReservasForAdminPortal()
+      const list = await fetchAllReservasForAdminPortal(auth?.token)
       setOnlineReservas(list)
       setErrorOnline(null)
     } catch (e) {
@@ -130,7 +130,7 @@ export default function AdminReservas() {
       if (!silent)
         setLoadingOnline(false)
     }
-  }, [])
+  }, [auth?.token])
   const authHeaders = auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}
 
   const inactivarOnline = async (reference) => {
@@ -240,10 +240,11 @@ export default function AdminReservas() {
   }
 
   useEffect(() => {
+    if (!auth?.token) return undefined
     fetchOnline({ silent: false })
     const interval = setInterval(() => fetchOnline({ silent: true }), 20000)
     return () => clearInterval(interval)
-  }, [fetchOnline])
+  }, [fetchOnline, auth?.token])
 
   const handleChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
 

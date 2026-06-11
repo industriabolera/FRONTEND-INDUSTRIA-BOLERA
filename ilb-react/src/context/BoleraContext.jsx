@@ -161,7 +161,8 @@ export function BoleraProvider({ children }) {
   }, [])
 
   const fetchBloqueos = useCallback(() => {
-    return fetch('/api/bloqueos')
+    const headers = auth?.token ? { ...authHeaders } : {}
+    return fetch('/api/bloqueos', { headers })
       .then(r => {
         if (!r.ok) throw new Error(String(r.status))
         return r.json()
@@ -180,7 +181,7 @@ export function BoleraProvider({ children }) {
         }
       })
       .catch(() => {})
-  }, [])
+  }, [auth?.token, authHeaders])
 
   useEffect(() => {
     fetchBloqueos()

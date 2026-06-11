@@ -45,7 +45,7 @@ function formatPrice(n) {
 }
 
 export default function AdminCronograma() {
-  const { config, isLaneFullDayBlocked } = useBolera()
+  const { config, isLaneFullDayBlocked, auth } = useBolera()
   const [fecha, setFecha] = useState(() => toDateStr(new Date()))
   const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
@@ -64,7 +64,7 @@ export default function AdminCronograma() {
       setError(null)
     }
     try {
-      const list = await fetchAllReservasForAdminPortal()
+      const list = await fetchAllReservasForAdminPortal(auth?.token)
       setReservas(list)
       setError(null)
     } catch (e) {
@@ -72,13 +72,14 @@ export default function AdminCronograma() {
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [])
+  }, [auth?.token])
 
   useEffect(() => {
+    if (!auth?.token) return undefined
     fetchReservas({ silent: false })
     const id = setInterval(() => fetchReservas({ silent: true }), 30000)
     return () => clearInterval(id)
-  }, [fetchReservas])
+  }, [fetchReservas, auth?.token])
 
   const fechaDate = useMemo(() => parseFechaInput(fecha), [fecha])
   const horasDia = useMemo(
