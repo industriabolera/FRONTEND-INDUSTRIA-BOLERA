@@ -59,11 +59,9 @@ export default function Footer() {
             <p className="footer-col-title">Contacto</p>
             <div className="footer-col-divider" />
             <p className="footer-col-text">
-              Teléfono: (604) 6043059
-              <br /><br />
               Whatsapp: (57) 3106418808
               <br /><br />
-              E-mail: info@laindustriabolera.com
+              E-mail: info@laindustriabolera.co
             </p>
           </div>
         </div>

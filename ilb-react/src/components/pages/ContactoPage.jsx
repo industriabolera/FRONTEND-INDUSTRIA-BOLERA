@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import './PageShell.css'
 import './StaticSitePages.css'
 
-const MAIL_TO = 'info@laindustriabolera.com'
+const MAIL_TO = 'info@laindustriabolera.co'
 const LOCATION_LINES = ['Carrera 70 # 1 – 141, Local 453', '', 'Arkadia Centro Comercial', '', 'Medellín, Antioquia']
 
 export default function ContactoPage() {
