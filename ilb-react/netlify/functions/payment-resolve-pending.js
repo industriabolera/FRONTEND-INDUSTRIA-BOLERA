@@ -12,7 +12,6 @@
 import { getReservasCollection } from './lib/db.js'
 import { querySession } from './lib/placetopay.js'
 import { resolveSessionEstado } from './lib/placetopay-status.js'
-import { apiErrorMessage, isAuthorizedCron, isProductionEnv, jsonResponse } from './lib/http-security.js'
 
 async function resolvePendingPayments() {
   const reservas = await getReservasCollection()
@@ -138,24 +137,25 @@ async function resolvePendingPayments() {
 
 // ── Netlify Scheduled Function handler ──
 export async function handler(event) {
+  // Soportar tanto invocación programada como manual (POST)
   if (event.httpMethod === 'OPTIONS') {
-    return jsonResponse(204, {}, event, 'POST, OPTIONS')
-  }
-
-  if (event.httpMethod && event.httpMethod !== 'POST') {
-    return jsonResponse(405, { error: 'Method not allowed' }, event, 'POST, OPTIONS')
-  }
-
-  const isScheduled = event?.source === 'netlify-scheduled-function'
-  if (!isScheduled && isProductionEnv() && !isAuthorizedCron(event)) {
-    return jsonResponse(403, { error: 'No autorizado' }, event, 'POST, OPTIONS')
+    return { statusCode: 204, headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods': 'POST' } }
   }
 
   try {
     const summary = await resolvePendingPayments()
-    return jsonResponse(200, summary, event, 'POST, OPTIONS')
+
+    return {
+      statusCode: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(summary),
+    }
   } catch (err) {
     console.error('[CronJob] Fatal error:', err.message)
-    return jsonResponse(500, { error: apiErrorMessage(err) }, event, 'POST, OPTIONS')
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: err.message }),
+    }
   }
 }
