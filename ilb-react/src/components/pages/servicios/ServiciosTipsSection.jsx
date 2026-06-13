@@ -87,7 +87,7 @@ export default function ServiciosTipsSection() {
         <div className="servicios-tips-cta">
           <a
             className="servicios-tips-button"
-            href="https://wa.me/573113540008"
+            href="https://wa.me/573106418808"
             target="_blank"
             rel="noopener noreferrer"
           >

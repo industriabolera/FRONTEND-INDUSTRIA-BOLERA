@@ -25,7 +25,7 @@ const services = [
     title2: 'con nosotros?',
     description: <>Estamos preparados para todo tipo de <span style={{ color: '#e68007' }}>celebraciones.</span></>,
     buttonText: 'CONTÁCTANOS',
-    buttonLink: 'https://wa.me/573113540008',
+    buttonLink: 'https://wa.me/573106418808',
     buttonTarget: '_blank',
   },
 ]

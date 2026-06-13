@@ -49,7 +49,7 @@ export default function ContactoPage() {
                 {LOCATION_LINES.join('\n')}
               </p>
               <div className="static-contact-social" aria-label="Redes sociales">
-                <a href="https://wa.me/573113540008" target="_blank" rel="noopener noreferrer" title="WhatsApp">
+                <a href="https://wa.me/573106418808" target="_blank" rel="noopener noreferrer" title="WhatsApp">
                   <i className="fab fa-whatsapp" aria-hidden />
                 </a>
                 <a href="https://www.instagram.com/laindustriabolera/" target="_blank" rel="noopener noreferrer" title="Instagram">
@@ -95,7 +95,7 @@ export default function ContactoPage() {
                 </div>
               </form>
               <p className="static-form-hint">
-                También puedes escribir por WhatsApp: (57) 3113540008 — {MAIL_TO}.
+                También puedes escribir por WhatsApp: (57) 3106418808 — {MAIL_TO}.
               </p>
             </div>
           </div>

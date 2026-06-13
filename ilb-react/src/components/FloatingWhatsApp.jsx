@@ -1,6 +1,6 @@
 import './FloatingWhatsApp.css'
 
-const WHATSAPP_HREF = 'https://wa.me/573113540008'
+const WHATSAPP_HREF = 'https://wa.me/573106418808'
 
 export default function FloatingWhatsApp() {
   return (
