@@ -3,13 +3,17 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "dev:server": "node server/index.js",
     "dev:all": "node server/index.js & vite",
     "build": "vite build",
     "postinstall": "npm run build",
-    "start": "NODE_ENV=production node server/index.js",
+    "start": "node server.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "import:bloqueos-pdf": "node scripts/import-bloqueos-from-pdf.mjs"

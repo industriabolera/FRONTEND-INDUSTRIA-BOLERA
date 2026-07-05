@@ -25,7 +25,8 @@ import {
 import { reprogramarReservaAdmin } from '../netlify/functions/lib/admin-reserva-reprogramar-shared.js'
 
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = Number(process.env.PORT) || 3001
+const HOST = process.env.HOST || '0.0.0.0'
 
 function reqClientIp(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '127.0.0.1'
@@ -1097,8 +1098,8 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🎳 ILB Server running on port ${PORT}`)
+app.listen(PORT, HOST, () => {
+  console.log(`\n🎳 ILB Server running on ${HOST}:${PORT}`)
   console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)
   console.log(`   PlaceToPay: ${process.env.PLACETOPAY_LOGIN ? '✅' : '❌'}`)
   console.log(`   MongoDB: ${process.env.MONGODB_URI ? '✅' : '❌'}\n`)
