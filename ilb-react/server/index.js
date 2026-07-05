@@ -1092,12 +1092,12 @@ if (process.env.NODE_ENV === 'production') {
 
   app.use(express.static(join(__dirname, '..', 'dist')))
 
-  app.get('*', (req, res) => {
+  app.get('/{*splat}', (req, res) => {
     res.sendFile(join(__dirname, '..', 'dist', 'index.html'))
   })
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🎳 ILB Server running on port ${PORT}`)
   console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)
   console.log(`   PlaceToPay: ${process.env.PLACETOPAY_LOGIN ? '✅' : '❌'}`)
