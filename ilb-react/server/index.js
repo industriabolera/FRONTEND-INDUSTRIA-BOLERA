@@ -1102,9 +1102,17 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🎳 ILB Server running on 0.0.0.0:${PORT}`)
-  console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)
-  console.log(`   PlaceToPay: ${process.env.PLACETOPAY_LOGIN ? '✅' : '❌'}`)
-  console.log(`   MongoDB: ${process.env.MONGODB_URI ? '✅' : '❌'}\n`)
-})
+export { app }
+
+export function startServer() {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n🎳 ILB Server running on 0.0.0.0:${PORT}`)
+    console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)
+    console.log(`   PlaceToPay: ${process.env.PLACETOPAY_LOGIN ? '✅' : '❌'}`)
+    console.log(`   MongoDB: ${process.env.MONGODB_URI ? '✅' : '❌'}\n`)
+  })
+}
+
+// Arranque directo: npm run dev:server
+const isDirectRun = process.argv[1]?.endsWith('server/index.js')
+if (isDirectRun) startServer()

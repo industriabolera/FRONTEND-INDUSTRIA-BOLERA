@@ -12,6 +12,7 @@
     "dev:server": "node server/index.js",
     "dev:all": "node server/index.js & vite",
     "build": "vite build",
+    "postinstall": "npm run build",
     "start": "node server.js",
     "lint": "eslint .",
     "preview": "vite preview",
