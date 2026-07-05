@@ -1102,8 +1102,8 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-app.listen(PORT, () => {
-  console.log(`\n🎳 ILB Server running on port ${PORT}`)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🎳 ILB Server running on 0.0.0.0:${PORT}`)
   console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)
   console.log(`   PlaceToPay: ${process.env.PLACETOPAY_LOGIN ? '✅' : '❌'}`)
   console.log(`   MongoDB: ${process.env.MONGODB_URI ? '✅' : '❌'}\n`)
