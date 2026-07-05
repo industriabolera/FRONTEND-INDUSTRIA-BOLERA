@@ -26,7 +26,6 @@ import { reprogramarReservaAdmin } from '../netlify/functions/lib/admin-reserva-
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
-const HOST = process.env.HOST || '0.0.0.0'
 
 function reqClientIp(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '127.0.0.1'
@@ -1093,13 +1092,18 @@ if (process.env.NODE_ENV === 'production') {
 
   app.use(express.static(join(__dirname, '..', 'dist')))
 
-  app.get('/{*splat}', (req, res) => {
-    res.sendFile(join(__dirname, '..', 'dist', 'index.html'))
+  // Fallback SPA (sin wildcard Express 5 — más compatible en Hostinger)
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
+    if (req.path.startsWith('/api')) return next()
+    res.sendFile(join(__dirname, '..', 'dist', 'index.html'), (err) => {
+      if (err) next(err)
+    })
   })
 }
 
-app.listen(PORT, HOST, () => {
-  console.log(`\n🎳 ILB Server running on ${HOST}:${PORT}`)
+app.listen(PORT, () => {
+  console.log(`\n🎳 ILB Server running on port ${PORT}`)
   console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)
   console.log(`   PlaceToPay: ${process.env.PLACETOPAY_LOGIN ? '✅' : '❌'}`)
   console.log(`   MongoDB: ${process.env.MONGODB_URI ? '✅' : '❌'}\n`)

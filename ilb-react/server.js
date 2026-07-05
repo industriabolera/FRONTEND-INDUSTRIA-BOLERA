@@ -1,4 +1,5 @@
 // Punto de entrada para Hostinger (hPanel → Archivo de entrada: server.js)
+console.log('[ILB] Starting server.js…')
 process.env.NODE_ENV ||= 'production'
 
 process.on('uncaughtException', (err) => {
