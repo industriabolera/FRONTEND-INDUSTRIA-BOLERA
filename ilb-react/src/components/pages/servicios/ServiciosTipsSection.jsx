@@ -22,11 +22,11 @@ const tips = [
 ]
 
 const horarios = [
-  { day: 'L', hours: '12m a 10pm' },
-  { day: 'M', hours: '12m a 10pm' },
-  { day: 'Mi', hours: '12m a 10pm' },
-  { day: 'J', hours: '12m a 11pm' },
-  { day: 'V', hours: '12m a 11pm' },
+  { day: 'L', hours: '2pm a 10pm' },
+  { day: 'M', hours: '2pm a 10pm' },
+  { day: 'Mi', hours: '2pm a 10pm' },
+  { day: 'J', hours: '2pm a 11pm' },
+  { day: 'V', hours: '2pm a 11pm' },
   { day: 'S', hours: '12m a 11pm' },
   { day: 'D', hours: '12m a 9pm' },
 ]

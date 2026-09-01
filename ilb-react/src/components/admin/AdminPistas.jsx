@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useBolera } from '../../context/BoleraContext'
 import FloorPlan from '../FloorPlan'
+import { buildHolidaysSet, getHorariosForDate, parseFechaInput } from '../../utils/adminReservasGrid'
 
 const ALL_HORAS = [
   '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
@@ -140,21 +141,28 @@ export default function AdminPistas() {
 
   const mapDate = previewDate || form.fechaInicio
 
+  const horasMapa = useMemo(() => {
+    const date = parseFechaInput(mapDate)
+    if (!date) return ALL_HORAS
+    return getHorariosForDate(date, config.horarios, buildHolidaysSet([date.getFullYear()]))
+  }, [mapDate, config.horarios])
+  const mapHora = horasMapa.includes(mapPreviewHora) ? mapPreviewHora : horasMapa[0]
+
   /** Bloqueos de admin efectivos para la hora elegida en el selector del plano. */
   const adminBlockedLanesAtPreview = useMemo(() => {
-    if (!mapDate || !mapPreviewHora) return []
-    return PISTA_OPTIONS.filter(p => isLaneBlocked(p, mapDate, mapPreviewHora))
-  }, [mapDate, mapPreviewHora, isLaneBlocked])
+    if (!mapDate || !mapHora) return []
+    return PISTA_OPTIONS.filter(p => isLaneBlocked(p, mapDate, mapHora))
+  }, [mapDate, mapHora, isLaneBlocked])
 
   /** Reservas de clientes/manual (API + contexto local) a esa fecha y hora del plano. */
   const clientReservedLanesForMap = useMemo(() => {
-    if (!mapDate || !mapPreviewHora) return []
+    if (!mapDate || !mapHora) return []
     return PISTA_OPTIONS.filter(
       p =>
-        isLaneReservedOnline(p, mapDate, mapPreviewHora) ||
-        isLaneReservedAdmin(p, mapDate, mapPreviewHora)
+        isLaneReservedOnline(p, mapDate, mapHora) ||
+        isLaneReservedAdmin(p, mapDate, mapHora)
     )
-  }, [mapDate, mapPreviewHora, isLaneReservedOnline, isLaneReservedAdmin])
+  }, [mapDate, mapHora, isLaneReservedOnline, isLaneReservedAdmin])
 
   /** Resumen: qué horas tiene bloqueadas cada pista (admin) en la fecha del mapa. */
   const resumenHorasAdminMapa = useMemo(() => {
@@ -300,15 +308,15 @@ export default function AdminPistas() {
                 <label className="admin-field-label">Hora del plano</label>
                 <select
                   className="admin-input"
-                  value={mapPreviewHora}
+                  value={mapHora}
                   onChange={e => setMapPreviewHora(e.target.value)}
                 >
-                  {ALL_HORAS.map(h => (
+                  {horasMapa.map(h => (
                     <option key={h} value={h}>{h}</option>
                   ))}
                 </select>
                 <p className="admin-field-hint">
-                  El mapa muestra estado a las <strong>{mapPreviewHora}</strong> el <strong>{mapDate}</strong>
+                  El mapa muestra estado a las <strong>{mapHora}</strong> el <strong>{mapDate}</strong>
                   {' '}(bloqueos por hora o día completo, y reservas de clientes).
                 </p>
               </div>
@@ -355,7 +363,7 @@ export default function AdminPistas() {
               <p className="admin-map-date-hint">
                 <i className="far fa-calendar-alt" /> Mapa para <strong>{mapDate}</strong>
                 {' · '}
-                <strong>{mapPreviewHora}</strong>
+                <strong>{mapHora}</strong>
                 {dayCount > 1 && previewDate && previewDate !== form.fechaInicio && (
                   <span className="admin-map-preview-note"> (previsualización de fecha)</span>
                 )}

@@ -31,8 +31,9 @@ function getHorarioGroup(date, holidaysSet) {
   if (holidaysSet && holidaysSet.has(toDateStr(date))) return 'domFest'
   const day = date.getDay()
   if (day === 0) return 'domFest'
-  if (day >= 1 && day <= 3) return 'lunMie'
-  return 'jueSab'
+  if (day === 6) return 'sab'
+  if (day === 4 || day === 5) return 'jueVie'
+  return 'lunMie'
 }
 
 function generateSlots(apertura, cierre) {

@@ -292,8 +292,9 @@ function getHorarioGroup(date, holidaysSet) {
   if (holidaysSet && holidaysSet.has(toDateStr(date))) return 'domFest'
   const day = date.getDay()
   if (day === 0) return 'domFest'
-  if (day >= 1 && day <= 3) return 'lunMie'
-  return 'jueSab'
+  if (day === 6) return 'sab'
+  if (day === 4 || day === 5) return 'jueVie'
+  return 'lunMie'
 }
 
 function generateSlots(apertura, cierre) {
@@ -313,7 +314,7 @@ function getHorariosForDate(date, horarios, holidaysSet) {
 function getHorarioLabel(date, horarios, holidaysSet) {
   if (!date) return ''
   const group = getHorarioGroup(date, holidaysSet)
-  const labels = { lunMie: 'Lunes - Miércoles', jueSab: 'Jueves - Sábado', domFest: 'Domingos y Festivos' }
+  const labels = { lunMie: 'Lunes - Miércoles', jueVie: 'Jueves - Viernes', sab: 'Sábados', domFest: 'Domingos y Festivos' }
   if (!group || !horarios[group]) return ''
   return `${labels[group]}: ${horarios[group].apertura} - ${horarios[group].cierre}`
 }
@@ -1270,7 +1271,8 @@ export default function ReservasPage() {
                   <h4><i className="far fa-clock" /> Horarios</h4>
                   <div className="schedule-rows">
                     <div><span>Lunes - Miércoles</span><span>{config.horarios.lunMie.apertura} - {config.horarios.lunMie.cierre}</span></div>
-                    <div><span>Jueves - Sábado</span><span>{config.horarios.jueSab.apertura} - {config.horarios.jueSab.cierre}</span></div>
+                    <div><span>Jueves - Viernes</span><span>{config.horarios.jueVie.apertura} - {config.horarios.jueVie.cierre}</span></div>
+                    <div><span>Sábados</span><span>{config.horarios.sab.apertura} - {config.horarios.sab.cierre}</span></div>
                     <div><span>Domingos y Festivos</span><span>{config.horarios.domFest.apertura} - {config.horarios.domFest.cierre}</span></div>
                   </div>
                 </div>

@@ -14,7 +14,8 @@ const ALL_HOURS = [
 
 const HORARIO_GROUPS = [
   { key: 'lunMie', label: 'Lunes - Miércoles', icon: 'fas fa-briefcase' },
-  { key: 'jueSab', label: 'Jueves - Sábado', icon: 'fas fa-glass-cheers' },
+  { key: 'jueVie', label: 'Jueves - Viernes', icon: 'fas fa-glass-cheers' },
+  { key: 'sab', label: 'Sábados', icon: 'fas fa-beer' },
   { key: 'domFest', label: 'Domingos y Festivos', icon: 'fas fa-sun' },
 ]
 

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './ServicesSection.css'
 import { MENU_PDF_URL } from '../constants/menuPdf'
 
@@ -24,9 +25,8 @@ const services = [
     title1: '¿Y SI CELEBRAS',
     title2: 'con nosotros?',
     description: <>Estamos preparados para todo tipo de <span style={{ color: '#e68007' }}>celebraciones.</span></>,
-    buttonText: 'CONTÁCTANOS',
-    buttonLink: 'https://wa.me/573106418808',
-    buttonTarget: '_blank',
+    buttonText: 'VER DETALLES',
+    buttonLink: '/cumpleanos',
   },
 ]
 
@@ -47,17 +47,20 @@ export default function ServicesSection() {
               <p className="service-title2">{service.title2}</p>
               <p className="service-description">{service.description}</p>
               <div className="service-cta">
-                <a
-                  className="elementor-button elementor-animation-grow"
-                  href={service.buttonLink}
-                  {...(service.buttonTarget
-                    ? { target: service.buttonTarget, rel: 'noopener noreferrer' }
-                    : service.buttonLink?.startsWith('http')
-                      ? { target: '_blank', rel: 'noopener noreferrer' }
-                      : {})}
-                >
-                  {service.buttonText}
-                </a>
+                {service.buttonTarget || service.buttonLink?.startsWith('http') ? (
+                  <a
+                    className="elementor-button elementor-animation-grow"
+                    href={service.buttonLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {service.buttonText}
+                  </a>
+                ) : (
+                  <Link className="elementor-button elementor-animation-grow" to={service.buttonLink}>
+                    {service.buttonText}
+                  </Link>
+                )}
               </div>
               <div className="service-spacer-bottom" />
             </div>

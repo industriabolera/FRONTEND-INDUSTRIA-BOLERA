@@ -6,6 +6,7 @@ import { MongoClient } from 'mongodb'
 import { createSession, querySession } from './placetopay.js'
 import { resolveSessionEstado } from './placetopay-status.js'
 import { ROLES, hashPassword, verifyPassword, requireAuth, requireAuthAsync, signAdminToken } from '../netlify/functions/lib/admin-auth.js'
+import { getOrInitAdminConfig as getOrInitAdminConfigShared, normalizeAdminConfig } from '../netlify/functions/lib/admin-config-shared.js'
 import { validateFechaHorariosReservaColombia } from '../netlify/functions/lib/booking-datetime-colombia.js'
 import { computeBookingTotal } from '../netlify/functions/lib/booking-pricing-shared.js'
 import { createPaymentAccessToken, paymentAccessAllowed } from '../netlify/functions/lib/payment-access-token.js'
@@ -120,21 +121,6 @@ async function getAdminConfigCollection() {
   return col
 }
 
-const DEFAULT_ADMIN_CONFIG = {
-  precios: {
-    pistaLJ: 120000,
-    pistaVD: 132000,
-    zapatos: 7500,
-    jugadorAdicional: 31000,
-  },
-  horarios: {
-    lunMie: { apertura: '12:00 PM', cierre: '10:00 PM' },
-    jueSab: { apertura: '12:00 PM', cierre: '11:00 PM' },
-    domFest: { apertura: '12:00 PM', cierre: '9:00 PM' },
-  },
-  promociones: [],
-}
-
 const SEED_USERS = [
   { username: 'admin', role: 'admin' },
   { username: 'operaciones', role: 'operaciones' },
@@ -171,15 +157,7 @@ async function ensureSeedUsers() {
 }
 
 async function getOrInitAdminConfig() {
-  const col = await getAdminConfigCollection()
-  const existing = await col.findOne({ key: 'main' })
-  if (existing?.value) return existing.value
-  await col.updateOne(
-    { key: 'main' },
-    { $set: { key: 'main', value: DEFAULT_ADMIN_CONFIG, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
-    { upsert: true }
-  )
-  return DEFAULT_ADMIN_CONFIG
+  return getOrInitAdminConfigShared()
 }
 
 // ─── Health check ────────────────────────────────────────────
@@ -274,12 +252,12 @@ app.post('/api/admin/config', async (req, res) => {
   if (!auth.ok) return res.status(auth.statusCode).json({ error: auth.error })
   try {
     const current = await getOrInitAdminConfig()
-    const next = {
+    const next = normalizeAdminConfig({
       ...current,
       ...(req.body?.precios ? { precios: { ...current.precios, ...req.body.precios } } : {}),
       ...(req.body?.horarios ? { horarios: { ...current.horarios, ...req.body.horarios } } : {}),
       ...(req.body?.promociones ? { promociones: Array.isArray(req.body.promociones) ? req.body.promociones : current.promociones } : {}),
-    }
+    })
     const col = await getAdminConfigCollection()
     await col.updateOne({ key: 'main' }, { $set: { value: next, updatedAt: new Date() } }, { upsert: true })
     res.json({ config: next })

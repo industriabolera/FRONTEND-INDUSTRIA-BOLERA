@@ -11,8 +11,9 @@ const DEFAULT_CONFIG = {
     jugadorAdicional: 31000,
   },
   horarios: {
-    lunMie: { apertura: '12:00 PM', cierre: '10:00 PM' },
-    jueSab: { apertura: '12:00 PM', cierre: '11:00 PM' },
+    lunMie: { apertura: '2:00 PM', cierre: '10:00 PM' },
+    jueVie: { apertura: '2:00 PM', cierre: '11:00 PM' },
+    sab: { apertura: '12:00 PM', cierre: '11:00 PM' },
     domFest: { apertura: '12:00 PM', cierre: '9:00 PM' },
   },
   promociones: [],

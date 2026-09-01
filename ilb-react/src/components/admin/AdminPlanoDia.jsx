@@ -8,6 +8,9 @@ import {
   reservationsForDate,
   reservationsAtSlot,
   bloqueoMotivoLaneSlot,
+  getHorariosForDate,
+  parseFechaInput,
+  buildHolidaysSet,
 } from '../../utils/adminReservasGrid'
 import {
   PLANO_OCUPACION_CSV_HEADERS,
@@ -65,6 +68,20 @@ export default function AdminPlanoDia({ reservas }) {
 
   const reservasDia = useMemo(() => reservationsForDate(reservasFuente, fecha), [reservasFuente, fecha])
 
+  /** Festivos del año de la fecha seleccionada, para resolver el grupo de horario. */
+  const holidaysSet = useMemo(() => {
+    const d = parseFechaInput(fecha)
+    return d ? buildHolidaysSet([d.getFullYear()]) : new Set()
+  }, [fecha])
+
+  /** Ventana efectiva de horas de la fecha según config.horarios y festivos. */
+  const horasDiaEfectivas = useMemo(() => {
+    const d = parseFechaInput(fecha)
+    if (!d) return ALL_HORAS
+    const slots = getHorariosForDate(d, config.horarios, holidaysSet)
+    return slots.length ? slots : ALL_HORAS
+  }, [fecha, config.horarios, holidaysSet])
+
   const blockedAdminLanes = useMemo(() => {
     if (!fecha) return []
     return LANES.filter(p => {
@@ -85,23 +102,23 @@ export default function AdminPlanoDia({ reservas }) {
     () =>
       blockedLanesWholeDayAgg({
         fechaStr: fecha,
-        horasDia: ALL_HORAS,
+        horasDia: horasDiaEfectivas,
         isLaneBlocked: (pi, fd, hr) =>
           laneTieneBloqueoAdmin(config.bloqueos, fd, pi, hr) || isLaneFullDayBlocked(pi, fd),
         isLaneReservedAdmin: (pi, fd, hr) => laneTieneReserva(reservasDia, fd, pi, hr),
         isLaneReservedOnline: (pi, fd, hr) => laneTieneReserva(reservasDia, fd, pi, hr),
       }),
-    [fecha, config.bloqueos, reservasDia, isLaneFullDayBlocked]
+    [fecha, config.bloqueos, reservasDia, isLaneFullDayBlocked, horasDiaEfectivas]
   )
 
-  /** Vista día agregado: morado si hay venta/reserva en ≥1 hueco estándar; gris solo si ese día está 100% lleno. */
+  /** Vista día agregado: morado si hay venta/reserva en ≥1 hueco efectivo; gris solo si ese día está 100% lleno. */
   const reservedLanesSomeSlot = useMemo(() => {
     if (!fecha || horaSel) return []
     return LANES.filter(p => {
       if (blockedWholeDayMerged.includes(p)) return false
-      return ALL_HORAS.some(h => laneTieneReserva(reservasDia, fecha, p, h))
+      return horasDiaEfectivas.some(h => laneTieneReserva(reservasDia, fecha, p, h))
     })
-  }, [fecha, horaSel, blockedWholeDayMerged, reservasDia])
+  }, [fecha, horaSel, blockedWholeDayMerged, reservasDia, horasDiaEfectivas])
 
   const blockedForMap = horaSel ? blockedAdminLanes : blockedWholeDayMerged
   const reservedForMap = horaSel ? reservedClientLanes : reservedLanesSomeSlot
@@ -109,7 +126,7 @@ export default function AdminPlanoDia({ reservas }) {
   const footerPlano =
     fecha && horaSel
       ? 'Gris: bloqueo administrativo (o todo el día). Morado: reserva confirmada o pendiente (online o manual).'
-      : 'Vista día: morado = hay al menos una reserva ese día; gris = sin ningún slot libre de 12:00 PM a 10:00 PM. Elige una hora para ver bloqueos y reservas en ese turno.'
+      : 'Vista día: morado = hay al menos una reserva ese día; gris = sin ningún slot libre en los turnos del día. Elige una hora para ver bloqueos y reservas en ese turno.'
 
   const exportarCsv = () => {
     if (!fecha) return
@@ -117,7 +134,7 @@ export default function AdminPlanoDia({ reservas }) {
     const emptyDetail = reservaToCsvDetailCells(null)
 
     for (const pista of LANES) {
-      for (const hora of ALL_HORAS) {
+      for (const hora of horasDiaEfectivas) {
         const bloqueoTxt = bloqueoMotivoLaneSlot(config.bloqueos, fecha, pista, hora)
         if (bloqueoTxt) {
           rows.push([fecha, pista, hora, 'Bloqueada (admin)', bloqueoTxt, ...emptyDetail])
@@ -141,7 +158,7 @@ export default function AdminPlanoDia({ reservas }) {
   const conteoVendidas = useMemo(() => {
     let n = 0
     for (const pista of LANES) {
-      for (const hora of ALL_HORAS) {
+      for (const hora of horasDiaEfectivas) {
         if (bloqueoMotivoLaneSlot(config.bloqueos, fecha, pista, hora))
           continue
         const r = reservationsAtSlot(reservasDia, fecha, pista, hora)
@@ -150,7 +167,7 @@ export default function AdminPlanoDia({ reservas }) {
       }
     }
     return n
-  }, [fecha, config.bloqueos, reservasDia])
+  }, [fecha, config.bloqueos, reservasDia, horasDiaEfectivas])
 
   return (
     <div className="admin-card admin-form-card admin-plano-dia-card">
@@ -163,7 +180,7 @@ export default function AdminPlanoDia({ reservas }) {
             Visualiza ocupación por pista{' '}
             {horaSel
               ? `a las ${horaSel} (morado = reserva, gris = bloqueo admin).`
-              : '(vista día: morado = al menos una venta/reserva; gris = todos los turnos estándar ocupados).'}
+               : '(vista día: morado = al menos una venta/reserva; gris = todos los turnos efectivos ocupados).'}
           </p>
         </div>
         <button type="button" className="admin-btn admin-btn-primary" onClick={exportarCsv}>
@@ -179,7 +196,7 @@ export default function AdminPlanoDia({ reservas }) {
           <label className="admin-field-label">Hora (opcional)</label>
           <select className="admin-input" value={horaSel} onChange={e => setHoraSel(e.target.value)}>
             <option value="">Todo el día (agregado)</option>
-            {ALL_HORAS.map(h => (
+            {horasDiaEfectivas.map(h => (
               <option key={h} value={h}>
                 {h}
               </option>
@@ -188,7 +205,7 @@ export default function AdminPlanoDia({ reservas }) {
         </div>
         <div className="admin-field" style={{ display: 'flex', alignItems: 'flex-end' }}>
           <p className="admin-plano-dia-stats">
-            Slots vendidos confirmados ese día (12:00 PM - 10:00 PM): <strong>{conteoVendidas}</strong>
+            Slots vendidos confirmados ese día: <strong>{conteoVendidas}</strong>
           </p>
         </div>
       </div>

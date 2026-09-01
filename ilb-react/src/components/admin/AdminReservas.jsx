@@ -4,6 +4,7 @@ import AdminPlanoDia from './AdminPlanoDia'
 import { parseHorasFromString } from '../../utils/bookingSlots'
 import { fetchAllReservasForAdminPortal } from '../../utils/adminReservasFetch'
 import { downloadReservasListCsv } from '../../utils/adminReservasExport'
+import { buildHolidaysSet, getHorariosForDate, parseFechaInput } from '../../utils/adminReservasGrid'
 
 const ALL_HORAS = [
   '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
@@ -71,6 +72,12 @@ function formatDateTime(iso) {
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
+}
+
+function horasDisponiblesParaFecha(fecha, horarios) {
+  const date = parseFechaInput(fecha)
+  if (!date) return ALL_HORAS
+  return getHorariosForDate(date, horarios, buildHolidaysSet([date.getFullYear()]))
 }
 
 function pistasResumen(slots) {
@@ -430,6 +437,9 @@ export default function AdminReservas() {
     manual: unified.filter(r => r.origen === 'manual').length,
   }), [unified])
 
+  const horasFormulario = horasDisponiblesParaFecha(form.fecha, config.horarios)
+  const horasModificacion = horasDisponiblesParaFecha(modificarForm.fecha, config.horarios)
+
   return (
     <div className="admin-panel">
       <div className="admin-panel-header">
@@ -516,8 +526,8 @@ export default function AdminReservas() {
                   >
                     <option value="">Seleccionar…</option>
                     {(form.fecha
-                      ? ALL_HORAS.filter(h => !isSlotTaken(row.pista, form.fecha, h))
-                      : ALL_HORAS
+                      ? horasFormulario.filter(h => !isSlotTaken(row.pista, form.fecha, h))
+                      : horasFormulario
                     ).map(h => (
                       <option key={h} value={h}>{h}</option>
                     ))}
@@ -868,7 +878,7 @@ export default function AdminReservas() {
                       onChange={e => changeModificarSlot(idx, 'hora', e.target.value)}
                     >
                       <option value="">Seleccionar…</option>
-                      {ALL_HORAS.map(h => (
+                      {horasModificacion.map(h => (
                         <option key={h} value={h}>{h}</option>
                       ))}
                     </select>
