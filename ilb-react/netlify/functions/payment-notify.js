@@ -2,7 +2,6 @@ import { createHash } from 'crypto'
 import { getReservasCollection } from './lib/db.js'
 import { querySession } from './lib/placetopay.js'
 import { resolveSessionEstado } from './lib/placetopay-status.js'
-import { isProductionEnv, apiErrorMessage, jsonResponse } from './lib/http-security.js'
 
 export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
@@ -49,11 +48,8 @@ export async function handler(event) {
 
       verifiedNotificationStatus = statusValue
       console.log(`[Webhook] Signature verified OK for requestId=${requestId}`)
-    } else if (isProductionEnv()) {
-      console.warn(`[Webhook] No signature provided for requestId=${requestId}`)
-      return jsonResponse(401, { error: 'Invalid signature' }, event, 'POST, OPTIONS')
     } else {
-      console.warn(`[Webhook] No signature provided for requestId=${requestId} — proceeding in non-production`)
+      console.warn(`[Webhook] No signature provided for requestId=${requestId} — proceeding with query verification`)
     }
 
     // Consultar estado actualizado en PlaceToPay para confirmar
@@ -85,6 +81,10 @@ export async function handler(event) {
     }
   } catch (err) {
     console.error('[Webhook] Error:', err.message)
-    return jsonResponse(500, { error: apiErrorMessage(err) }, event, 'POST, OPTIONS')
+    return {
+      statusCode: 500,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: err.message }),
+    }
   }
 }
