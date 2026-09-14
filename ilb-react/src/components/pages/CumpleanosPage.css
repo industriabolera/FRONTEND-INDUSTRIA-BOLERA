@@ -18,7 +18,7 @@
   background:
     linear-gradient(90deg, rgba(7, 7, 7, 0.94) 0%, rgba(7, 7, 7, 0.62) 42%, rgba(7, 7, 7, 0.08) 100%),
     linear-gradient(0deg, rgba(7, 7, 7, 0.55), transparent 45%),
-    url('/images/IMG_6445.jpg') center 58% / cover no-repeat;
+    url('/images/cumpleanos-hero.webp') center 22% / cover no-repeat;
 }
 
 .cumple-hero-copy {

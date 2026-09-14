@@ -1,30 +1,12 @@
-import { useCallback } from 'react'
 import './PageShell.css'
 import './StaticSitePages.css'
+import ContactForm from '../ContactForm'
 
 const MAIL_TO = 'info@laindustriabolera.co'
+const WHATSAPP_HREF = 'https://wa.me/573106418808'
 const LOCATION_LINES = ['Carrera 70 # 1 – 141, Local 453', '', 'Arkadia Centro Comercial', '', 'Medellín, Antioquia']
 
 export default function ContactoPage() {
-  const submitMailto = useCallback((event) => {
-    event.preventDefault()
-    const form = event.target
-    const fd = new FormData(form)
-    const nombre = (fd.get('nombre') ?? '').toString().trim()
-    const apellido = (fd.get('apellido') ?? '').toString().trim()
-    const email = (fd.get('email') ?? '').toString().trim()
-    const asunto = (fd.get('asunto') ?? '').toString().trim()
-    const mensaje = (fd.get('mensaje') ?? '').toString().trim()
-    const body = [
-      `Nombre: ${nombre} ${apellido}`,
-      `Email: ${email}`,
-      '',
-      mensaje,
-    ].join('\n')
-    const href = `mailto:${MAIL_TO}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(body)}`
-    window.location.href = href
-  }, [])
-
   return (
     <section className="page-shell">
       <div className="page-shell-bg" />
@@ -48,8 +30,23 @@ export default function ContactoPage() {
               <p className="page-shell-subtitle" style={{ marginTop: 18, whiteSpace: 'pre-line' }}>
                 {LOCATION_LINES.join('\n')}
               </p>
+              <p className="page-shell-subtitle" style={{ marginTop: 20, marginBottom: 0 }}>
+                <strong style={{ color: '#e4d28d' }}>HORARIOS</strong><br />
+                Lunes a miércoles: 2:00 p. m. – 10:00 p. m.<br />
+                Jueves y viernes: 2:00 p. m. – 11:00 p. m.<br />
+                Sábados: 12:00 m. – 11:00 p. m.<br />
+                Domingos: 12:00 m. – 9:00 p. m.
+              </p>
+              <p className="page-shell-subtitle" style={{ marginTop: 18, marginBottom: 0 }}>
+                <strong style={{ color: '#e4d28d' }}>WHATSAPP</strong><br />
+                <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">
+                  (57) 310 641 8808
+                </a><br />
+                <strong style={{ color: '#e4d28d' }}>EMAIL</strong><br />
+                <a href={`mailto:${MAIL_TO}`}>{MAIL_TO}</a>
+              </p>
               <div className="static-contact-social" aria-label="Redes sociales">
-                <a href="https://wa.me/573106418808" target="_blank" rel="noopener noreferrer" title="WhatsApp">
+                <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer" title="WhatsApp">
                   <i className="fab fa-whatsapp" aria-hidden />
                 </a>
                 <a href="https://www.instagram.com/laindustriabolera/" target="_blank" rel="noopener noreferrer" title="Instagram">
@@ -67,35 +64,9 @@ export default function ContactoPage() {
               <p className="page-shell-subtitle" style={{ marginBottom: 22 }}>
                 Te responderemos en lo más rápido posible.
               </p>
-              <form className="static-form-root" noValidate onSubmit={submitMailto}>
-                <div className="static-form-grid">
-                  <div className="static-field">
-                    <label className="visually-hidden" htmlFor="contacto-nombre">Nombre</label>
-                    <input id="contacto-nombre" name="nombre" type="text" autoComplete="given-name" placeholder="Nombre" />
-                  </div>
-                  <div className="static-field">
-                    <label className="visually-hidden" htmlFor="contacto-apellido">Apellido</label>
-                    <input id="contacto-apellido" name="apellido" type="text" autoComplete="family-name" placeholder="Apellido" />
-                  </div>
-                  <div className="static-field full">
-                    <label className="visually-hidden" htmlFor="contacto-email">Email</label>
-                    <input id="contacto-email" name="email" type="email" autoComplete="email" placeholder="Email" required aria-required />
-                  </div>
-                  <div className="static-field full">
-                    <label className="visually-hidden" htmlFor="contacto-asunto">Asunto</label>
-                    <input id="contacto-asunto" name="asunto" type="text" placeholder="Asunto" required aria-required />
-                  </div>
-                  <div className="static-field full">
-                    <label className="visually-hidden" htmlFor="contacto-mensaje">Mensaje</label>
-                    <textarea id="contacto-mensaje" name="mensaje" rows={4} placeholder="Mensaje" />
-                  </div>
-                  <button className="static-form-submit full" type="submit">
-                    ENVIAR
-                  </button>
-                </div>
-              </form>
+              <ContactForm />
               <p className="static-form-hint">
-                También puedes escribir por WhatsApp: (57) 3106418808 — {MAIL_TO}.
+                También puedes escribir por <a href={WHATSAPP_HREF} target="_blank" rel="noopener noreferrer">WhatsApp</a>: (57) 3106418808 — <a href={`mailto:${MAIL_TO}`}>{MAIL_TO}</a>.
               </p>
             </div>
           </div>

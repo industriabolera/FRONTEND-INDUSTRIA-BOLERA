@@ -1,3 +1,5 @@
+/* global process */
+
 import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
@@ -24,6 +26,8 @@ import {
   buildReservaListFilter,
 } from '../netlify/functions/lib/reservas-list-shared.js'
 import { reprogramarReservaAdmin } from '../netlify/functions/lib/admin-reserva-reprogramar-shared.js'
+import { initContactTable } from './db/mysql.js'
+import contactRouter from './routes/contact.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -47,6 +51,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Cron-Secret'],
 }))
 app.use(express.json())
+app.use('/api/contact', contactRouter)
 
 // ─── MongoDB ─────────────────────────────────────────────────
 let cachedClient = null
@@ -1083,6 +1088,7 @@ if (process.env.NODE_ENV === 'production') {
 export { app }
 
 export function startServer() {
+  void initContactTable()
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🎳 ILB Server running on 0.0.0.0:${PORT}`)
     console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)
