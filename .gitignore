@@ -3,3 +3,17 @@
 
 # macOS
 .DS_Store
+
+# Sistema de memoria de IA y planes (NO versionar)
+docs/ai/
+
+# Workspace de diagramas LikeC4 (temporal, NO versionar)
+.likec4-tmp/
+
+# Documentacion del proyecto (NO versionar)
+/docs/
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
