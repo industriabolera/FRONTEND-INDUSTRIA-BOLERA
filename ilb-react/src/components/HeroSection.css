@@ -65,8 +65,30 @@
   margin-block-end: 20px;
 }
 
-.hero-widget:last-child {
+.hero-widget-wrap > .hero-widget:last-child {
   margin-block-end: 0;
+}
+
+/* === Main heading (single H1) === */
+/* The H1 groups the two original widgets. It renders as the same flex
+   column they used to live in, so layout stays byte-for-byte identical. */
+.hero-main-title {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1;
+  border: none;
+}
+
+/* Widget wrappers are spans inside the H1; force block so their
+   margins/paddings/borders behave exactly like the original <div>s. */
+.hero-main-title .hero-widget,
+.hero-main-title .hero-widget-container {
+  display: block;
 }
 
 /* === Dots image widget === */
@@ -86,6 +108,7 @@
 }
 
 .hero-fabricamos {
+  display: block;
   font-family: 'Yeseva One', cursive;
   font-size: 70px;
   font-weight: 400;
@@ -105,6 +128,7 @@
 }
 
 .hero-diversion {
+  display: block;
   font-family: 'Yeseva One', cursive;
   font-size: 36px;
   font-weight: 400;

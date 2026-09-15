@@ -41,7 +41,7 @@ export default function ServiciosMenuSection() {
       <section className="servicios-menu">
         <div className="servicios-menu-grid">
           <div className="servicios-menu-text">
-            <h1 className="servicios-menu-title-yellow">NUESTRO</h1>
+            <h2 className="servicios-menu-title-yellow">NUESTRO</h2>
             <h2 className="servicios-menu-title-cursive">menú</h2>
             <span className="servicios-menu-divider" />
             <p className="servicios-menu-description">

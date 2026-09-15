@@ -15,6 +15,7 @@ import ContactoPage from './components/pages/ContactoPage'
 import BlogPage from './components/pages/BlogPage'
 import FaqPage from './components/pages/FaqPage'
 import CumpleanosPage from './components/pages/CumpleanosPage'
+import NotFoundPage from './components/pages/NotFoundPage'
 import PoliticaPrivacidadPage from './components/pages/legal/PoliticaPrivacidadPage'
 import TerminosCondicionesPage from './components/pages/legal/TerminosCondicionesPage'
 import PoliticaCookiesPage from './components/pages/legal/PoliticaCookiesPage'
@@ -47,17 +48,18 @@ function PublicLayout() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/reservas" element={<ReservasPage />} />
-            <Route path="/servicios/*" element={<ServiciosPage />} />
-            <Route path="/sobre-nosotros/*" element={<SobreNosotrosPage />} />
-            <Route path="/contacto/*" element={<ContactoPage />} />
-            <Route path="/blog/*" element={<BlogPage />} />
-            <Route path="/faq/*" element={<FaqPage />} />
+            <Route path="/servicios" element={<ServiciosPage />} />
+            <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
+            <Route path="/contacto" element={<ContactoPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/faq" element={<FaqPage />} />
             <Route path="/cumpleanos" element={<CumpleanosPage />} />
             <Route path="/politica-de-privacidad" element={<PoliticaPrivacidadPage />} />
             <Route path="/politica-tratamiento-datos" element={<PoliticaPrivacidadPage />} />
             <Route path="/terminos-y-condiciones" element={<TerminosCondicionesPage />} />
             <Route path="/reglamento" element={<TerminosCondicionesPage />} />
             <Route path="/politica-de-cookies" element={<PoliticaCookiesPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>
       </div>

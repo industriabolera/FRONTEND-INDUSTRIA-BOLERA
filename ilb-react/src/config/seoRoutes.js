@@ -167,7 +167,11 @@ export const SEO_ROUTES = {
   },
 }
 
-/** Metadatos de reserva para URLs desconocidas (404) y subrutas no canónicas. */
+/**
+ * Metadatos de reserva para URLs desconocidas (404) y subrutas no canónicas:
+ * toda URL que no coincida exactamente con una clave de `SEO_ROUTES`
+ * (incluidas `/servicios/x`, `/contacto/x`, etc.) resuelve aquí.
+ */
 export const FALLBACK_SEO = {
   title: 'Página no encontrada | La Industria Bolera',
   description: 'La página que buscas no existe o ha sido movida.',
@@ -176,13 +180,6 @@ export const FALLBACK_SEO = {
   ogType: 'website',
   schema: false,
 }
-
-/**
- * Prefijos cuyas subrutas se resuelven contra su ruta índice: los componentes
- * `*Page` renderizan el mismo contenido para cualquier subruta, por lo que su
- * canonical debe apuntar a la ruta índice y evitar contenido duplicado.
- */
-const WILDCARD_PARENT_ROUTES = ['/servicios', '/sobre-nosotros', '/contacto', '/blog', '/faq', '/admin']
 
 /**
  * Normaliza un pathname: descarta query/hash, asegura barra inicial y elimina
@@ -205,12 +202,6 @@ export function resolveSeoRoute(pathname) {
 
   if (SEO_ROUTES[normalized]) {
     return { path: normalized, ...SEO_ROUTES[normalized] }
-  }
-
-  for (const parent of WILDCARD_PARENT_ROUTES) {
-    if (normalized === parent || normalized.startsWith(`${parent}/`)) {
-      return { path: parent, ...SEO_ROUTES[parent] }
-    }
   }
 
   return { path: normalized, ...FALLBACK_SEO }
