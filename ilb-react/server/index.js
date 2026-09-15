@@ -1088,7 +1088,9 @@ if (process.env.NODE_ENV === 'production') {
 export { app }
 
 export function startServer() {
-  void initContactTable()
+  void initContactTable().catch(() => {
+    console.error('[Contact] La inicialización SQL falló; Express continuará disponible')
+  })
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🎳 ILB Server running on 0.0.0.0:${PORT}`)
     console.log(`   Environment: ${process.env.PLACETOPAY_ENV || 'sandbox'}`)

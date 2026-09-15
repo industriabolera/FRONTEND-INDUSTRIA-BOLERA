@@ -73,6 +73,26 @@ function buildEmailContent(data) {
   return { subject, text, html }
 }
 
+function getConfiguredEmailAddresses() {
+  const from = typeof process.env.CONTACT_FROM_EMAIL === 'string'
+    ? process.env.CONTACT_FROM_EMAIL.trim()
+    : ''
+  const to = typeof process.env.CONTACT_TO_EMAIL === 'string'
+    ? process.env.CONTACT_TO_EMAIL.trim()
+    : ''
+
+  return { from, to }
+}
+
+function sanitizeEmailError(error) {
+  return String(error?.message || error || 'Error desconocido')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/Bearer\s+[^\s]+/gi, 'Bearer [redacted]')
+    .replace(/\bre_[A-Za-z0-9_-]+\b/gi, '[redacted]')
+    .replace(/(password|passwd|pwd|secret|token|api[-_ ]?key)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]')
+    .slice(0, 240)
+}
+
 contactRouter.post('/', async (req, res) => {
   const body = req.body || {}
 
@@ -104,30 +124,39 @@ contactRouter.post('/', async (req, res) => {
       })
     }
 
-    const emailContent = buildEmailContent(validation.data)
-    try {
-      const emailResult = await emailService.send({
-        to: process.env.CONTACT_TO_EMAIL || 'modocreativosjo@gmail.com',
-        from: process.env.CONTACT_FROM_EMAIL || 'hola@sadamy.com',
-        replyTo: validation.data.email,
-        ...emailContent,
-      })
+    const { from, to } = getConfiguredEmailAddresses()
+    if (!from || !to) {
+      const errorMessage = 'CONTACT_FROM_EMAIL y CONTACT_TO_EMAIL deben estar configuradas.'
+      console.error(`[Contact] Email omitido para mensaje ${contactId}: configuración incompleta`)
+      await updateEmailStatus(contactId, { status: 'failed', error: errorMessage })
+    } else {
+      const emailContent = buildEmailContent(validation.data)
+      try {
+        const emailResult = await emailService.send({
+          to,
+          from,
+          replyTo: validation.data.email,
+          idempotencyKey: `contact-message/${contactId}`,
+          ...emailContent,
+        })
 
-      await updateEmailStatus(contactId, {
-        status: 'sent',
-        emailId: emailResult?.id,
-      })
-    } catch (error) {
-      console.error(`[Contact] No se pudo enviar el email del mensaje ${contactId}: ${error?.message || 'Error desconocido'}`)
-      await updateEmailStatus(contactId, {
-        status: 'failed',
-        error: error?.message || 'Error desconocido',
-      })
+        await updateEmailStatus(contactId, {
+          status: 'sent',
+          emailId: emailResult?.id,
+        })
+      } catch (error) {
+        const safeError = sanitizeEmailError(error)
+        console.error(`[Contact] No se pudo enviar el email del mensaje ${contactId}: ${safeError}`)
+        await updateEmailStatus(contactId, {
+          status: 'failed',
+          error: safeError,
+        })
+      }
     }
 
     return res.status(200).json({ success: true, message: 'Mensaje recibido con éxito' })
   } catch (error) {
-    console.error(`[Contact] Error procesando mensaje: ${error?.message || 'Error desconocido'}`)
+    console.error(`[Contact] Error procesando mensaje: ${sanitizeEmailError(error)}`)
     return res.status(500).json({
       success: false,
       error: 'No fue posible procesar el mensaje.',
