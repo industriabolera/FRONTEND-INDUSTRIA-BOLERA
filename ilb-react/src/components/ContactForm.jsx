@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import './ContactForm.css'
 
 const INITIAL_FORM = {
@@ -384,15 +385,24 @@ export default function ContactForm() {
             />
             <span>
               Acepto los{' '}
-              <a
-                href="/docs/Terminos y Condiciones La Industria Bolera.docx"
+              <Link
+                to="/terminos-y-condiciones"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(event) => event.stopPropagation()}
               >
                 Términos y Condiciones
-              </a>{' '}
-              y autorizo el tratamiento de mis datos personales de acuerdo con la Política de Privacidad para ser contactado sobre mi solicitud.
+              </Link>{' '}
+              y autorizo el tratamiento de mis datos personales de acuerdo con la{' '}
+              <Link
+                to="/politica-de-privacidad"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(event) => event.stopPropagation()}
+              >
+                Política de Privacidad
+              </Link>{' '}
+              para ser contactado sobre mi solicitud.
             </span>
           </label>
           <FieldError id={`${FIELD_IDS.terminosAceptados}-error`} message={errors.terminosAceptados} />

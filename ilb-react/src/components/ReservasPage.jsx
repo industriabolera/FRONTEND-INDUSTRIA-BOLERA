@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useBolera } from '../context/BoleraContext'
 import FloorPlan, { LANE_PAIRS } from './FloorPlan'
 import './ReservasPage.css'
@@ -1807,9 +1807,9 @@ export default function ReservasPage() {
                   </div>
                   <span className="terms-text">
                     Acepto los{' '}
-                    <a href="/docs/Terminos y Condiciones La Industria Bolera.docx" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                    <Link to="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
                       Términos y Condiciones
-                    </a>.
+                    </Link>.
                   </span>
                 </label>
 

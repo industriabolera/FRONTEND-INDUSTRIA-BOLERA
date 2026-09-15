@@ -72,22 +72,24 @@ export default function Footer() {
         <div className="footer-bottom-container">
           <div className="footer-bottom-left">
             <div className="footer-bottom-buttons">
-              <a
+              <Link
+                to="/politica-de-privacidad"
                 className="elementor-button elementor-size-sm elementor-animation-grow footer-policy-btn"
-                href="/docs/POLÍTICAS DE TRATAMIENTO DE DATOS.docx"
-                target="_blank"
-                rel="noopener noreferrer"
               >
-                Políticas internas
-              </a>
-              <a
+                Políticas de privacidad
+              </Link>
+              <Link
+                to="/terminos-y-condiciones"
                 className="elementor-button elementor-size-sm elementor-animation-grow footer-policy-btn"
-                href="/docs/Terminos y Condiciones La Industria Bolera.docx"
-                target="_blank"
-                rel="noopener noreferrer"
               >
-                Reglamento
-              </a>
+                Términos y condiciones
+              </Link>
+              <Link
+                to="/politica-de-cookies"
+                className="elementor-button elementor-size-sm elementor-animation-grow footer-policy-btn"
+              >
+                Política de cookies
+              </Link>
             </div>
           </div>
           <div className="footer-bottom-right">
