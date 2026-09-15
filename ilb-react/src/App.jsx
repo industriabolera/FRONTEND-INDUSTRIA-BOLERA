@@ -13,6 +13,7 @@ import ServiciosPage from './components/pages/ServiciosPage'
 import SobreNosotrosPage from './components/pages/SobreNosotrosPage'
 import ContactoPage from './components/pages/ContactoPage'
 import BlogPage from './components/pages/BlogPage'
+import BlogPostPage from './components/pages/BlogPostPage.jsx'
 import FaqPage from './components/pages/FaqPage'
 import CumpleanosPage from './components/pages/CumpleanosPage'
 import NotFoundPage from './components/pages/NotFoundPage'
@@ -52,6 +53,7 @@ function PublicLayout() {
             <Route path="/sobre-nosotros" element={<SobreNosotrosPage />} />
             <Route path="/contacto" element={<ContactoPage />} />
             <Route path="/blog" element={<BlogPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/cumpleanos" element={<CumpleanosPage />} />
             <Route path="/politica-de-privacidad" element={<PoliticaPrivacidadPage />} />

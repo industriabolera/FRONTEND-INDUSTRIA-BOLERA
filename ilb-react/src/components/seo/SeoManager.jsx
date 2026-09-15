@@ -71,8 +71,9 @@ function setJsonLd(id, data) {
 
 /**
  * Gestor SEO centralizado. Sincroniza <head> de forma idempotente en cada
- * cambio de ruta: título, description, canonical, robots, Open Graph, Twitter
- * y el Schema `BowlingAlley` en páginas públicas indexables.
+ * cambio de ruta: título, description, canonical, robots, Open Graph, Twitter,
+ * metadatos de artículo y el JSON-LD correspondiente (`BowlingAlley` en páginas
+ * públicas indexables, `BlogPosting` en artículos del blog).
  *
  * Reescribe siempre robots y canonical (incluida su eliminación), de modo que
  * al volver de /admin o páginas legales a la home no quede un `noindex` residual.
@@ -82,6 +83,7 @@ export default function SeoManager() {
 
   useEffect(() => {
     const seo = resolveSeoRoute(pathname)
+    const socialImage = seo.image || DEFAULT_SOCIAL_IMAGE
 
     document.title = seo.title
 
@@ -93,16 +95,23 @@ export default function SeoManager() {
     setMeta('property', 'og:title', seo.title)
     setMeta('property', 'og:description', seo.description)
     setMeta('property', 'og:url', seo.canonical)
-    setMeta('property', 'og:image', DEFAULT_SOCIAL_IMAGE)
+    setMeta('property', 'og:image', socialImage)
     setMeta('property', 'og:type', seo.ogType || 'website')
+
+    // Metadatos de artículo (solo en posts de blog)
+    const article = seo.ogType === 'article' ? seo.article : null
+    setMeta('property', 'article:published_time', article?.publishedTime)
+    setMeta('property', 'article:section', article?.category)
 
     // Twitter Cards
     setMeta('name', 'twitter:title', seo.title)
     setMeta('name', 'twitter:description', seo.description)
-    setMeta('name', 'twitter:image', DEFAULT_SOCIAL_IMAGE)
+    setMeta('name', 'twitter:image', socialImage)
     setMeta('name', 'twitter:card', 'summary_large_image')
 
-    setJsonLd(SCHEMA_SCRIPT_ID, seo.schema ? buildLocalBusinessSchema() : null)
+    // `schema: true` inyecta el JSON-LD BowlingAlley; un objeto se usa tal cual.
+    const schemaData = seo.schema === true ? buildLocalBusinessSchema() : seo.schema || null
+    setJsonLd(SCHEMA_SCRIPT_ID, schemaData)
   }, [pathname])
 
   return null

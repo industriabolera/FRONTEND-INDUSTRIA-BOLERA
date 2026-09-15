@@ -30,7 +30,9 @@ import { initContactTable } from './db/mysql.js'
 import { initConsentTable } from './db/consentDb.js'
 import contactRouter from './routes/contact.js'
 import consentRouter from './routes/consent.js'
-import { isValidFrontendRoute } from '../src/config/frontendRoutes.js'
+import { isValidFrontendRoute, normalizeFrontendPath } from '../src/config/frontendRoutes.js'
+import { postsBySlug } from '../src/content/blogData.js'
+import { resolveSeoRoute } from '../src/config/seoRoutes.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -1103,6 +1105,72 @@ if (process.env.NODE_ENV === 'production') {
     return html404Cache
   }
 
+  // Shell base íntegro (con los assets del build) reutilizado para inyectar los
+  // metadatos de cada artículo sin releer el disco en cada request.
+  let indexHtmlCache = null
+  function getIndexHtml() {
+    if (indexHtmlCache === null) indexHtmlCache = readFileSync(indexHtmlPath, 'utf8')
+    return indexHtmlCache
+  }
+
+  function escapeHtmlAttr(value) {
+    return String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+  }
+
+  /**
+   * Devuelve el shell con los metadatos sociales del artículo.
+   * Los crawlers de WhatsApp/Facebook/Twitter no ejecutan JS: el <head> servido
+   * debe traer ya el title, description, canonical y og:* del post.
+   */
+  function buildBlogPostHtml(post) {
+    const seo = resolveSeoRoute(`/blog/${post.slug}`)
+    const esc = escapeHtmlAttr
+    return getIndexHtml()
+      .replace(/<title>[\s\S]*?<\/title>/i, `<title>${esc(seo.title)}</title>`)
+      .replace(
+        /<meta\s+name=["']description["'][^>]*>/i,
+        `<meta name="description" content="${esc(seo.description)}" />`,
+      )
+      .replace(
+        /<link\s+rel=["']canonical["'][^>]*>/i,
+        `<link rel="canonical" href="${esc(seo.canonical)}" />`,
+      )
+      // Las dimensiones del logo de la home no aplican a la imagen del post.
+      .replace(/<meta\s+property=["']og:image:(width|height|type)["'][^>]*>\s*/gi, '')
+      .replace(
+        /<meta\s+property=["']og:type["'][^>]*>/i,
+        `<meta property="og:type" content="article" />\n    <meta property="article:published_time" content="${esc(seo.article.publishedTime)}" />\n    <meta property="article:section" content="${esc(seo.article.category)}" />`,
+      )
+      .replace(
+        /<meta\s+property=["']og:title["'][^>]*>/i,
+        `<meta property="og:title" content="${esc(seo.title)}" />`,
+      )
+      .replace(
+        /<meta\s+property=["']og:description["'][^>]*>/i,
+        `<meta property="og:description" content="${esc(seo.description)}" />`,
+      )
+      .replace(
+        /<meta\s+property=["']og:url["'][^>]*>/i,
+        `<meta property="og:url" content="${esc(seo.canonical)}" />`,
+      )
+      .replace(
+        /<meta\s+property=["']og:image["'][^>]*>/i,
+        `<meta property="og:image" content="${esc(seo.image)}" />`,
+      )
+      .replace(
+        /<meta\s+name=["']twitter:title["'][^>]*>/i,
+        `<meta name="twitter:title" content="${esc(seo.title)}" />`,
+      )
+      .replace(
+        /<meta\s+name=["']twitter:description["'][^>]*>/i,
+        `<meta name="twitter:description" content="${esc(seo.description)}" />`,
+      )
+      .replace(
+        /<meta\s+name=["']twitter:image["'][^>]*>/i,
+        `<meta name="twitter:image" content="${esc(seo.image)}" />`,
+      )
+  }
+
   // Fallback SPA (sin wildcard Express 5 — más compatible en Hostinger).
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next()
@@ -1116,6 +1184,19 @@ if (process.env.NODE_ENV === 'production') {
     }
 
     if (isValidFrontendRoute(req.path)) {
+      const normalized = normalizeFrontendPath(req.path)
+
+      if (normalized.startsWith('/blog/')) {
+        const post = postsBySlug[normalized.slice('/blog/'.length)]
+        if (post) {
+          try {
+            return res.type('html').send(buildBlogPostHtml(post))
+          } catch (err) {
+            return next(err)
+          }
+        }
+      }
+
       return res.sendFile(indexHtmlPath, (err) => {
         if (err) next(err)
       })

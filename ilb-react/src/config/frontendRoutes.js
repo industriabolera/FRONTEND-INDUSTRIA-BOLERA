@@ -11,6 +11,8 @@
  * `/reservas`.
  */
 
+import { isValidBlogSlug } from '../content/blogData.js'
+
 /** Rutas de navegación válidas (pathname normalizado, sin trailing slash salvo la raíz). */
 export const FRONTEND_ROUTES = [
   '/',
@@ -43,7 +45,19 @@ export function normalizeFrontendPath(pathname) {
   return path === '' ? '/' : path
 }
 
-/** Indica si un pathname (con query/hash/trailing slash opcionales) es una ruta válida exacta. */
+/**
+ * Indica si un pathname (con query/hash/trailing slash opcionales) es una ruta
+ * válida: una ruta estática exacta o un artículo de blog publicado.
+ */
 export function isValidFrontendRoute(pathname) {
-  return FRONTEND_ROUTE_SET.has(normalizeFrontendPath(pathname))
+  const normalized = normalizeFrontendPath(pathname)
+
+  if (FRONTEND_ROUTE_SET.has(normalized)) return true
+
+  if (normalized.startsWith('/blog/')) {
+    const slug = normalized.slice('/blog/'.length)
+    if (slug && !slug.includes('/') && isValidBlogSlug(slug)) return true
+  }
+
+  return false
 }

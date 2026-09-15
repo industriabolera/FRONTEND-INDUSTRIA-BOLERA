@@ -7,6 +7,8 @@
  * Sin dependencias externas: solo objetos planos y funciones puras.
  */
 
+import { postsBySlug, isValidBlogSlug } from '../content/blogData.js'
+
 export const SITE_URL = 'https://laindustriabolera.co'
 
 export const DEFAULT_SOCIAL_IMAGE = `${SITE_URL}/images/cropped-LogoIndustriaBoleraColor_Footer-180x180.png`
@@ -202,6 +204,52 @@ export function resolveSeoRoute(pathname) {
 
   if (SEO_ROUTES[normalized]) {
     return { path: normalized, ...SEO_ROUTES[normalized] }
+  }
+
+  if (normalized.startsWith('/blog/')) {
+    const slug = normalized.slice('/blog/'.length)
+
+    if (isValidBlogSlug(slug)) {
+      const post = postsBySlug[slug]
+      const canonical = `${SITE_URL}/blog/${post.slug}`
+      const image = `${SITE_URL}${post.image}`
+
+      return {
+        path: normalized,
+        title: `${post.title} | La Industria Bolera`,
+        description: post.description,
+        canonical,
+        robots: 'index, follow',
+        ogType: 'article',
+        image,
+        article: {
+          publishedTime: post.date,
+          author: post.author,
+          tags: post.tags,
+          category: post.category,
+        },
+        schema: {
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline: post.title,
+          description: post.description,
+          image,
+          datePublished: post.date,
+          author: {
+            '@type': 'Organization',
+            name: 'La Industria Bolera',
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: 'La Industria Bolera',
+          },
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': canonical,
+          },
+        },
+      }
+    }
   }
 
   return { path: normalized, ...FALLBACK_SEO }

@@ -117,7 +117,7 @@ function assertHtml404(label, res, body) {
 }
 
 async function verifyHttp() {
-  const htmlRoutes = ['/', '/servicios', '/reservas?ref=abc123', '/admin']
+  const htmlRoutes = ['/', '/servicios', '/reservas?ref=abc123', '/admin', '/blog', '/blog/guia-bolos-principiantes-tecnica']
   for (const route of htmlRoutes) {
     const res = await request(route)
     const type = res.headers.get('content-type') || ''
@@ -129,6 +129,9 @@ async function verifyHttp() {
 
   const subroute = await request('/servicios/subruta-invalida')
   assertHtml404('GET /servicios/subruta-invalida', subroute, await subroute.text())
+
+  const blogSlugNotFound = await request('/blog/slug-inexistente-404')
+  assertHtml404('GET /blog/slug-inexistente-404', blogSlugNotFound, await blogSlugNotFound.text())
 
   const missingJs = await request('/assets/inexistente.js')
   const missingJsType = missingJs.headers.get('content-type') || ''
@@ -167,6 +170,7 @@ const H1_EXPECTATIONS = [
   ['src/components/pages/servicios/ServiciosExtrasSection.jsx', 0],
   ['src/components/pages/SobreNosotrosPage.jsx', 1],
   ['src/components/pages/BlogPage.jsx', 1],
+  ['src/components/pages/BlogPostPage.jsx', 1],
   ['src/components/pages/FaqPage.jsx', 1],
   ['src/components/pages/CumpleanosPage.jsx', 1],
   ['src/components/ReservasPage.jsx', 1],

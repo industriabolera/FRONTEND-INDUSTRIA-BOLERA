@@ -17,11 +17,63 @@
   </url>
   <url>
     <loc>https://laindustriabolera.co/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://laindustriabolera.co/faq</loc>
   </url>
   <url>
     <loc>https://laindustriabolera.co/cumpleanos</loc>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/guia-bolos-principiantes-tecnica</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/como-elegir-peso-bola-bolos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/sistema-puntuacion-strike-spare-explicado</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/por-que-usar-zapatos-especiales-bolos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/celebrar-cumpleanos-bolera-guia-fiesta</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/torneos-corporativos-team-building-empresas</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/gastronomia-y-cocteles-en-la-bolera</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/historia-fascinante-del-bowling</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/errores-comunes-al-lanzar-la-bola</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://laindustriabolera.co/blog/plan-perfecto-fin-de-semana-amigos</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>
