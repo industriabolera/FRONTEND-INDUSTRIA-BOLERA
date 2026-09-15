@@ -5,6 +5,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
 import FloatingWhatsApp from './components/FloatingWhatsApp'
+import CookieConsentBanner from './components/CookieConsentBanner'
 import HomePage from './components/HomePage'
 import ReservasPage from './components/ReservasPage'
 import ServiciosPage from './components/pages/ServiciosPage'
@@ -13,6 +14,9 @@ import ContactoPage from './components/pages/ContactoPage'
 import BlogPage from './components/pages/BlogPage'
 import FaqPage from './components/pages/FaqPage'
 import CumpleanosPage from './components/pages/CumpleanosPage'
+import PoliticaPrivacidadPage from './components/pages/legal/PoliticaPrivacidadPage'
+import TerminosCondicionesPage from './components/pages/legal/TerminosCondicionesPage'
+import PoliticaCookiesPage from './components/pages/legal/PoliticaCookiesPage'
 import AdminPage from './components/admin/AdminPage'
 import './App.css'
 
@@ -48,11 +52,17 @@ function PublicLayout() {
             <Route path="/blog/*" element={<BlogPage />} />
             <Route path="/faq/*" element={<FaqPage />} />
             <Route path="/cumpleanos" element={<CumpleanosPage />} />
+            <Route path="/politica-de-privacidad" element={<PoliticaPrivacidadPage />} />
+            <Route path="/politica-tratamiento-datos" element={<PoliticaPrivacidadPage />} />
+            <Route path="/terminos-y-condiciones" element={<TerminosCondicionesPage />} />
+            <Route path="/reglamento" element={<TerminosCondicionesPage />} />
+            <Route path="/politica-de-cookies" element={<PoliticaCookiesPage />} />
           </Routes>
         </main>
       </div>
       <Footer />
       <FloatingWhatsApp />
+      <CookieConsentBanner />
       <ScrollToTop />
     </div>
   )

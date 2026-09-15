@@ -27,7 +27,9 @@ import {
 } from '../netlify/functions/lib/reservas-list-shared.js'
 import { reprogramarReservaAdmin } from '../netlify/functions/lib/admin-reserva-reprogramar-shared.js'
 import { initContactTable } from './db/mysql.js'
+import { initConsentTable } from './db/consentDb.js'
 import contactRouter from './routes/contact.js'
+import consentRouter from './routes/consent.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -52,6 +54,7 @@ app.use(cors({
 }))
 app.use(express.json())
 app.use('/api/contact', contactRouter)
+app.use('/api/consent', consentRouter)
 
 // ─── MongoDB ─────────────────────────────────────────────────
 let cachedClient = null
@@ -1090,6 +1093,9 @@ export { app }
 export function startServer() {
   void initContactTable().catch(() => {
     console.error('[Contact] La inicialización SQL falló; Express continuará disponible')
+  })
+  void initConsentTable().catch(() => {
+    console.error('[Consent] La inicialización SQL falló; Express continuará disponible')
   })
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🎳 ILB Server running on 0.0.0.0:${PORT}`)
