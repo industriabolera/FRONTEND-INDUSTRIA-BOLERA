@@ -1,7 +1,7 @@
 # Active Plan
-Plan: PLAN-2026-006-SOFT404-HEADINGS
-Revision: 1
-Status: in_progress
-Plan file: docs/ai/plans/active/PLAN-2026-006-SOFT404-HEADINGS/PLAN.md
-State file: docs/ai/plans/active/PLAN-2026-006-SOFT404-HEADINGS/STATE.md
+Plan: none
+Revision: 0
+Status: none
+Plan file: none
+State file: none
 Updated: 2026-09-14

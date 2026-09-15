@@ -5,3 +5,4 @@
 - `2026/PLAN-2026-003-CONTACT-FORMS/` — persistencia MySQL y unificación de formularios de contacto, completado 2026-09-14.
 - `2026/PLAN-2026-004-LEGAL-COMPLIANCE/` — cumplimiento normativo de privacidad, términos, cookies y Google Consent Mode v2, completado 2026-09-14.
 - `2026/PLAN-2026-005-VISUAL-SEO-AUDIT/` — corrección visual de solapamiento de textos y capa SEO centralizada, completado 2026-09-14.
+- `2026/PLAN-2026-006-SOFT404-HEADINGS/` — resolución de Soft-404 en Hostinger y normalización de jerarquía de encabezados H1, completado 2026-09-14.
