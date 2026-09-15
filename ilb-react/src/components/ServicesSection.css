@@ -84,7 +84,8 @@
   font-size: 42px;
   font-weight: 400;
   color: #E4D28D;
-  margin-bottom: 0;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
 }
 
 .service-title2 {
@@ -92,7 +93,7 @@
   font-size: 50px;
   font-weight: 300;
   color: #D83F36;
-  margin-top: -15px;
+  margin-top: 0;
   margin-bottom: 0;
   letter-spacing: 2px;
   line-height: 1.2;
@@ -171,7 +172,6 @@
 
   .service-title2 {
     font-size: 32px;
-    margin-top: -15px;
   }
 
   .service-description {

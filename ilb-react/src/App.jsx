@@ -4,6 +4,7 @@ import { BoleraProvider } from './context/BoleraContext'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
+import SeoManager from './components/seo/SeoManager'
 import FloatingWhatsApp from './components/FloatingWhatsApp'
 import CookieConsentBanner from './components/CookieConsentBanner'
 import HomePage from './components/HomePage'
@@ -73,6 +74,7 @@ export default function App() {
     <BoleraProvider>
       <BrowserRouter>
         <RouteScrollToTop />
+        <SeoManager />
         <Routes>
           <Route path="/admin" element={<AdminPage />} />
           <Route path="*" element={<PublicLayout />} />
