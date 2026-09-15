@@ -98,7 +98,8 @@
   text-transform: uppercase;
   letter-spacing: 0;
   text-align: right;
-  margin-bottom: 0;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
 }
 
 .bowling-title {
@@ -108,7 +109,8 @@
   color: #E4D28D;
   letter-spacing: 0;
   text-align: right;
-  margin-top: -34px;
+  line-height: 1.1;
+  margin-top: 0;
   margin-bottom: 0;
 }
 
@@ -205,7 +207,6 @@
   .bowling-title {
     text-align: center;
     font-size: 44px;
-    margin-top: -22px;
   }
 
   .bowling-description {
