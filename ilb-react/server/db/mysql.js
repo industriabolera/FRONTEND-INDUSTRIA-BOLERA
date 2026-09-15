@@ -1,23 +1,95 @@
 /* global process */
 
+import { isIP } from 'node:net'
 import mysql from 'mysql2/promise'
 
-const configuredPort = Number.parseInt(process.env.MYSQL_PORT || '3306', 10)
-const mysqlPort = Number.isInteger(configuredPort) && configuredPort > 0 ? configuredPort : 3306
+const CONTACT_DB_TARGETS = new Set(['local', 'hostinger'])
+const LOCAL_DB_DEFAULT_PORT = 3307
+const HOSTINGER_DB_DEFAULT_PORT = 3306
 
-const poolConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  port: mysqlPort,
-  user: process.env.MYSQL_USER || undefined,
-  password: process.env.MYSQL_PASSWORD || undefined,
-  database: process.env.MYSQL_DATABASE || undefined,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  ...(process.env.MYSQL_SOCKET_PATH ? { socketPath: process.env.MYSQL_SOCKET_PATH } : {}),
+function normalizedEnvValue(env, key) {
+  return typeof env[key] === 'string' ? env[key].trim() : ''
 }
 
-export const pool = mysql.createPool(poolConfig)
+function isLoopbackHost(host) {
+  const normalizedHost = String(host || '').trim().toLowerCase().replace(/^\[|\]$/g, '')
+  if (normalizedHost === 'localhost') return true
+
+  const ipVersion = isIP(normalizedHost)
+  if (ipVersion === 4) return normalizedHost.startsWith('127.')
+  if (ipVersion === 6) return normalizedHost === '::1' || normalizedHost === '0:0:0:0:0:0:0:1'
+  return false
+}
+
+function parsePort(value) {
+  const port = Number(value)
+  return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null
+}
+
+export function resolveContactDbConfig(env = process.env) {
+  const target = normalizedEnvValue(env, 'CONTACT_DB_TARGET').toLowerCase()
+  if (!CONTACT_DB_TARGETS.has(target)) {
+    return {
+      ok: false,
+      error: 'CONTACT_DB_TARGET debe ser local o hostinger; no existe fallback automático.',
+    }
+  }
+
+  const host = normalizedEnvValue(env, 'MYSQL_HOST')
+  const socketPath = normalizedEnvValue(env, 'MYSQL_SOCKET_PATH')
+  const user = normalizedEnvValue(env, 'MYSQL_USER')
+  const password = typeof env.MYSQL_PASSWORD === 'string' ? env.MYSQL_PASSWORD : ''
+  const database = normalizedEnvValue(env, 'MYSQL_DATABASE')
+  const configuredPort = env.MYSQL_PORT || (target === 'local' ? LOCAL_DB_DEFAULT_PORT : HOSTINGER_DB_DEFAULT_PORT)
+  const port = parsePort(configuredPort)
+
+  if (target === 'local') {
+    if (!isLoopbackHost(host)) {
+      return { ok: false, error: 'CONTACT_DB_TARGET=local requiere MYSQL_HOST loopback.' }
+    }
+    if (socketPath) {
+      return { ok: false, error: 'CONTACT_DB_TARGET=local requiere conexión TCP; no uses MYSQL_SOCKET_PATH.' }
+    }
+  } else if (!host && !socketPath) {
+    return { ok: false, error: 'CONTACT_DB_TARGET=hostinger requiere MYSQL_HOST o MYSQL_SOCKET_PATH.' }
+  }
+
+  if (port === null) return { ok: false, error: 'MYSQL_PORT debe ser un puerto TCP válido.' }
+  if (!user || !password || !database) {
+    return { ok: false, error: 'MYSQL_USER, MYSQL_PASSWORD y MYSQL_DATABASE son obligatorios.' }
+  }
+
+  return {
+    ok: true,
+    target,
+    poolConfig: {
+      host: host || 'localhost',
+      port,
+      user,
+      password,
+      database,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      connectTimeout: 5000,
+      ...(socketPath ? { socketPath } : {}),
+    },
+  }
+}
+
+export const contactDbConfig = resolveContactDbConfig()
+
+let configuredPool = null
+let poolCreationError = null
+if (contactDbConfig.ok) {
+  try {
+    configuredPool = mysql.createPool(contactDbConfig.poolConfig)
+  } catch (error) {
+    poolCreationError = error
+  }
+}
+
+export const pool = configuredPool
 
 const CONTACT_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS contact_messages (
@@ -42,8 +114,16 @@ const CONTACT_TABLE_SQL = `
 let contactTableReady = false
 let tableInitializationPromise = null
 
+function sanitizeErrorMessage(error) {
+  return String(error?.message || error || 'Error desconocido')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/(password|passwd|pwd|secret|token|api[-_ ]?key)\s*[:=]\s*[^\s,;]+/gi, '$1=[redacted]')
+    .replace(/(\/\/[^/\s:]+:)[^@\s]+@/g, '$1[redacted]@')
+    .slice(0, 240)
+}
+
 function logDatabaseError(operation, error) {
-  console.error(`[MySQL] ${operation}: ${error?.message || 'Error desconocido'}`)
+  console.error(`[MySQL] ${operation}: ${sanitizeErrorMessage(error)}`)
 }
 
 export async function initContactTable() {
@@ -52,6 +132,10 @@ export async function initContactTable() {
 
   tableInitializationPromise = (async () => {
     try {
+      if (!contactDbConfig.ok || !pool) {
+        logDatabaseError('Contacto SQL no disponible', poolCreationError || contactDbConfig.error)
+        return false
+      }
       await pool.query(CONTACT_TABLE_SQL)
       contactTableReady = true
       return true
@@ -102,6 +186,11 @@ export async function updateEmailStatus(id, { status, emailId = null, error = nu
   }
 
   try {
+    if (!contactDbConfig.ok || !pool) {
+      logDatabaseError('No se pudo actualizar el estado del email', poolCreationError || contactDbConfig.error)
+      return false
+    }
+
     const [result] = await pool.execute(
       `UPDATE contact_messages
        SET email_status = ?, email_id = ?, email_error = ?

@@ -15,8 +15,15 @@
     "postinstall": "npm run build",
     "start": "node app.js",
     "lint": "eslint .",
+    "lint:contact": "eslint server/db/mysql.js server/routes/contact.js server/services/email server/validators/contactValidator.js",
     "preview": "vite preview",
-    "import:bloqueos-pdf": "node scripts/import-bloqueos-from-pdf.mjs"
+    "import:bloqueos-pdf": "node scripts/import-bloqueos-from-pdf.mjs",
+    "contact:env:check": "node -e \"if (!require('node:fs').existsSync('.env.contact.local')) { console.error('Falta .env.contact.local. Créalo con las variables locales documentadas en CONTACT-LOCAL.md.'); process.exit(1) }\"",
+    "contact:db:up": "npm run contact:env:check && docker compose --env-file .env.contact.local -f docker-compose.contact.local.yml up -d",
+    "contact:db:down": "npm run contact:env:check && docker compose --env-file .env.contact.local -f docker-compose.contact.local.yml down",
+    "contact:db:status": "npm run contact:env:check && docker compose --env-file .env.contact.local -f docker-compose.contact.local.yml ps",
+    "contact:db:logs": "npm run contact:env:check && docker compose --env-file .env.contact.local -f docker-compose.contact.local.yml logs --tail=100 -f contact-db",
+    "contact:dev:server": "npm run contact:env:check && node --env-file=.env.contact.local server/index.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",

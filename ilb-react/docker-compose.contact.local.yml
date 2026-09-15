@@ -1,0 +1,24 @@
+services:
+  contact-db:
+    image: mariadb:11.8
+    environment:
+      MARIADB_ROOT_PASSWORD: "${MARIADB_ROOT_PASSWORD:?Define MARIADB_ROOT_PASSWORD in .env.contact.local}"
+      MARIADB_DATABASE: "${MYSQL_DATABASE:?Define MYSQL_DATABASE in .env.contact.local}"
+      MARIADB_USER: "${MYSQL_USER:?Define MYSQL_USER in .env.contact.local}"
+      MARIADB_PASSWORD: "${MYSQL_PASSWORD:?Define MYSQL_PASSWORD in .env.contact.local}"
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - ilb_contact_mariadb_local_data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mariadb-admin ping --protocol=tcp --host=127.0.0.1 --user="$${MARIADB_USER}" --password="$${MARIADB_PASSWORD}" --silent'
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  ilb_contact_mariadb_local_data:
+    name: ilb_contact_mariadb_local_data
