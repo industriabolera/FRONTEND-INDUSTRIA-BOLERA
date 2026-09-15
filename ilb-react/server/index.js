@@ -30,6 +30,7 @@ import { initContactTable } from './db/mysql.js'
 import { initConsentTable } from './db/consentDb.js'
 import contactRouter from './routes/contact.js'
 import consentRouter from './routes/consent.js'
+import { isValidFrontendRoute } from '../src/config/frontendRoutes.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
@@ -1072,19 +1073,62 @@ app.get('/api/reservas/slots', async (req, res) => {
 
 // ─── Serve static files in production ────────────────────────
 if (process.env.NODE_ENV === 'production') {
-  const { dirname, join } = await import('path')
+  const { dirname, join, extname } = await import('path')
   const { fileURLToPath } = await import('url')
+  const { readFileSync } = await import('fs')
   const __dirname = dirname(fileURLToPath(import.meta.url))
 
-  app.use(express.static(join(__dirname, '..', 'dist')))
+  const distPath = join(__dirname, '..', 'dist')
+  const indexHtmlPath = join(distPath, 'index.html')
 
-  // Fallback SPA (sin wildcard Express 5 — más compatible en Hostinger)
+  // Assets cuya ausencia nunca debe devolver el shell de la SPA.
+  const ASSET_EXTENSIONS = new Set([
+    '.js', '.css', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp',
+    '.avif', '.woff', '.woff2', '.ttf', '.eot', '.json', '.map', '.txt',
+    '.xml', '.pdf',
+  ])
+  const ASSET_PATH_PREFIXES = ['/assets/', '/images/', '/fonts/']
+
+  app.use(express.static(distPath))
+
+  // Se lee/transforma una sola vez el shell 404 (noindex, sin canonical de home).
+  let html404Cache = null
+  function getHtml404() {
+    if (html404Cache !== null) return html404Cache
+    const shell = readFileSync(indexHtmlPath, 'utf8')
+    html404Cache = shell
+      .replace(/<meta\s+name=["']robots["'][^>]*>\s*/i, '<meta name="robots" content="noindex, nofollow" />\n    ')
+      .replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, '')
+      .replace(/<meta\s+property=["']og:url["'][^>]*>\s*/gi, '')
+    return html404Cache
+  }
+
+  // Fallback SPA (sin wildcard Express 5 — más compatible en Hostinger).
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next()
     if (req.path.startsWith('/api')) return next()
-    res.sendFile(join(__dirname, '..', 'dist', 'index.html'), (err) => {
-      if (err) next(err)
-    })
+
+    const ext = extname(req.path).toLowerCase()
+    const isAssetPath = ASSET_EXTENSIONS.has(ext)
+      || ASSET_PATH_PREFIXES.some((prefix) => req.path.startsWith(prefix))
+    if (isAssetPath) {
+      return res.status(404).type('text/plain').send('Not Found')
+    }
+
+    if (isValidFrontendRoute(req.path)) {
+      return res.sendFile(indexHtmlPath, (err) => {
+        if (err) next(err)
+      })
+    }
+
+    let html404
+    try {
+      html404 = getHtml404()
+    } catch (err) {
+      return next(err)
+    }
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow')
+    return res.status(404).type('html').send(html404)
   })
 }
 

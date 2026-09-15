@@ -1,0 +1,116 @@
+.not-found {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 160px 22px 100px;
+  overflow: hidden;
+  background: linear-gradient(170deg, #0d0d0d 0%, #1a1a1a 40%, #141414 100%);
+}
+
+.not-found-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(700px 320px at 15% 20%, rgba(216, 63, 54, 0.12), transparent 60%),
+    radial-gradient(700px 320px at 85% 25%, rgba(228, 210, 141, 0.1), transparent 60%),
+    radial-gradient(900px 420px at 50% 85%, rgba(230, 128, 7, 0.1), transparent 60%);
+  pointer-events: none;
+}
+
+.not-found-container {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.not-found-code {
+  margin: 0 0 6px;
+  color: rgba(228, 210, 141, 0.35);
+  font-family: 'Yeseva One', serif;
+  font-size: clamp(72px, 16vw, 140px);
+  line-height: 1;
+  letter-spacing: 2px;
+}
+
+.not-found-title {
+  display: block;
+  margin: 0;
+  color: #fff;
+  font-family: 'Yeseva One', serif;
+  font-size: clamp(30px, 5vw, 46px);
+  letter-spacing: 0.5px;
+}
+
+.not-found-message {
+  margin: 16px auto 0;
+  max-width: 540px;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.not-found-actions {
+  margin-top: 34px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.not-found-link {
+  display: inline-block;
+  padding: 14px 26px;
+  background: transparent;
+  border: 1px solid rgba(228, 210, 141, 0.4);
+  border-radius: 999px;
+  color: #e4d28d;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-decoration: none;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.not-found-link:hover,
+.not-found-link:focus-visible {
+  background: rgba(228, 210, 141, 0.12);
+  border-color: #e4d28d;
+  transform: translateY(-2px);
+}
+
+.not-found-link:focus-visible {
+  outline: 2px solid #e4d28d;
+  outline-offset: 3px;
+}
+
+.not-found-link--primary {
+  background: #d83f36;
+  border-color: #d83f36;
+  color: #fff;
+}
+
+.not-found-link--primary:hover,
+.not-found-link--primary:focus-visible {
+  background: #e68007;
+  border-color: #e68007;
+}
+
+@media (max-width: 640px) {
+  .not-found {
+    padding: 150px 22px 80px;
+  }
+
+  .not-found-actions {
+    flex-direction: column;
+  }
+
+  .not-found-link {
+    width: 100%;
+  }
+}

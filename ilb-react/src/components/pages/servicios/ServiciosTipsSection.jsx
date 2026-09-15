@@ -67,7 +67,7 @@ export default function ServiciosTipsSection() {
         </div>
 
         <header className="servicios-tips-heading servicios-tips-heading-spacer">
-          <h1 className="servicios-tips-title-yellow">NUESTROS</h1>
+          <h2 className="servicios-tips-title-yellow">NUESTROS</h2>
           <h2 className="servicios-tips-title-cursive">horarios</h2>
         </header>
 

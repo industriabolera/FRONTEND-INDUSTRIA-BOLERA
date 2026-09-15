@@ -34,9 +34,9 @@ export default function ServiciosExtrasSection() {
       <div className="servicios-extras-container">
         <header className="servicios-extras-heading">
           <h2 className="servicios-extras-title-yellow">en esta industria fabricamos</h2>
-          <h1 className="servicios-extras-title-yellow servicios-extras-title-big">
+          <h2 className="servicios-extras-title-yellow servicios-extras-title-big">
             MUCHA DIVERSIÓN
-          </h1>
+          </h2>
         </header>
 
         <div className="servicios-extras-grid">

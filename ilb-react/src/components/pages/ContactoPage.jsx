@@ -21,12 +21,10 @@ export default function ContactoPage() {
                 height={178}
                 alt="La Industria Bolera"
               />
-              <h2 className="page-shell-title" style={{ marginBottom: 6 }}>
-                FABRICAMOS
-              </h2>
-              <h2 className="page-shell-title" style={{ marginTop: 0 }}>
-                DIVERSIÓN
-              </h2>
+              <h1 className="page-shell-title" style={{ marginBottom: 0 }}>
+                <span style={{ display: 'block', marginBottom: 6 }}>FABRICAMOS</span>
+                <span style={{ display: 'block', marginTop: 0 }}>DIVERSIÓN</span>
+              </h1>
               <p className="page-shell-subtitle" style={{ marginTop: 18, whiteSpace: 'pre-line' }}>
                 {LOCATION_LINES.join('\n')}
               </p>

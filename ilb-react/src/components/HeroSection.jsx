@@ -20,19 +20,19 @@ export default function HeroSection() {
               </div>
             </div>
 
-            {/* DISEÑAMOS widget */}
-            <div className="hero-widget hero-widget-fabricamos">
-              <div className="hero-widget-container">
-                <p className="hero-fabricamos">DISEÑAMOS </p>
-              </div>
-            </div>
-
-            {/* DIVERSIÓN widget */}
-            <div className="hero-widget hero-widget-diversion">
-              <div className="hero-widget-container">
-                <p className="hero-diversion">DIVERSIÓN</p>
-              </div>
-            </div>
+            {/* Main heading — single H1: "DISEÑAMOS DIVERSIÓN" */}
+            <h1 className="hero-main-title">
+              <span className="hero-widget hero-widget-fabricamos">
+                <span className="hero-widget-container">
+                  <span className="hero-fabricamos">DISEÑAMOS </span>
+                </span>
+              </span>
+              <span className="hero-widget hero-widget-diversion">
+                <span className="hero-widget-container">
+                  <span className="hero-diversion">DIVERSIÓN</span>
+                </span>
+              </span>
+            </h1>
 
             {/* Animated headline widget */}
             <div className="hero-widget hero-widget-headline">
