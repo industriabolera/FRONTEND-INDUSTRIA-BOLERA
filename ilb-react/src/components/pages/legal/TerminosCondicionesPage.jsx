@@ -155,7 +155,49 @@ export default function TerminosCondicionesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>9. Normas de uso y seguridad en pista</h2>
+        <h2>9. Reversión del pago</h2>
+        <p>
+          Conforme al <strong>artículo 51 de la Ley 1480 de 2011</strong> y al{' '}
+          <strong>Decreto 587 de 2016</strong>, cuando el pago se realice con{' '}
+          <strong>tarjeta de crédito, tarjeta débito o PSE</strong>, el cliente tiene derecho a solicitar
+          la <strong>reversión del pago</strong> en los siguientes supuestos:
+        </p>
+        <ul>
+          <li><strong>Fraude:</strong> uso no autorizado del instrumento de pago por parte de un tercero.</li>
+          <li><strong>Operación no solicitada:</strong> la transacción fue realizada sin la voluntad del titular del medio de pago.</li>
+          <li>
+            <strong>Servicio no recibido o no prestado:</strong> el bien o servicio pagado no fue entregado
+            ni prestado por el establecimiento.
+          </li>
+          <li>
+            <strong>Servicio prestado no corresponde a lo pactado o es defectuoso:</strong> el servicio
+            recibido no coincide con las condiciones ofrecidas o presenta fallas.
+          </li>
+        </ul>
+        <p>
+          <strong>Plazo para presentar la queja:</strong> dentro de los{' '}
+          <strong>cinco (5) días hábiles</strong> siguientes a la fecha en que el cliente tuvo
+          conocimiento del fraude o de la operación no solicitada, o a la fecha en que debió prestarse el
+          servicio.
+        </p>
+        <p>
+          <strong>Procedimiento:</strong> el cliente deberá radicar la solicitud por escrito ante los
+          correos{' '}
+          <a href="mailto:entretenimientoydiversionsas@gmail.com">entretenimientoydiversionsas@gmail.com</a>{' '}
+          o <a href="mailto:laindustriabolera@gmail.com">laindustriabolera@gmail.com</a>, indicando la
+          causal invocada, el comprobante de pago, el número de cuenta o de tarjeta y una{' '}
+          <strong>declaración juramentada</strong>. En el mismo plazo, el cliente deberá{' '}
+          <strong>notificar al emisor del instrumento de pago electrónico</strong> para que atienda la
+          reclamación.
+        </p>
+        <p>
+          <strong>Término de reversión:</strong> una vez completado el trámite, la reversión del pago se
+          hará efectiva dentro de los <strong>quince (15) días hábiles</strong> siguientes.
+        </p>
+      </section>
+
+      <section className="legal-section">
+        <h2>10. Normas de uso y seguridad en pista</h2>
         <ul>
           <li>
             <strong>Calzado y medias:</strong> es <strong>estrictamente obligatorio</strong> el uso de
@@ -196,7 +238,7 @@ export default function TerminosCondicionesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>10. Cobro por daños</h2>
+        <h2>11. Cobro por daños</h2>
         <p>
           El cliente, o el adulto responsable cuando se trate de menores de edad, asume la
           responsabilidad y el <strong>cobro patrimonial total por los daños</strong> ocasionados a
@@ -206,7 +248,7 @@ export default function TerminosCondicionesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>11. Cuidado de pertenencias personales y exoneración de responsabilidad por descuido</h2>
+        <h2>12. Cuidado de pertenencias personales y exoneración de responsabilidad por descuido</h2>
         <p>
           El usuario es responsable del cuidado de sus pertenencias personales. La Industria Bolera no
           responde por la pérdida, sustracción o daño de objetos personales dejados sin custodia o por
@@ -215,7 +257,7 @@ export default function TerminosCondicionesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>12. Propiedad intelectual y enlaces a terceros</h2>
+        <h2>13. Propiedad intelectual y enlaces a terceros</h2>
         <p>
           Todos los contenidos del sitio (textos, imágenes, logotipos, marcas y diseño) son propiedad de
           La Industria Bolera o se utilizan con autorización, y están protegidos por la normatividad de
@@ -228,7 +270,7 @@ export default function TerminosCondicionesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>13. Modificaciones a los términos y legislación aplicable</h2>
+        <h2>14. Modificaciones a los términos y legislación aplicable</h2>
         <p>
           La Industria Bolera podrá modificar estos Términos y Condiciones en cualquier momento. Las
           modificaciones regirán desde su publicación en el sitio web.

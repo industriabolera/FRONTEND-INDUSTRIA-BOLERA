@@ -90,6 +90,12 @@ export default function Footer() {
               >
                 Política de cookies
               </Link>
+              <Link
+                to="/contacto"
+                className="elementor-button elementor-size-sm elementor-animation-grow footer-policy-btn"
+              >
+                Peticiones, Quejas y Reclamos (PQR)
+              </Link>
             </div>
           </div>
           <div className="footer-bottom-right">
@@ -97,6 +103,16 @@ export default function Footer() {
               <a href="https://conker.com.co/" target="_blank" rel="noopener noreferrer">
                 © All rights reserved - La Industria Bolera / 2022 - Creado por Conker.com.co
               </a>
+            </p>
+          </div>
+          <div className="footer-legal-notice">
+            <p>
+              Operado por: <strong>ENTRETENIMIENTO Y DIVERSIÓN S.A.S.</strong> · NIT: <strong>901.273.723-6</strong>
+              <br />
+              Para conocer sus derechos como consumidor o interponer una queja, visite la{' '}
+              <a href="https://www.sic.gov.co" target="_blank" rel="noopener noreferrer" className="footer-sic-link">
+                Superintendencia de Industria y Comercio (SIC)
+              </a>.
             </p>
           </div>
         </div>
