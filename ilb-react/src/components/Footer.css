@@ -96,6 +96,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
   max-width: 1240px;
   margin: 0 auto;
   width: 100%;
@@ -132,6 +133,35 @@
 
 .footer-copyright a:hover {
   color: #e4d28d;
+}
+
+.footer-legal-notice {
+  flex: 1 0 100%;
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.35);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #ffffff;
+}
+
+.footer-legal-notice p {
+  margin: 0;
+}
+
+.footer-legal-notice strong {
+  color: #e4d28d;
+}
+
+.footer-sic-link {
+  color: #e4d28d;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer-sic-link:hover {
+  color: #ffffff;
 }
 
 /* Responsive */
@@ -174,5 +204,9 @@
   .footer-bottom-buttons {
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  .footer-legal-notice {
+    text-align: left;
   }
 }

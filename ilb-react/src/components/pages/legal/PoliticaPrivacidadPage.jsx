@@ -156,14 +156,39 @@ export default function PoliticaPrivacidadPage() {
           <li>Conocer, actualizar y rectificar sus datos personales.</li>
           <li>Solicitar prueba de la autorización otorgada, salvo cuando la ley exceptúe dicho requisito.</li>
           <li>Ser informado sobre el uso que se ha dado a sus datos personales.</li>
-          <li>Presentar quejas ante la Superintendencia de Industria y Comercio (SIC) por infracciones.</li>
+          <li>
+            Presentar quejas ante la{' '}
+            <a href="https://www.sic.gov.co" target="_blank" rel="noopener noreferrer">
+              Superintendencia de Industria y Comercio (SIC)
+            </a>{' '}
+            por infracciones.
+          </li>
           <li>Revocar la autorización y/o solicitar la supresión de los datos, cuando no exista un deber legal o contractual de permanencia.</li>
           <li>Acceder de forma gratuita a sus datos personales objeto de tratamiento.</li>
         </ul>
       </section>
 
       <section className="legal-section">
-        <h2>8. Procedimiento para el ejercicio de derechos ARCO y PQR</h2>
+        <h2>8. Horarios de contacto comercial y Ley 2300 de 2023</h2>
+        <p>
+          Conforme a la <strong>Ley 2300 de 2023</strong> («Dejen de fregar»), las comunicaciones
+          promocionales, publicitarias y los saludos de cumpleaños solo se enviarán cuando el Titular
+          haya otorgado su <strong>autorización previa, expresa e informada</strong>, y únicamente
+          dentro de los horarios legalmente permitidos:
+        </p>
+        <ul>
+          <li><strong>Lunes a viernes:</strong> de 7:00 a.m. a 7:00 p.m.</li>
+          <li><strong>Sábados:</strong> de 8:00 a.m. a 3:00 p.m.</li>
+        </ul>
+        <p>
+          La Industria Bolera <strong>no realizará envíos en domingos ni en días festivos</strong>. El
+          Titular podrá revocar en cualquier momento su autorización para recibir estas comunicaciones a
+          través de los canales de atención indicados en esta política.
+        </p>
+      </section>
+
+      <section className="legal-section">
+        <h2>9. Procedimiento para el ejercicio de derechos ARCO y PQR</h2>
         <p>
           El Titular puede ejercer sus derechos de acceso, rectificación, cancelación y oposición (ARCO),
           así como presentar peticiones, quejas y reclamos (PQR), a través de los siguientes canales:
@@ -188,7 +213,7 @@ export default function PoliticaPrivacidadPage() {
       </section>
 
       <section className="legal-section">
-        <h2>9. Seguridad y almacenamiento de la información</h2>
+        <h2>10. Seguridad y almacenamiento de la información</h2>
         <p>
           La Industria Bolera adopta medidas técnicas, humanas y administrativas razonables para proteger
           los datos personales contra acceso no autorizado, pérdida, alteración, uso indebido o
@@ -198,7 +223,7 @@ export default function PoliticaPrivacidadPage() {
       </section>
 
       <section className="legal-section">
-        <h2>10. Videovigilancia y circuito cerrado de televisión (CCTV)</h2>
+        <h2>11. Videovigilancia y circuito cerrado de televisión (CCTV)</h2>
         <p>
           El establecimiento cuenta con un circuito cerrado de televisión (CCTV) en sus instalaciones.
           Las imágenes captadas tienen como finalidad exclusiva el control interno, la prevención y la
@@ -210,7 +235,7 @@ export default function PoliticaPrivacidadPage() {
       </section>
 
       <section className="legal-section">
-        <h2>11. Transferencia y transmisión internacional de datos</h2>
+        <h2>12. Transferencia y transmisión internacional de datos</h2>
         <p>
           La Industria Bolera <strong>no transfiere datos personales al exterior sin las debidas
           garantías de seguridad y confidencialidad</strong>. Cualquier transferencia o transmisión
@@ -224,7 +249,7 @@ export default function PoliticaPrivacidadPage() {
       </section>
 
       <section className="legal-section">
-        <h2>12. Registro Nacional de Bases de Datos (RNBD)</h2>
+        <h2>13. Registro Nacional de Bases de Datos (RNBD)</h2>
         <p>
           Conforme al <strong>Decreto 090 de 2018</strong>, reglamentario de la Ley 1581 de 2012, la
           sociedad está clasificada como <strong>micro y pequeña empresa</strong>, por lo que se
@@ -237,7 +262,7 @@ export default function PoliticaPrivacidadPage() {
       </section>
 
       <section className="legal-section">
-        <h2>13. Vigencia de la política y de las bases de datos</h2>
+        <h2>14. Vigencia de la política y de las bases de datos</h2>
         <p>
           Esta política rige a partir de su publicación y tiene vigencia indefinida. Las bases de datos
           asociadas permanecerán vigentes mientras se mantengan las finalidades descritas o mientras

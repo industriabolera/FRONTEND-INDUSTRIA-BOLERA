@@ -360,7 +360,7 @@ const CONDICIONES = [
   'Debes estar en la bolera como mínimo 20 minutos antes de la hora programada.',
   'Ten en cuenta que la hora del juego empieza a correr a la hora programada.',
   'Recuerda, los zapatos y las medias tienen un costo adicional y deben estar pagos antes de iniciar el juego.',
-  'En caso de no asistir no se hará la devolución del dinero.',
+  'En caso de no asistir no se hará la devolución del dinero, salvo ejercicio oportuno del derecho de retracto conforme a la ley.',
   'Cambios de reserva: mínimo 4 horas antes de la hora reservada.',
 ]
 
@@ -1788,6 +1788,7 @@ export default function ReservasPage() {
                     <span className="confirm-label">TOTAL</span>
                     <span className="confirm-value confirm-total">{formatPrice(totalPrice)}</span>
                   </div>
+                  <p className="confirm-tax-note">Precios en pesos colombianos (COP), IVA e impuestos incluidos.</p>
                 </div>
 
                 {/* Conditions */}
@@ -1809,6 +1810,10 @@ export default function ReservasPage() {
                     Acepto los{' '}
                     <Link to="/terminos-y-condiciones" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
                       Términos y Condiciones
+                    </Link>
+                    {' '}y autorizo el tratamiento de mis datos personales conforme a la{' '}
+                    <Link to="/politica-de-privacidad" target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                      Política de Privacidad
                     </Link>.
                   </span>
                 </label>
@@ -1942,6 +1947,7 @@ export default function ReservasPage() {
                       <span className="sidebar-detail-label">Total</span>
                       <span className="sidebar-detail-value">{formatPrice(totalPrice)}</span>
                     </div>
+                    <p className="confirm-tax-note">Precios en pesos colombianos (COP), IVA e impuestos incluidos.</p>
                   </div>
                 </>
               )}
