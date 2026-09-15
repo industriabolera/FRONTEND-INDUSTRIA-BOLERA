@@ -12,15 +12,22 @@ export default function PoliticaPrivacidadPage() {
       <section className="legal-section">
         <h2>1. Identificación del Responsable</h2>
         <p>
-          <strong>Responsable del tratamiento:</strong> La Industria Bolera — Entretenimiento y
-          Diversión S.A.S.
+          <strong>Responsable del tratamiento:</strong> ENTRETENIMIENTO Y DIVERSIÓN S.A.S.,
+          sociedad que opera el establecimiento comercial <strong>La Industria Bolera</strong>.
         </p>
         <ul>
+          <li><strong>Razón social:</strong> ENTRETENIMIENTO Y DIVERSIÓN S.A.S.</li>
           <li><strong>NIT:</strong> 901.273.723-6</li>
+          <li><strong>Establecimiento comercial:</strong> La Industria Bolera</li>
           <li><strong>Domicilio:</strong> Medellín, Antioquia, Colombia</li>
           <li><strong>Dirección:</strong> Carrera 70 # 1 – 141, Local 453, Arkadia Centro Comercial, Medellín</li>
-          <li><strong>Correo electrónico:</strong> <a href="mailto:info@laindustriabolera.co">info@laindustriabolera.co</a></li>
-          <li><strong>WhatsApp / teléfono:</strong> (57) 310 641 8808</li>
+          <li>
+            <strong>Correos electrónicos:</strong>{' '}
+            <a href="mailto:entretenimientoydiversionsas@gmail.com">entretenimientoydiversionsas@gmail.com</a> y{' '}
+            <a href="mailto:laindustriabolera@gmail.com">laindustriabolera@gmail.com</a>
+          </li>
+          <li><strong>Teléfono fijo:</strong> (604) 604 3059</li>
+          <li><strong>WhatsApp de atención:</strong> (57) 311 354 0008</li>
         </ul>
       </section>
 
@@ -92,10 +99,15 @@ export default function PoliticaPrivacidadPage() {
             códigos de seguridad.
           </li>
           <li>
-            <strong>Videovigilancia:</strong> imágenes captadas por las cámaras de seguridad dentro del
-            establecimiento.
+            <strong>Videovigilancia:</strong> imágenes captadas por el circuito cerrado de televisión
+            (CCTV) instalado en las áreas comunes del establecimiento.
           </li>
         </ul>
+        <p>
+          La <strong>fecha de nacimiento</strong> se solicita de forma <strong>voluntaria</strong> y se
+          utiliza <strong>únicamente</strong> para promociones, descuentos y cortesías de cumpleaños. No
+          es un dato obligatorio para efectuar una reserva ni condiciona la prestación del servicio.
+        </p>
       </section>
 
       <section className="legal-section">
@@ -108,7 +120,14 @@ export default function PoliticaPrivacidadPage() {
             Enviar comunicaciones comerciales, promociones y novedades, únicamente cuando el Titular haya
             otorgado su autorización.
           </li>
-          <li>Garantizar la seguridad física de los asistentes y del establecimiento mediante videovigilancia.</li>
+          <li>
+            Conocer la fecha de nacimiento, de forma exclusiva y cuando el Titular lo autorice, para
+            otorgar promociones, descuentos y cortesías de cumpleaños.
+          </li>
+          <li>
+            Garantizar la seguridad física de los visitantes, del personal y de los activos del
+            establecimiento mediante videovigilancia.
+          </li>
           <li>Cumplir obligaciones legales, contables y regulatorias aplicables.</li>
         </ul>
       </section>
@@ -116,9 +135,13 @@ export default function PoliticaPrivacidadPage() {
       <section className="legal-section">
         <h2>6. Tratamiento de datos de menores y datos sensibles</h2>
         <p>
-          El suministro de datos de menores de edad es facultativo para sus representantes legales. Cuando
-          se traten datos de niños, niñas y adolescentes, se respetará su interés superior y sus derechos
-          fundamentales, y se requerirá la autorización previa de sus representantes legales.
+          El tratamiento de datos de niños, niñas y adolescentes se realiza únicamente en el contexto de
+          reservas y actividades de recreación familiar, bajo la representación, tutela y consentimiento
+          expreso del adulto responsable (padres, tutores o adulto a cargo de la reserva). La Industria
+          Bolera velará en todo momento por su <strong>interés superior</strong> y por sus derechos
+          fundamentales, conforme al <strong>artículo 7 de la Ley 1581 de 2012</strong> y al{' '}
+          <strong>artículo 12 del Decreto 1377 de 2013</strong>. El suministro de estos datos es
+          facultativo para el adulto responsable.
         </p>
         <p>
           El tratamiento de datos sensibles es facultativo. El Titular no está obligado a autorizar su
@@ -146,15 +169,21 @@ export default function PoliticaPrivacidadPage() {
           así como presentar peticiones, quejas y reclamos (PQR), a través de los siguientes canales:
         </p>
         <ul>
-          <li><strong>Correo electrónico:</strong> <a href="mailto:info@laindustriabolera.co">info@laindustriabolera.co</a></li>
-          <li><strong>WhatsApp:</strong> (57) 310 641 8808</li>
+          <li>
+            <strong>Correos electrónicos:</strong>{' '}
+            <a href="mailto:entretenimientoydiversionsas@gmail.com">entretenimientoydiversionsas@gmail.com</a> y{' '}
+            <a href="mailto:laindustriabolera@gmail.com">laindustriabolera@gmail.com</a>
+          </li>
+          <li><strong>WhatsApp de atención:</strong> (57) 311 354 0008</li>
+          <li><strong>Teléfono fijo:</strong> (604) 604 3059</li>
           <li><strong>Presencial:</strong> Carrera 70 # 1 – 141, Local 453, Arkadia Centro Comercial, Medellín</li>
         </ul>
         <p>
-          Las consultas se atenderán en un término máximo de <strong>diez (10) días hábiles</strong> y los
-          reclamos en un término máximo de <strong>quince (15) días hábiles</strong>, plazos que podrán
-          prorrogarse conforme a la ley cuando existan circunstancias que lo justifiquen, informando al
-          Titular los motivos de la prórroga.
+          Conforme a los <strong>artículos 14 y 15 de la Ley 1581 de 2012</strong>, las consultas se
+          atenderán en un término máximo de <strong>diez (10) días hábiles</strong> y los reclamos en un
+          término máximo de <strong>quince (15) días hábiles</strong>. Estos plazos podrán prorrogarse
+          conforme a la ley cuando existan circunstancias que lo justifiquen, informando al Titular los
+          motivos de la prórroga.
         </p>
       </section>
 
@@ -169,18 +198,46 @@ export default function PoliticaPrivacidadPage() {
       </section>
 
       <section className="legal-section">
-        <h2>10. Transferencia y transmisión internacional de datos</h2>
+        <h2>10. Videovigilancia y circuito cerrado de televisión (CCTV)</h2>
         <p>
-          Algunos datos pueden almacenarse en infraestructura de servicios en la nube (bases de datos y
-          servidores) ubicada fuera de Colombia, y pueden ser transmitidos a la pasarela de pago
-          <strong> PlaceToPay</strong> para procesar las transacciones. Estas transferencias se realizan
-          únicamente con proveedores que ofrecen garantías adecuadas de seguridad y confidencialidad,
-          conforme a la normatividad colombiana sobre transferencia internacional de datos.
+          El establecimiento cuenta con un circuito cerrado de televisión (CCTV) en sus instalaciones.
+          Las imágenes captadas tienen como finalidad exclusiva el control interno, la prevención y la
+          seguridad física de los visitantes, del personal y de los activos del establecimiento. Estas
+          imágenes no se utilizan con fines comerciales ni publicitarios, se tratan bajo estrictos
+          criterios de seguridad y confidencialidad, y solo podrán ser entregadas a autoridades
+          competentes cuando medie requerimiento legal.
         </p>
       </section>
 
       <section className="legal-section">
-        <h2>11. Vigencia de la política y de las bases de datos</h2>
+        <h2>11. Transferencia y transmisión internacional de datos</h2>
+        <p>
+          La Industria Bolera <strong>no transfiere datos personales al exterior sin las debidas
+          garantías de seguridad y confidencialidad</strong>. Cualquier transferencia o transmisión
+          internacional se realizará únicamente a encargados o proveedores que ofrezcan niveles
+          adecuados de protección y que se obliguen contractualmente a salvaguardar la información,
+          conforme a la normatividad colombiana sobre protección de datos. Cuando se utilice
+          infraestructura de servicios en la nube o la pasarela de pago <strong>PlaceToPay</strong> para
+          procesar transacciones, dichos proveedores estarán sujetos a esas garantías de seguridad y
+          confidencialidad.
+        </p>
+      </section>
+
+      <section className="legal-section">
+        <h2>12. Registro Nacional de Bases de Datos (RNBD)</h2>
+        <p>
+          Conforme al <strong>Decreto 090 de 2018</strong>, reglamentario de la Ley 1581 de 2012, la
+          sociedad está clasificada como <strong>micro y pequeña empresa</strong>, por lo que se
+          encuentra <strong>exceptuada de la obligación de inscribir sus bases de datos en el Registro
+          Nacional de Bases de Datos (RNBD)</strong> ante la Superintendencia de Industria y Comercio
+          (SIC). No obstante, La Industria Bolera mantiene su registro interno de bases de datos y
+          continúa cumpliendo con las demás obligaciones legales en materia de protección de datos
+          personales.
+        </p>
+      </section>
+
+      <section className="legal-section">
+        <h2>13. Vigencia de la política y de las bases de datos</h2>
         <p>
           Esta política rige a partir de su publicación y tiene vigencia indefinida. Las bases de datos
           asociadas permanecerán vigentes mientras se mantengan las finalidades descritas o mientras

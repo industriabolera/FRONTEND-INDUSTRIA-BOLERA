@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import LegalPageLayout from './LegalPageLayout'
 import { openConsentBanner } from '../../../utils/consentManager'
 
@@ -46,7 +47,26 @@ export default function PoliticaCookiesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>2. Tipos de cookies que usamos</h2>
+        <h2>2. Responsable</h2>
+        <p>
+          El responsable del tratamiento de los datos asociados a las cookies y tecnologías de
+          almacenamiento es <strong>ENTRETENIMIENTO Y DIVERSIÓN S.A.S.</strong>, identificada con{' '}
+          <strong>NIT 901.273.723-6</strong>, que opera el establecimiento comercial{' '}
+          <strong>La Industria Bolera</strong>, con domicilio en Medellín, Antioquia, Colombia.
+        </p>
+        <ul>
+          <li>
+            <strong>Correos electrónicos:</strong>{' '}
+            <a href="mailto:entretenimientoydiversionsas@gmail.com">entretenimientoydiversionsas@gmail.com</a> y{' '}
+            <a href="mailto:laindustriabolera@gmail.com">laindustriabolera@gmail.com</a>
+          </li>
+          <li><strong>Teléfono fijo:</strong> (604) 604 3059</li>
+          <li><strong>WhatsApp de atención:</strong> (57) 311 354 0008</li>
+        </ul>
+      </section>
+
+      <section className="legal-section">
+        <h2>3. Tipos de cookies que usamos</h2>
         <ul>
           <li>
             <strong>Técnicas o necesarias:</strong> imprescindibles para el funcionamiento del sitio.
@@ -66,7 +86,25 @@ export default function PoliticaCookiesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>3. Detalle de cookies y almacenamiento</h2>
+        <h2>4. Consent Mode v2 de Google (modo Básico)</h2>
+        <p>
+          Este sitio implementa <strong>Google Consent Mode v2</strong> en su <strong>modo
+          Básico</strong>. Esto significa que las señales de consentimiento se envían a Google con el
+          estado predeterminado en <strong>denegado</strong>: las cookies analíticas quedan{' '}
+          <strong>bloqueadas de fábrica</strong> y no se activan hasta que otorgas tu aceptación expresa
+          a través del panel de consentimiento.
+        </p>
+        <p>
+          Cuando aceptas las cookies analíticas, la señal se actualiza a <strong>concedido</strong> y se
+          habilitan las tecnologías de medición. Si rechazas las cookies opcionales o no interactúas con
+          el panel, la analítica permanece bloqueada y solo se utilizan las cookies técnicas necesarias
+          para el funcionamiento del sitio. Puedes cambiar tu decisión en cualquier momento desde el
+          botón de reconfiguración.
+        </p>
+      </section>
+
+      <section className="legal-section">
+        <h2>5. Detalle de cookies y almacenamiento</h2>
         <p>La siguiente tabla describe las cookies y registros de almacenamiento que utiliza el sitio:</p>
         <div className="legal-table-wrap">
           <table className="legal-table">
@@ -93,7 +131,7 @@ export default function PoliticaCookiesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>4. Reconfigurar mis preferencias</h2>
+        <h2>6. Reconfigurar mis preferencias</h2>
         <p>
           Puedes cambiar tu decisión en cualquier momento. Al pulsar el botón se abrirá nuevamente el panel
           de consentimiento para que aceptes todas las cookies o continúes solo con las necesarias.
@@ -106,7 +144,7 @@ export default function PoliticaCookiesPage() {
       </section>
 
       <section className="legal-section">
-        <h2>5. Cómo gestionar o deshabilitar cookies desde el navegador</h2>
+        <h2>7. Cómo gestionar o deshabilitar cookies desde el navegador</h2>
         <p>
           Además del panel de preferencias, puedes administrar o eliminar las cookies desde la
           configuración de tu navegador:
@@ -134,6 +172,31 @@ export default function PoliticaCookiesPage() {
             sitio.
           </p>
         </div>
+      </section>
+
+      <section className="legal-section">
+        <h2>8. Canales de atención</h2>
+        <p>
+          Para consultas sobre esta política o sobre el tratamiento de tus datos personales, puedes
+          contactarnos a través de los siguientes canales:
+        </p>
+        <ul>
+          <li>
+            <strong>Correos electrónicos:</strong>{' '}
+            <a href="mailto:entretenimientoydiversionsas@gmail.com">entretenimientoydiversionsas@gmail.com</a> y{' '}
+            <a href="mailto:laindustriabolera@gmail.com">laindustriabolera@gmail.com</a>
+          </li>
+          <li><strong>Teléfono fijo:</strong> (604) 604 3059</li>
+          <li><strong>WhatsApp de atención:</strong> (57) 311 354 0008</li>
+          <li>
+            <strong>Presencial:</strong> Carrera 70 # 1 – 141, Local 453, Arkadia Centro Comercial,
+            Medellín
+          </li>
+          <li>
+            <strong>Política de Privacidad:</strong>{' '}
+            <Link to="/politica-de-privacidad">consulta el detalle del tratamiento de tus datos</Link>
+          </li>
+        </ul>
       </section>
     </LegalPageLayout>
   )
