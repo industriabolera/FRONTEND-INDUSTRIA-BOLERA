@@ -116,6 +116,19 @@
   border-color: #b8322a;
 }
 
+/*
+ * WS-02 — contrato drawer/cookies.
+ * Mientras el drawer móvil está abierto el header expone data-drawer-open="true".
+ * El banner queda temporalmente inerte y fuera del foco (visibility también lo
+ * excluye del árbol de accesibilidad) sin tocar z-index, consentimiento ni
+ * persistencia. Al cerrar el drawer el atributo pasa a "false", este selector
+ * deja de aplicar y el banner vuelve exactamente a su estado anterior.
+ */
+.site-header[data-drawer-open="true"] ~ .cookie-consent {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 @media (max-width: 767px) {
   .cookie-consent__inner {
     flex-direction: column;

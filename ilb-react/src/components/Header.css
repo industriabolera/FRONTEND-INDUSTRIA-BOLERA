@@ -1,5 +1,6 @@
 /* ============================================
-   HEADER — Exact match to Astra theme
+   HEADER — navegación responsive y accesible (WS-02)
+   Offsets por header fijo: fuente única en --header-height (index.css).
    ============================================ */
 
 .site-header {
@@ -8,7 +9,8 @@
   left: 0;
   width: 100%;
   z-index: 999;
-  transition: all 0.2s linear;
+  /* Solo fondo/sombra: evita transiciones accidentales de tamaño del logo. */
+  transition: background-color 0.2s linear, box-shadow 0.2s linear;
 }
 
 /* Primary bar */
@@ -27,22 +29,24 @@
   max-width: 1240px;
   margin: 0 auto;
   padding: 0 20px;
+  width: 100%;
 }
 
-/* Grid row — 2 columns: logo auto, right fills rest */
+/* Grid row — logo auto, right fills rest */
 .ast-builder-grid-row {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   grid-column-gap: 20px;
+  width: 100%;
 }
 
 /* Left section */
 .site-header-section-left {
   display: flex;
   align-items: center;
-  height: 100%;
   min-height: 0;
+  min-width: 0;
   flex-wrap: nowrap;
 }
 
@@ -51,19 +55,25 @@
   align-items: center;
 }
 
-.custom-logo-link img {
-  max-width: 87px;
-  height: auto;
-  transition: all 0.2s linear;
+.custom-logo-link {
+  display: block;
+  flex: 0 0 auto;
 }
 
-/* Right section — flex-end pushes nav+ticket to right */
+.custom-logo-link img {
+  display: block;
+  max-width: 87px;
+  height: auto;
+  transition: max-width 0.2s linear;
+}
+
+/* Right section */
 .site-header-section-right {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  height: 100%;
   min-height: 0;
+  min-width: 0;
   flex-wrap: nowrap;
 }
 
@@ -71,15 +81,13 @@
 .desktop-nav {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .main-navigation {
   display: flex;
   align-items: center;
-}
-
-.main-header-bar-alignment {
-  height: 100%;
+  min-width: 0;
 }
 
 .main-header-menu {
@@ -109,8 +117,9 @@
   white-space: nowrap;
 }
 
+/* Hover: rojo aclarado con contraste >=4.5:1 sobre #1a1a1a (≈7.4:1). */
 .main-header-menu .menu-link:hover {
-  color: #d83f36;
+  color: #ff8a80;
 }
 
 /* Underline hover effect — Astra style */
@@ -120,10 +129,10 @@
   width: 100%;
   right: 50%;
   bottom: 0;
-  height: 1px;
+  height: 2px;
   background-color: transparent;
   transform: scale(0, 0) translate(-50%, 0);
-  transition: transform 0.3s ease-in-out, color 0s ease-in-out;
+  transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
 }
 
 .main-header-menu .menu-link:hover::before {
@@ -132,9 +141,110 @@
   transform: scale(1, 1) translate(50%, 0);
 }
 
+/* Estado activo por ruta (NavLink → aria-current="page") */
+.main-header-menu .menu-link.is-active {
+  color: #ffffff;
+}
+
+/* /cumpleanos activa visualmente la sección Servicios sin aria-current en el enlace padre */
+.main-header-menu .menu-item.is-section-active > .menu-link.is-section-active {
+  color: #ffffff;
+}
+
+.main-header-menu .menu-link.is-active::before,
+.main-header-menu .menu-item.is-section-active > .menu-link.is-section-active::before {
+  width: calc(100% - 1.2em);
+  background-color: currentColor;
+  transform: scale(1, 1) translate(50%, 0);
+}
+
+/* CTA (Reservar → /reservas#reservar) */
+.main-header-menu .menu-link-cta {
+  color: #e4d28d;
+  font-weight: 700;
+}
+
+.main-header-menu .menu-link-cta::before {
+  width: calc(100% - 1.2em);
+  background-color: currentColor;
+  transform: scale(1, 1) translate(50%, 0);
+}
+
+.main-header-menu .menu-link-cta:hover {
+  color: #ff8a80;
+}
+
+/* ── Disparador de submenú (Servicios) ─────────────────────── */
+.submenu-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: #e4d28d;
+  cursor: pointer;
+  transition: color 0.25s ease;
+}
+
+.submenu-toggle:hover {
+  color: #ff8a80;
+}
+
+.submenu-caret {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.submenu-toggle[aria-expanded="true"] .submenu-caret {
+  transform: rotate(180deg);
+}
+
+/* Submenú desktop */
+.main-header-menu .menu-item-has-children {
+  position: relative;
+}
+
+.main-header-submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 210px;
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  background: #1a1a1a;
+  border: 1px solid rgba(228, 210, 141, 0.28);
+  border-top: 3px solid #d83f36;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  z-index: 1001;
+}
+
+.main-header-submenu .menu-item {
+  display: block;
+  line-height: 1.3;
+}
+
+.main-header-submenu .menu-link {
+  display: block;
+  height: auto;
+  padding: 12px 18px;
+  font-size: 16px;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.main-header-submenu .menu-link::before {
+  display: none;
+}
+
 /* Ticket image */
 .header-ticket {
-  flex-shrink: 0;
+  flex: 0 0 auto;
   padding: 0 0 0 10px;
 }
 
@@ -157,26 +267,54 @@
 }
 
 .menu-toggle {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 10px;
   background: transparent;
-  border: none;
+  border: 0;
   color: #e4d28d;
   cursor: pointer;
-  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.menu-toggle svg {
-  width: 20px;
-  height: 20px;
-  fill: #e4d28d;
+.menu-toggle:hover {
+  color: #ff8a80;
 }
 
-/* Mobile Menu */
+.menu-toggle svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+/* ── Drawer móvil + backdrop ───────────────────────────────── */
+.mobile-menu-backdrop {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+}
+
 .mobile-menu-content {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  max-height: calc(100vh - var(--header-height));
+  max-height: calc(100dvh - var(--header-height));
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background-color: #1a1a1a;
-  padding: 10px 20px 20px;
+  border-top: 1px solid rgba(228, 210, 141, 0.2);
+  padding: 8px 20px 28px;
+  z-index: 1001;
 }
 
 .mobile-header-menu {
@@ -196,11 +334,52 @@
   font-size: 18px;
   color: #e4d28d;
   text-decoration: none;
-  line-height: 3;
+  line-height: 1.4;
+  white-space: normal;
 }
 
 .mobile-header-menu .menu-link:hover {
-  color: #d83f36;
+  color: #ff8a80;
+}
+
+.mobile-header-menu .menu-link.is-active,
+.mobile-header-menu .menu-item.is-section-active .menu-link.is-section-active {
+  color: #ffffff;
+}
+
+.mobile-header-menu .menu-link-cta {
+  font-weight: 700;
+}
+
+.mobile-menu-row {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-menu-row .menu-link {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mobile-menu-row .submenu-toggle {
+  flex: 0 0 auto;
+}
+
+/* Submenú dentro del drawer */
+.mobile-submenu {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0 0 0 16px;
+}
+
+.mobile-submenu .menu-item {
+  border-bottom: 0;
+}
+
+.mobile-submenu .menu-link {
+  font-size: 16px;
+  padding: 10px 0;
+  color: #e4d28d;
 }
 
 /* Sticky states */
@@ -221,8 +400,19 @@
   max-width: 60px;
 }
 
-/* Responsive */
-@media (max-width: 921px) {
+/* ── Anillo de foco visible (contraste >=3:1 sobre fondo oscuro) */
+.site-header a:focus-visible,
+.site-header button:focus-visible,
+.mobile-menu-content a:focus-visible,
+.mobile-menu-content button:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* Menú hamburguesa hasta el umbral medido (~1128px de solape, ~1136px de
+   compresión) con margen: en desktop ≥1152px la nav (755px) + ticket (253px)
+   dejan ~17px libres antes del logo y sin comprimir. */
+@media (max-width: 1151px) {
   .desktop-nav {
     display: none;
   }
@@ -230,14 +420,31 @@
   .mobile-toggle {
     display: flex;
   }
-
-  .ast-primary-header-bar {
-    display: grid;
-  }
 }
 
 @media (max-width: 544px) {
   .custom-logo-link img {
     max-width: 141px;
+  }
+
+  /* Permite que el logo de 141px no se recorte contra el borde superior */
+  .site-primary-header-wrap {
+    max-height: 150px;
+  }
+
+  .mobile-menu-content {
+    padding: 8px 16px 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .custom-logo-link img,
+  .main-header-menu .menu-link,
+  .main-header-menu .menu-link::before,
+  .submenu-caret,
+  .submenu-toggle,
+  .menu-toggle {
+    transition: none;
   }
 }

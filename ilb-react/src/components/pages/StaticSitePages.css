@@ -309,7 +309,7 @@
 }
 
 .static-faq-section {
-  scroll-margin-top: 120px;
+  /* Offset del header vía `scroll-padding-top` global (WS-02), sin doble margen. */
   margin-bottom: 36px;
 }
 

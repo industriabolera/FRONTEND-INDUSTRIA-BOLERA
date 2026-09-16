@@ -63,6 +63,46 @@
   color: #e4d28d;
 }
 
+/* CTA Reservar — refleja el tratamiento del header sin rediseñar el footer */
+.footer-nav-link--cta {
+  color: #e4d28d;
+  font-weight: 600;
+}
+
+.footer-nav-link--cta:hover {
+  color: #ffffff;
+}
+
+/* Hijo de Servicios: un solo nivel, lista semántica (sin roles menu) */
+.footer-nav-item--group > .footer-nav-link {
+  color: #ffffff;
+}
+
+.footer-nav-submenu {
+  list-style: none;
+  margin: 4px 0 8px;
+  padding: 0 0 0 14px;
+  border-left: 1px solid rgba(228, 210, 141, 0.28);
+}
+
+.footer-nav-submenu .footer-nav-item {
+  margin-bottom: 4px;
+}
+
+.footer-nav-submenu .footer-nav-item:last-child {
+  margin-bottom: 0;
+}
+
+.footer-nav-link--child {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 3px 0;
+}
+
+.footer-nav-link--child:hover {
+  color: #e4d28d;
+}
+
 .footer-col-title {
   font-family: 'Yeseva One', cursive;
   font-size: 18px;
@@ -206,6 +246,11 @@
 
   .footer-col-divider {
     margin: 0 auto 15px;
+  }
+
+  .footer-nav-submenu {
+    border-left: 0;
+    padding-left: 0;
   }
 
   .footer-bottom-container {

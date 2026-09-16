@@ -6,7 +6,9 @@
   position: relative;
   background: linear-gradient(170deg, #0d0d0d 0%, #1a1a1a 40%, #141414 100%);
   min-height: 100vh;
-  padding: 10% 0 80px;
+  /* Compensación del header fijo desde la fuente única (antes 10%, insuficiente
+     en móvil: el header de 146px tapaba el H1). Sin doble padding. */
+  padding: calc(var(--header-height) + 8px) 0 80px;
   overflow: hidden;
 }
 
@@ -62,9 +64,8 @@
   z-index: 1;
 }
 
-#reservar {
-  scroll-margin-top: 110px;
-}
+/* El offset del ancla #reservar lo aporta `scroll-padding-top: var(--header-height)`
+   en html (WS-02); no se declara scroll-margin para no sumar doble compensación. */
 
 /* Page Header */
 .reservas-header-block {
@@ -1599,7 +1600,8 @@
 
 @media (max-width: 767px) {
   .reservas-page {
-    padding: 120px 0 60px;
+    /* Deriva del header real (móvil 146px); antes 120px ocluía el H1. */
+    padding: calc(var(--header-height) + 8px) 0 60px;
   }
 
   .reservas-main-title {

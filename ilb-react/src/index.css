@@ -9,9 +9,32 @@
   padding: 0;
 }
 
+/*
+ * Altura real del header fijo (WS-02).
+ * Fuente única de offsets: Header.jsx la actualiza con ResizeObserver; los
+ * valores de respaldo evitan saltos antes del primer render medido.
+ */
+:root {
+  --header-height: 135px;
+}
+
+@media (max-width: 1151px) {
+  :root {
+    --header-height: 92px;
+  }
+}
+
+@media (max-width: 544px) {
+  :root {
+    --header-height: 146px;
+  }
+}
+
 html {
   font-size: 93.75%;
   scroll-behavior: smooth;
+  /* Los anclajes (#reservar, FAQ…) aterrizan bajo el header, sin doble margen. */
+  scroll-padding-top: var(--header-height);
 }
 
 body {
@@ -41,8 +64,9 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(216, 63, 54, 0.25);
+  /* Anillo sólido con contraste >=3:1 sobre fondos claros y oscuros. */
+  outline: 2px solid #d83f36;
+  outline-offset: 2px;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -157,5 +181,11 @@ img {
 @media (max-width: 544px) {
   html {
     font-size: 85.5%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }

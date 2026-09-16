@@ -2,7 +2,9 @@
   position: relative;
   min-height: 70vh;
   background: linear-gradient(170deg, #0d0d0d 0%, #1a1a1a 40%, #141414 100%);
-  padding: 140px 0 80px;
+  /* Compensación del header fijo desde la fuente única (WS-02/CORRECTION-01):
+     evita oclusión del H1 con el header expandido (móvil 146px) sin doble padding. */
+  padding: calc(var(--header-height) + 8px) 0 80px;
   overflow: hidden;
 }
 

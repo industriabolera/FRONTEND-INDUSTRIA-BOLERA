@@ -20,7 +20,7 @@ export default function FaqPage() {
         <header className="page-shell-header">
           <div className="static-faq-hero-strip">
             <img src="/images/ColoresHead_Bolera.png" width={415} height={178} alt="" decoding="async" />
-            <h1 className="page-shell-title">PREGUNTAS & RESPUESTAS</h1>
+            <h1 className="page-shell-title">Preguntas frecuentes</h1>
             <p className="static-faq-sub">
               Nuestros espacios están listos para darte una experiencia llena de{' '}
               <span className="color-laugh">risas</span> &amp; <span className="color-fun">diversión.</span>
