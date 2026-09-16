@@ -100,9 +100,7 @@ export default function Footer() {
           </div>
           <div className="footer-bottom-right">
             <p className="footer-copyright">
-              <a href="https://conker.com.co/" target="_blank" rel="noopener noreferrer">
-                © All rights reserved - La Industria Bolera / 2022 - Creado por Conker.com.co
-              </a>
+              © 2026 La Industria Bolera. Todos los derechos reservados.
             </p>
           </div>
           <div className="footer-legal-notice">
