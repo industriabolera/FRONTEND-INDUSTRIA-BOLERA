@@ -5,7 +5,7 @@
 .DS_Store
 
 # Sistema de memoria de IA y planes (NO versionar)
-docs/ai/
+#docs/ai/
 
 # Workspace de diagramas LikeC4 (temporal, NO versionar)
 .likec4-tmp/

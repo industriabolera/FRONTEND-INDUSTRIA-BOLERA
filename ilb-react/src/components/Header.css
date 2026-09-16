@@ -400,6 +400,36 @@
   max-width: 60px;
 }
 
+/* Escritorio: header compacto, fijo y sin la reducción posterior al scroll. */
+@media (min-width: 1152px) {
+  .site-header,
+  .ast-primary-header-bar {
+    height: 95px;
+  }
+
+  .site-primary-header-wrap,
+  .ast-sticky-shrunk .site-primary-header-wrap {
+    height: 90px;
+    min-height: 90px;
+    max-height: 90px;
+  }
+
+  .main-header-menu .menu-item,
+  .ast-sticky-shrunk .main-header-menu .menu-item {
+    line-height: 90px;
+  }
+
+  .custom-logo-link img,
+  .ast-sticky-shrunk .custom-logo-link img {
+    max-width: 70px;
+  }
+
+  .header-ticket img {
+    width: 145px;
+    top: 0;
+  }
+}
+
 /* ── Anillo de foco visible (contraste >=3:1 sobre fondo oscuro) */
 .site-header a:focus-visible,
 .site-header button:focus-visible,
@@ -420,16 +450,27 @@
   .mobile-toggle {
     display: flex;
   }
+
+  /* En móvil el encabezado nace compacto y conserva esa misma altura al
+     hacer scroll; el cambio de estado solo modifica fondo/sombra. */
+  .custom-logo-link img,
+  .ast-sticky-shrunk .custom-logo-link img {
+    max-width: 60px;
+  }
+
+  .ast-sticky-shrunk .site-primary-header-wrap {
+    min-height: 70px;
+  }
 }
 
 @media (max-width: 544px) {
   .custom-logo-link img {
-    max-width: 141px;
+    max-width: 60px;
   }
 
-  /* Permite que el logo de 141px no se recorte contra el borde superior */
+  /* El logo compacto no necesita ampliar la barra móvil. */
   .site-primary-header-wrap {
-    max-height: 150px;
+    max-height: 90px;
   }
 
   .mobile-menu-content {

@@ -15,18 +15,18 @@
  * valores de respaldo evitan saltos antes del primer render medido.
  */
 :root {
-  --header-height: 135px;
+  --header-height: 95px;
 }
 
 @media (max-width: 1151px) {
   :root {
-    --header-height: 92px;
+    --header-height: 75px;
   }
 }
 
 @media (max-width: 544px) {
   :root {
-    --header-height: 146px;
+    --header-height: 75px;
   }
 }
 

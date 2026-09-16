@@ -66,6 +66,7 @@ export default function Header() {
   const [mobileGroupOpen, setMobileGroupOpen] = useState(null)
   const [isSticky, setIsSticky] = useState(false)
   const [isShrunk, setIsShrunk] = useState(false)
+  const [desktopHoverGroupOpen, setDesktopHoverGroupOpen] = useState(null)
 
   const toggleButtonRef = useRef(null)
   const drawerRef = useRef(null)
@@ -150,7 +151,10 @@ export default function Header() {
     const desktop = window.matchMedia('(min-width: 1152px)')
     const handleChange = (event) => {
       if (event.matches) setMobileMenuOpen(false)
-      else setDesktopGroupOpen(null)
+      else {
+        setDesktopGroupOpen(null)
+        setDesktopHoverGroupOpen(null)
+      }
     }
     desktop.addEventListener('change', handleChange)
     return () => desktop.removeEventListener('change', handleChange)
@@ -164,6 +168,7 @@ export default function Header() {
       if (event.key !== 'Escape') return
       const label = desktopGroupOpen
       setDesktopGroupOpen(null)
+      setDesktopHoverGroupOpen(null)
       desktopToggleRefs.current[label]?.focus()
     }
     document.addEventListener('keydown', handleKeyDown)
@@ -278,17 +283,20 @@ export default function Header() {
                     {PUBLIC_NAV.map((item) => {
                       if (item.type === 'group' && item.children?.length) {
                         const groupActive = isGroupActive(item, pathname)
-                        const isOpen = desktopGroupOpen === item.label
+                        const isOpen = desktopGroupOpen === item.label || desktopHoverGroupOpen === item.label
                         const panelId = submenuId('desktop', item)
                         return (
                           <li
                             key={item.label}
                             className={`menu-item menu-item-has-children${groupActive ? ' is-section-active' : ''}`}
+                            onMouseEnter={() => setDesktopHoverGroupOpen(item.label)}
+                            onMouseLeave={() => setDesktopHoverGroupOpen(null)}
                           >
                             <NavLink
                               to={item.href}
                               className={navLinkClass(item, { groupActive })}
                               onClick={() => setDesktopGroupOpen(null)}
+                              onFocus={() => setDesktopGroupOpen(item.label)}
                             >
                               <span className="menu-text">{item.label}</span>
                             </NavLink>

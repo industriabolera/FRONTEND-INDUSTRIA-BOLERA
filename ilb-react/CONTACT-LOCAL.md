@@ -1,9 +1,33 @@
-# Pruebas locales del módulo de contacto
+# Pruebas locales (stack aislado y módulo de contacto)
 
-Esta guía usa una MariaDB local en Docker exclusivamente para `contact_messages`.
-No toca reservas, `BoleraContext`, MongoDB Atlas ni ningún entorno de producción.
+Esta guía cubre el desarrollo local aislado de producción en dos modos:
 
-## 1. Configurar y levantar la base local
+- **Recomendado — `ilb-local`:** arranca el stack completo (MongoDB local, MariaDB local, backend y frontend) forzando la URI local y deshabilitando Resend/PlaceToPay en ese proceso (Sección 1).
+- **Manual — solo contacto:** levanta únicamente MariaDB local y el backend para probar `contact_messages` (Sección 2).
+
+Ninguno de los dos modos toca MongoDB Atlas, `BoleraContext`, reservas ni ningún entorno de producción.
+
+## 1. Modo recomendado: `ilb-local`
+
+Requisitos: Docker Compose, Node.js 20.x, npm y el alias `ilb-local` (apunta a `ilb-react/scripts/start-local.sh`).
+
+Desde cualquier directorio:
+
+```bash
+ilb-local
+```
+
+El launcher arranca o reutiliza de forma idempotente:
+
+- **MongoDB local** `mongo:7.0.43` en `127.0.0.1:27017`, volumen nombrado `ilb_local_mongodb_data`, base lógica `administracion` **vacía e independiente** (no copia Atlas ni datos productivos).
+- **MariaDB local** (`docker-compose.contact.local.yml`) en `127.0.0.1:3307`.
+- **Backend** en `http://localhost:3001` y **frontend** en `http://localhost:5173/`.
+
+Aislamiento fail-closed: exige un daemon Docker local, fuerza `MONGODB_URI=mongodb://127.0.0.1:27017/administracion` y `CONTACT_DB_TARGET=local`, y vacía `RESEND_API_KEY`, `CONTACT_FROM_EMAIL`, `CONTACT_TO_EMAIL`, `PLACETOPAY_LOGIN` y `PLACETOPAY_TRANKEY` (con `PLACETOPAY_ENV=sandbox` como selector no productivo). No modifica `.env.contact.local` ni imprime secretos.
+
+Ctrl-C detiene solo los procesos iniciados por el launcher; contenedores y volúmenes se conservan. No ejecutes `down -v` ni `dropDatabase` sobre el volumen local.
+
+## 2. Modo manual (solo contacto): configurar y levantar la base local
 
 Requisitos: Docker Compose, Node.js 20.x y npm.
 
@@ -18,8 +42,9 @@ El archivo `ilb-react/.env.contact.local` ya está creado con las claves listas 
 permisos `0600`. Si no existiera, créalo con `cp .env.example .env.contact.local`
 y descomenta/ajusta las claves de contacto según la plantilla. El usuario solo
 debe completar `MYSQL_USER`, `MYSQL_PASSWORD`, `MARIADB_ROOT_PASSWORD`,
-`RESEND_API_KEY`, `CONTACT_FROM_EMAIL` y `CONTACT_TO_EMAIL`. `MONGODB_URI` debe
-permanecer vacío en local para proteger Atlas de reservas.
+`RESEND_API_KEY`, `CONTACT_FROM_EMAIL` y `CONTACT_TO_EMAIL`. En este modo manual
+`MONGODB_URI` debe permanecer vacío (no hay Mongo local en juego) para no tocar
+Atlas; para el stack completo con Mongo local usa `ilb-local` (Sección 1).
 
 El servicio `contact-db` usa MariaDB 11.8, publica **solo** `127.0.0.1:3307` hacia
 el puerto `3306` del contenedor y persiste en el volumen nombrado
@@ -27,8 +52,9 @@ el puerto `3306` del contenedor y persiste en el volumen nombrado
 
 `CONTACT_DB_TARGET`, `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD` y
 `MYSQL_DATABASE` son obligatorias para el backend local. No configures un socket;
-la conexión debe ser TCP a `127.0.0.1:3307`. Deja `MONGODB_URI` vacío durante las
-pruebas de contacto y no invoques endpoints de reservas o pagos.
+la conexión debe ser TCP a `127.0.0.1:3307`. En este modo manual deja
+`MONGODB_URI` vacío y no invoques endpoints de reservas o pagos; si necesitas
+Mongo local, usa `ilb-local` (Sección 1).
 
 `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` y `CONTACT_TO_EMAIL` se completan
 manualmente; usa un remitente verificado por Resend. Para probar únicamente
@@ -40,7 +66,7 @@ introduzcas sus valores en el repositorio ni en este documento.
 remotos. La configuración `CONTACT_DB_TARGET=hostinger` pertenece exclusivamente
 al entorno de producción administrado fuera del repositorio.
 
-## 2. Arrancar backend y frontend
+## 3. Arrancar backend y frontend (modo manual)
 
 En dos terminales, desde `ilb-react/`:
 
@@ -55,7 +81,7 @@ y fallan con un mensaje claro si el archivo no existe.
 La inicialización de la tabla es tolerante a SQL detenido: Express arranca y
 `POST /api/contact` responde un error controlado si no puede persistir.
 
-## 3. Enviar una prueba ficticia
+## 4. Enviar una prueba ficticia
 
 Con MariaDB healthy y el backend activo, este payload no contiene datos reales:
 
@@ -83,7 +109,7 @@ fetchImpl })` con un mock inyectable que compruebe URL, método, payload,
 de Node 20 cuando no se inyecta un mock, aplica timeout y no expone el cuerpo de
 errores del proveedor.
 
-## 4. Apagar o eliminar únicamente el entorno local
+## 5. Apagar o eliminar únicamente el entorno local
 
 Esto detiene el contenedor y conserva los datos:
 

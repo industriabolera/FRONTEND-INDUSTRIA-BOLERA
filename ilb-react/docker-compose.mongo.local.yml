@@ -1,0 +1,49 @@
+# =============================================================================
+# docker-compose.mongo.local.yml — MongoDB EXCLUSIVAMENTE LOCAL (ilb-react)
+#
+# Objetivo: que el desarrollo local jamás alcance MongoDB Atlas.
+#
+# Aislamiento garantizado por este archivo:
+#   - Imagen oficial `mongo` con versión fijada. El driver `mongodb` 7.1.0
+#     soporta servidores MongoDB 4.4–9.0, por lo que 7.0.43 es compatible.
+#     Se elige la línea 7.0 (LTS) y NO 8.0+: MongoDB 8.0+ aborta el arranque en
+#     kernels Linux >= 6.19 por una incompatibilidad de TCMalloc/rseq
+#     (SERVER-121912, "known incompatibility"); 7.0.43 arranca correctamente en
+#     el kernel 7.0.x de esta máquina.
+#   - Publica ÚNICAMENTE 127.0.0.1:27017 (loopback). El puerto del contenedor no
+#     se expone a la red externa.
+#   - Sin autenticación ni credenciales: no hay secretos productivos aquí y la
+#     base arranca VACÍA. El backend crea colecciones/índices y la configuración
+#     por defecto de forma perezosa.
+#   - Persistencia en un volumen nombrado propio del proyecto. No hay bind mounts
+#     a rutas de producción.
+#   - PROHIBIDO sobre este stack: `down -v`, `dropDatabase` o cualquier borrado.
+#     Detener el contenedor conserva el volumen.
+#
+# Uso (el launcher `ilb-local` lo gestiona automáticamente):
+#   docker compose -p ilb-local-mongo -f docker-compose.mongo.local.yml up -d
+#   docker compose -p ilb-local-mongo -f docker-compose.mongo.local.yml ps
+#   docker compose -p ilb-local-mongo -f docker-compose.mongo.local.yml logs -f mongodb-local
+#
+# Nunca apuntes MONGODB_URI a Atlas desde este entorno.
+# =============================================================================
+services:
+  mongodb-local:
+    image: mongo:7.0.43
+    container_name: ilb-local-mongo
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - ilb_local_mongodb_data:/data/db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mongosh --quiet --host 127.0.0.1 --port 27017 --eval "db.adminCommand({ ping: 1 }).ok" | grep -q 1'
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+volumes:
+  ilb_local_mongodb_data:
+    name: ilb_local_mongodb_data
