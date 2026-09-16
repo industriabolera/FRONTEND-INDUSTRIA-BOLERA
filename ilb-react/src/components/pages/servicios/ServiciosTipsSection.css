@@ -7,7 +7,7 @@
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
-  padding: 120px 0 80px;
+  padding: var(--header-height) 0 80px;
   overflow: hidden;
 }
 
@@ -241,7 +241,7 @@
 
 @media (max-width: 540px) {
   .servicios-tips {
-    padding: 90px 0 60px;
+    padding: var(--header-height) 0 60px;
   }
 
   .servicios-tips-heading-spacer {

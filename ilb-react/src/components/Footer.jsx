@@ -1,15 +1,6 @@
 import { Link } from 'react-router-dom'
+import { PUBLIC_NAV } from '../config/navigation'
 import './Footer.css'
-
-const NAV_ITEMS = [
-  { label: 'Home', href: '/' },
-  { label: 'Servicios', href: '/servicios' },
-  { label: 'Reservas', href: '/reservas' },
-  { label: 'Sobre Nosotros', href: '/sobre-nosotros' },
-  { label: 'Contacto', href: '/contacto' },
-  { label: 'Blog', href: '/blog' },
-  { label: 'FAQ', href: '/faq' },
-]
 
 export default function Footer() {
   return (
@@ -28,15 +19,36 @@ export default function Footer() {
             />
           </div>
 
-          {/* Navigation */}
+          {/* Navigation — deriva de la configuración compartida (sin lista propia) */}
           <div className="footer-col footer-col-nav">
-            <nav aria-label="Footer Navigation">
+            <nav aria-label="Navegación del pie de página">
               <ul className="footer-nav-menu">
-                {NAV_ITEMS.map((item) => (
-                  <li key={item.label}>
-                    <Link to={item.href} className="footer-nav-link">{item.label}</Link>
-                  </li>
-                ))}
+                {PUBLIC_NAV.map((item) => {
+                  const linkClass = `footer-nav-link${item.type === 'cta' ? ' footer-nav-link--cta' : ''}`
+
+                  if (item.type === 'group' && item.children?.length) {
+                    return (
+                      <li key={item.label} className="footer-nav-item footer-nav-item--group">
+                        <Link to={item.href} className={linkClass}>{item.label}</Link>
+                        <ul className="footer-nav-submenu">
+                          {item.children.map((child) => (
+                            <li key={child.label} className="footer-nav-item">
+                              <Link to={child.href} className="footer-nav-link footer-nav-link--child">
+                                {child.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    )
+                  }
+
+                  return (
+                    <li key={item.label} className="footer-nav-item">
+                      <Link to={item.href} className={linkClass}>{item.label}</Link>
+                    </li>
+                  )
+                })}
               </ul>
             </nav>
           </div>

@@ -7,7 +7,8 @@
 .hero-section {
   position: relative;
   overflow: hidden;
-  margin-top: 6.9em;
+  /* Offset del header fijo desde la fuente única (WS-02). */
+  margin-top: var(--header-height);
 }
 
 /* Elementor section container: min-height 100vh, items centered */
