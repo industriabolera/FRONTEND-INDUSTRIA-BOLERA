@@ -81,6 +81,13 @@ y fallan con un mensaje claro si el archivo no existe.
 La inicialización de la tabla es tolerante a SQL detenido: Express arranca y
 `POST /api/contact` responde un error controlado si no puede persistir.
 
+El arranque aplica de forma idempotente el equivalente de
+`server/db/migrations/003_add_contact_phone.sql`: crea `telefono VARCHAR(16) NULL`
+si falta y verifica su tipo y nulabilidad. En producción, el servidor principal
+no queda disponible si el esquema de contacto no puede inicializarse o resulta
+incompatible; en desarrollo conserva el comportamiento tolerante para facilitar
+el diagnóstico local.
+
 ## 4. Enviar una prueba ficticia
 
 Con MariaDB healthy y el backend activo, este payload no contiene datos reales:
@@ -88,7 +95,7 @@ Con MariaDB healthy y el backend activo, este payload no contiene datos reales:
 ```bash
 curl -i -X POST http://localhost:3001/api/contact \
   -H 'Content-Type: application/json' \
-  --data '{"nombre":"Prueba Local","apellido":"Contacto","email":"prueba@example.invalid","asunto":"Prueba local","mensaje":"Mensaje ficticio para validar MariaDB sin envío real.","terminosAceptados":true}'
+  --data '{"nombre":"Prueba Local","apellido":"Contacto","email":"prueba@example.invalid","telefono":"+573001234567","asunto":"Prueba local","mensaje":"Mensaje ficticio para validar MariaDB sin envío real.","terminosAceptados":true}'
 ```
 
 Con las variables de Resend vacías, la respuesta sigue confirmando la recepción
@@ -100,7 +107,7 @@ Verifica la tabla usando el cliente dentro del contenedor:
 ```bash
 docker compose --env-file .env.contact.local -f docker-compose.contact.local.yml exec -T contact-db \
   sh -c 'mariadb --protocol=tcp -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" \
-  -D"$MARIADB_DATABASE" -e "SELECT id, nombre, email_status FROM contact_messages ORDER BY id DESC LIMIT 5;"'
+  -D"$MARIADB_DATABASE" -e "SELECT id, nombre, telefono, email_status FROM contact_messages ORDER BY id DESC LIMIT 5;"'
 ```
 
 Para probar la forma de la petición Resend sin envío, usa `new ResendAdapter({

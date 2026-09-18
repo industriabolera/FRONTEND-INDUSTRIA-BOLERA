@@ -19,6 +19,7 @@
     "start": "node app.js",
     "lint": "eslint .",
     "lint:contact": "eslint server/db/mysql.js server/routes/contact.js server/services/email server/validators/contactValidator.js",
+    "test:contact": "node --test src/utils/contactForm.test.js server/validators/contactValidator.test.js server/db/mysql.test.js server/services/email/contactEmail.test.js",
     "preview": "vite preview",
     "verify": "node scripts/verify-suite.mjs",
     "import:bloqueos-pdf": "node scripts/import-bloqueos-from-pdf.mjs",

@@ -3,6 +3,7 @@
 import express from 'express'
 import { insertContactMessage, updateEmailStatus } from '../db/mysql.js'
 import emailService from '../services/email/index.js'
+import { buildContactEmailContent } from '../services/email/contactEmail.js'
 import { hasHoneypotValue, validateContact } from '../validators/contactValidator.js'
 
 const RATE_LIMIT_MAX = 5
@@ -33,44 +34,6 @@ function isRateLimited(ip, now = Date.now()) {
   if (current.count >= RATE_LIMIT_MAX) return true
   current.count += 1
   return false
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, character => {
-    const entities = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    }
-    return entities[character]
-  })
-}
-
-function buildEmailContent(data) {
-  const fullName = [data.nombre, data.apellido].filter(Boolean).join(' ')
-  const subject = `Nuevo mensaje de contacto: ${data.asunto.replace(/[\r\n]+/g, ' ')}`
-  const text = [
-    `Nombre: ${fullName}`,
-    `Email: ${data.email}`,
-    `Asunto: ${data.asunto}`,
-    '',
-    data.mensaje,
-    '',
-    'Términos aceptados: Sí',
-  ].join('\n')
-  const html = `
-    <h2>Nuevo mensaje de contacto</h2>
-    <p><strong>Nombre:</strong> ${escapeHtml(fullName)}</p>
-    <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
-    <p><strong>Asunto:</strong> ${escapeHtml(data.asunto)}</p>
-    <p><strong>Mensaje:</strong></p>
-    <p>${escapeHtml(data.mensaje).replace(/\n/g, '<br>')}</p>
-    <p><strong>Términos aceptados:</strong> Sí</p>
-  `
-
-  return { subject, text, html }
 }
 
 function getConfiguredEmailAddresses() {
@@ -130,7 +93,7 @@ contactRouter.post('/', async (req, res) => {
       console.error(`[Contact] Email omitido para mensaje ${contactId}: configuración incompleta`)
       await updateEmailStatus(contactId, { status: 'failed', error: errorMessage })
     } else {
-      const emailContent = buildEmailContent(validation.data)
+      const emailContent = buildContactEmailContent(validation.data)
       try {
         const emailResult = await emailService.send({
           to,

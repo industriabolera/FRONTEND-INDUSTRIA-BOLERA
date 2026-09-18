@@ -90,8 +90,10 @@ export default function PoliticaPrivacidadPage() {
             teléfono, correo electrónico y fecha de nacimiento.
           </li>
           <li>
-            <strong>Formulario de contacto:</strong> nombre, correo electrónico, asunto y contenido del
-            mensaje.
+            <strong>Formulario de contacto:</strong> nombre, correo electrónico, teléfono opcional, asunto y
+            contenido del mensaje. Si el Titular proporciona su teléfono, se utilizará únicamente como
+            segunda opción para responder su consulta por llamada o WhatsApp; no implica autorización para
+            comunicaciones comerciales.
           </li>
           <li>
             <strong>Pagos:</strong> los datos de tarjetas y medios de pago son procesados directamente por

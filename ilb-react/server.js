@@ -1,3 +1,5 @@
+/* global process */
+
 // Hostinger: Preajuste EXPRESS → Archivo de entrada: app.js (o server.js)
 import { existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
@@ -43,7 +45,7 @@ function startFallback(message, detail) {
 
 try {
   const { startServer } = await import('./server/index.js')
-  startServer()
+  await startServer()
 } catch (err) {
   console.error('[ILB] Failed to load server/index.js:', err)
   startFallback('load_failed', err?.message || String(err))

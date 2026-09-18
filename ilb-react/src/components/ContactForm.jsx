@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { buildContactPayload, CONTACT_PHONE_MAX_LENGTH, validateContactPhone } from '../utils/contactForm'
 import './ContactForm.css'
 
 const INITIAL_FORM = {
   nombre: '',
   apellido: '',
   email: '',
+  telefono: '',
   asunto: '',
   mensaje: '',
   terminosAceptados: false,
@@ -16,6 +18,7 @@ const FIELD_IDS = {
   nombre: 'contact-form-nombre',
   apellido: 'contact-form-apellido',
   email: 'contact-form-email',
+  telefono: 'contact-form-telefono',
   asunto: 'contact-form-asunto',
   mensaje: 'contact-form-mensaje',
   terminosAceptados: 'contact-form-terminos',
@@ -53,6 +56,8 @@ function validateField(name, value) {
         return 'Escribe un email válido, por ejemplo nombre@dominio.com.'
       }
       return ''
+    case 'telefono':
+      return validateContactPhone(value)
     case 'asunto':
       if (!text) return 'El asunto es obligatorio.'
       if (characterLength(text) < 3) return 'El asunto debe tener al menos 3 caracteres.'
@@ -158,16 +163,7 @@ export default function ContactForm() {
       return
     }
 
-    const payload = {
-      ...form,
-      nombre: normalizedText(form.nombre),
-      apellido: normalizedText(form.apellido),
-      email: normalizedText(form.email),
-      asunto: normalizedText(form.asunto),
-      mensaje: normalizedText(form.mensaje),
-      terminosAceptados: form.terminosAceptados === true,
-      _honey: normalizedText(form._honey),
-    }
+    const payload = buildContactPayload(form)
 
     setStatus('submitting')
 
@@ -320,6 +316,29 @@ export default function ContactForm() {
         </div>
 
         <div className="contact-form__field">
+          <label className="contact-form__label" htmlFor={FIELD_IDS.telefono}>
+            Teléfono <span className="contact-form__optional">(opcional)</span>
+          </label>
+          <input
+            className="contact-form__control"
+            id={FIELD_IDS.telefono}
+            name="telefono"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            placeholder="Ej. +57 300 123 4567"
+            value={form.telefono}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            maxLength={CONTACT_PHONE_MAX_LENGTH}
+            aria-invalid={Boolean(errors.telefono)}
+            aria-describedby={errors.telefono ? `${FIELD_IDS.telefono}-error` : undefined}
+            disabled={isSubmitting}
+          />
+          <FieldError id={`${FIELD_IDS.telefono}-error`} message={errors.telefono} />
+        </div>
+
+        <div className="contact-form__field contact-form__field--full">
           <label className="contact-form__label" htmlFor={FIELD_IDS.asunto}>
             Asunto <span className="contact-form__required" aria-hidden="true">*</span>
           </label>

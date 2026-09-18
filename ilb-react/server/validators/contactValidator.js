@@ -1,3 +1,5 @@
+import { normalizeContactPhone, validateContactPhone } from '../../src/utils/contactForm.js'
+
 const EMAIL_LOCAL_PART_RE = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/
 const EMAIL_DOMAIN_LABEL = '[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?'
 const EMAIL_DOMAIN_RE = new RegExp(`^(?:${EMAIL_DOMAIN_LABEL})(?:\\.${EMAIL_DOMAIN_LABEL})*$`)
@@ -45,6 +47,7 @@ export function validateContact(payload) {
   const nombre = normalizedString(body.nombre)
   const apellido = normalizedString(body.apellido)
   const email = normalizedString(body.email)
+  const telefono = normalizeContactPhone(body.telefono)
   const asunto = normalizedString(body.asunto)
   const mensaje = normalizedString(body.mensaje)
 
@@ -61,6 +64,9 @@ export function validateContact(payload) {
   if (!isStrictEmail(email)) {
     errors.email = 'El email no tiene un formato válido.'
   }
+
+  const telefonoError = validateContactPhone(body.telefono)
+  if (telefonoError) errors.telefono = telefonoError
 
   if (characterLength(asunto) < 3 || characterLength(asunto) > 150) {
     errors.asunto = 'El asunto debe tener entre 3 y 150 caracteres.'
@@ -84,6 +90,7 @@ export function validateContact(payload) {
       nombre,
       apellido: apellido || null,
       email,
+      telefono: telefono || null,
       asunto,
       mensaje,
       terminosAceptados: body.terminosAceptados === true,

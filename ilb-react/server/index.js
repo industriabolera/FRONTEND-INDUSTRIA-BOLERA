@@ -1215,10 +1215,14 @@ if (process.env.NODE_ENV === 'production') {
 
 export { app }
 
-export function startServer() {
-  void initContactTable().catch(() => {
-    console.error('[Contact] La inicialización SQL falló; Express continuará disponible')
-  })
+export async function startServer() {
+  const contactTableReady = await initContactTable()
+  if (!contactTableReady && isProductionEnv()) {
+    throw new Error('El esquema SQL de contacto no pudo inicializarse o verificarse.')
+  }
+  if (!contactTableReady) {
+    console.error('[Contact] SQL no disponible en desarrollo; Express continuará disponible')
+  }
   void initConsentTable().catch(() => {
     console.error('[Consent] La inicialización SQL falló; Express continuará disponible')
   })
@@ -1232,4 +1236,9 @@ export function startServer() {
 
 // Arranque directo: npm run dev:server
 const isDirectRun = process.argv[1]?.endsWith('server/index.js')
-if (isDirectRun) startServer()
+if (isDirectRun) {
+  void startServer().catch((error) => {
+    console.error(`[ILB] No se pudo iniciar el servidor: ${error?.message || String(error)}`)
+    process.exitCode = 1
+  })
+}

@@ -97,6 +97,7 @@ const CONTACT_TABLE_SQL = `
     nombre VARCHAR(100) NOT NULL,
     apellido VARCHAR(100) NULL,
     email VARCHAR(255) NOT NULL,
+    telefono VARCHAR(16) NULL,
     asunto VARCHAR(150) NOT NULL,
     mensaje TEXT NOT NULL,
     terminos_aceptados BOOLEAN NOT NULL DEFAULT FALSE,
@@ -109,6 +110,19 @@ const CONTACT_TABLE_SQL = `
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`
+
+const CONTACT_PHONE_COLUMN_QUERY = `
+  SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'contact_messages'
+    AND COLUMN_NAME = 'telefono'
+`
+
+const ADD_CONTACT_PHONE_COLUMN_SQL = `
+  ALTER TABLE contact_messages
+  ADD COLUMN telefono VARCHAR(16) NULL AFTER email
 `
 
 let contactTableReady = false
@@ -126,6 +140,36 @@ function logDatabaseError(operation, error) {
   console.error(`[MySQL] ${operation}: ${sanitizeErrorMessage(error)}`)
 }
 
+function isCompatiblePhoneColumn(column) {
+  return String(column?.COLUMN_NAME || '').toLowerCase() === 'telefono'
+    && String(column?.DATA_TYPE || '').toLowerCase() === 'varchar'
+    && Number(column?.CHARACTER_MAXIMUM_LENGTH) >= 16
+    && String(column?.IS_NULLABLE || '').toUpperCase() === 'YES'
+}
+
+export async function ensureContactPhoneColumn(db = pool) {
+  if (!db) throw new Error('Pool SQL de contacto no disponible.')
+
+  let [columns] = await db.query(CONTACT_PHONE_COLUMN_QUERY)
+  if (columns.length === 0) {
+    try {
+      await db.query(ADD_CONTACT_PHONE_COLUMN_SQL)
+    } catch (error) {
+      // Dos instancias pueden intentar el bootstrap al mismo tiempo. Si otra ya
+      // creó la columna, la verificación posterior decide si el esquema sirve.
+      if (error?.code !== 'ER_DUP_FIELDNAME') throw error
+    }
+    const [verifiedColumns] = await db.query(CONTACT_PHONE_COLUMN_QUERY)
+    columns = verifiedColumns
+  }
+
+  if (columns.length !== 1 || !isCompatiblePhoneColumn(columns[0])) {
+    throw new Error('La columna contact_messages.telefono no es VARCHAR(16) NULL compatible.')
+  }
+
+  return true
+}
+
 export async function initContactTable() {
   if (contactTableReady) return true
   if (tableInitializationPromise) return tableInitializationPromise
@@ -137,6 +181,7 @@ export async function initContactTable() {
         return false
       }
       await pool.query(CONTACT_TABLE_SQL)
+      await ensureContactPhoneColumn(pool)
       contactTableReady = true
       return true
     } catch (error) {
@@ -157,18 +202,9 @@ export async function insertContactMessage(data = {}) {
 
     const [result] = await pool.execute(
       `INSERT INTO contact_messages
-        (nombre, apellido, email, asunto, mensaje, terminos_aceptados, terminos_version, ip_address)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        String(data.nombre || '').trim(),
-        data.apellido ? String(data.apellido).trim() : null,
-        String(data.email || '').trim(),
-        String(data.asunto || '').trim(),
-        String(data.mensaje || '').trim(),
-        data.terminosAceptados === true,
-        String(data.terminosVersion || '2026-v1').trim() || '2026-v1',
-        data.ipAddress ? String(data.ipAddress).trim() : null,
-      ]
+        (nombre, apellido, email, telefono, asunto, mensaje, terminos_aceptados, terminos_version, ip_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      buildContactMessageInsertValues(data)
     )
 
     return result.insertId ? Number(result.insertId) : null
@@ -176,6 +212,21 @@ export async function insertContactMessage(data = {}) {
     logDatabaseError('No se pudo guardar el mensaje de contacto', error)
     return null
   }
+}
+
+export function buildContactMessageInsertValues(data = {}) {
+  const telefono = data.telefono ? String(data.telefono).trim() : ''
+  return [
+    String(data.nombre || '').trim(),
+    data.apellido ? String(data.apellido).trim() : null,
+    String(data.email || '').trim(),
+    telefono || null,
+    String(data.asunto || '').trim(),
+    String(data.mensaje || '').trim(),
+    data.terminosAceptados === true,
+    String(data.terminosVersion || '2026-v1').trim() || '2026-v1',
+    data.ipAddress ? String(data.ipAddress).trim() : null,
+  ]
 }
 
 export async function updateEmailStatus(id, { status, emailId = null, error = null } = {}) {
