@@ -27,6 +27,10 @@ COPY --from=build /app/server ./server
 # server/index.js importa src/ y netlify/functions/lib/ en runtime (Vite no los bundlea).
 COPY --from=build /app/src ./src
 COPY --from=build /app/netlify/functions/lib ./netlify/functions/lib
+# Coolify ejecuta su healthcheck con curl; sin él el deploy se marca unhealthy y hace rollback.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
 USER node
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
