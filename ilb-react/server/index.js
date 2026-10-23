@@ -36,6 +36,8 @@ import { resolveSeoRoute } from '../src/config/seoRoutes.js'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 3001
+// Detrás de Traefik/Coolify sin esto req.ip es el del proxy y req.protocol siempre http.
+app.set('trust proxy', 1)
 
 function reqClientIp(req) {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || '127.0.0.1'

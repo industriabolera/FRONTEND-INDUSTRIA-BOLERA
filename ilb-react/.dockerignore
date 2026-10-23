@@ -1,0 +1,24 @@
+# Dependencias y artefactos que se regeneran dentro de la imagen
+node_modules
+dist
+
+# Metadatos de git
+.git
+.gitignore
+
+# Secretos locales (.env.example sí se conserva como referencia)
+.env
+.env.*
+!.env.example
+
+# Documentación y salidas locales (sólo en la raíz del contexto)
+/docs
+/output
+/tmp
+/coverage
+/test-results
+*.log
+*.zip
+
+# Imágenes de apoyo en la raíz; no afecta a public/ ni a src/
+/*.png
